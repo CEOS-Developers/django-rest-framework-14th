@@ -1,1 +1,1 @@
-ceos-2nd-session
+ceos-django-2nd-sessiong
