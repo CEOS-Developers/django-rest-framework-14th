@@ -315,7 +315,6 @@ sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --buil
 `docker`가 없으면 설치, `docker-compose`가 없으면 설치, 그 후 `docker-compose`를 이용해 `build`한다.<br>
 여기서 -f 옵션으로 `docker-compose.prod.yml`을 이용하는 것을 볼 수 있다! (prod version)
 
-# 개발환경과 배포환경 일치시키기
 
 # Reference
 
