@@ -44,6 +44,11 @@
 쉽게 말하면 '컨테이너' 라는 개념을 사용하여 '프로세스를 격리'하는 방식으로 '더 가볍고 빠르다'<br>
 정도로 이해하면 사용하는 데 무리는 없을 것 같다.<br>
 
+`Dockerfile`로 이미지를 만들고, `docker-compose.yml`로 컨테이너를 만든다.<br>
+간단한 서버 이미지를 만들고 run 하는데는 커맨드라인 몇 줄이면 가능하겠지만,<br>
+컨테이너 조합이 많아지고 여러가지 설정이 추가되면 명령어가 금방 복잡해지므로,<br>
+도커는 복잡한 설정을 쉽게 관리하기 위해 YAML방식의 설정파일을 이용한 Docker Compose라는 툴을 제공한다.
+
 여러 장점들이 있지만, 도커를 사용하는 이유가 되는 장점은 크게 다음과 같다.
 1. 개발환경, 배포환경을 일치시킬 수 있다.
    1. 프로젝트를 개발하는 환경은 참여하는 모두가 일치할 수 없다. (매번 새로운 팀원이 들어왔을 때 세팅하는데 시간을 쓸 필요가 없다. 코드에만 집중 가능)
@@ -220,6 +225,95 @@ server {
 
 # Github action을 이용한 자동배포
 
+`Github`에서 특정 action이 일어났을 때를 감지하여 미리 지정해놓은 ec2 인스턴스에 배포하는 과정을 다뤘다.<br>
+로직은 'Actions 실행시 감지' -> 'SSH 접속' -> '외부서버에서 커맨드 실행' 이다.
+ssh 액션을 도와주는 
+[애플보이](https://github.com/appleboy/ssh-action) 를 사용했다.<br>
+ssh를 사용하여 remote한 folder로 deploy를 도와주는
+[rsync deployments](https://github.com/Burnett01/rsync-deployments) 를 사용했다.  
+
+```yaml
+# github/workflows/deploy.yml
+name: Deploy to EC2
+# push 액션을 감지.
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      # master branch 에서만 감지
+      uses: actions/checkout@master
+
+      # secrets 에 미리 정의한 ENV_VARS 를 .env 로 만들어 줌
+    - name: create env file
+      run: |
+        touch .env
+        echo "${{ secrets.ENV_VARS }}" >> .env
+
+      # secrets 에 미리 정의한 HOST, KEY 를 이용해 ssh 접속 후 dir 생성
+    - name: create remote directory
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: mkdir -p /home/ubuntu/srv/ubuntu
+      
+      # secrets 에 미리 정의한 HOST, KEY 를 이용해 ssh deploy.
+    - name: copy source via ssh key
+      uses: burnett01/rsync-deployments@4.1
+      with:
+        switches: -avzr --delete
+        remote_path: /home/ubuntu/srv/ubuntu/
+        remote_host: ${{ secrets.HOST }}
+        remote_user: ubuntu
+        remote_key: ${{ secrets.KEY }}
+
+      # secrets 에 미리 정의한 HOST, KEY 를 이용해 ssh 접속 후 script 실행.
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: |
+          sh /home/ubuntu/srv/ubuntu/config/scripts/deploy.sh
+```
+위에서 마지막에 실행한 `script`를 보자.
+```bash
+#!/bin/bash
+
+# Installing docker engine if not exists
+if ! type docker > /dev/null
+then
+  echo "docker does not exist"
+  echo "Start installing docker"
+  sudo apt-get update
+  sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+  sudo apt update
+  apt-cache policy docker-ce
+  sudo apt install -y docker-ce
+fi
+
+# Installing docker-compose if not exists
+if ! type docker-compose > /dev/null
+then
+  echo "docker-compose does not exist"
+  echo "Start installing docker-compose"
+  sudo curl -L "https://github.com/docker/compose/releases/download/1.27.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+fi
+
+echo "start docker-compose up: ubuntu"
+sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --build -d
+```
+`docker`가 없으면 설치, `docker-compose`가 없으면 설치, 그 후 `docker-compose`를 이용해 `build`한다.<br>
+여기서 -f 옵션으로 `docker-compose.prod.yml`을 이용하는 것을 볼 수 있다! (prod version)
 
 # 개발환경과 배포환경 일치시키기
 
