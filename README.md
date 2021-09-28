@@ -319,33 +319,51 @@ sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --buil
 
 도커의 장점을 살려보자. 개발 또한 컨테이너 내부에서 진행할 수 있다.<br>
 물론 로컬로 컨테이너를 실행하고 개발해도 된다.<br>
-하지만 개발 환경이 하나도 세팅되지 않은 상태에서 바로 개발을 할 때를 가정해보자.<br>
+하지만 개발 환경이 하나도 세팅되지 않은 상태에서 바로 개발을 할 때를 생각해보자.<br>
 python 설치, db 세팅부터 requirements.txt install 등등 할 것이 많다.<br>
 
 ## 무식한 방법
 
-프로젝트의 docker 컨테이너를 실행시키고, cli를 열어서 vim으로 작업한다.
-작업이 끝나면 소스코드를 복사해서 local에 붙여넣기한다.
-(간단한 테스트를 할 때는 괜찮은 방법일지도...?)
+프로젝트의 docker 컨테이너를 실행시키고, cli를 열어서 vim으로 작업한다.<br>
+작업이 끝나면 소스코드를 복사해서 local에 붙여넣기한다.<br>
+(간단한 테스트를 할 때는 괜찮은 방법일지도...?)<br>
+
+> 다음과 같이 `cli`버튼을 누르면 `terminal`이 열린다.<br>
+![docker_desktop.png](/images/docker_desktop.png)<br>
+
+> code가 완벽히 동일하게 같은 걸 볼 수 있다.<br>
+`docker-compose.yml`에서 volume을 /app으로 매핑했기 때문에<br>
+root directory가 app인 것도 확인할 수 있다.<br>
+![local_web.png](/images/local_web.png)<br>
+![local_web1.png](/images/local_web_1.png)<br>
+
+>`db container`에 들어가서 돌아다니는 모습.<br>
+사용자 이름은 'root', pw는 mysql이다. <br>
+`docker-compose.yml`에서 그렇게 만들었기 때문.<br>
+![local_db.png](/images/local_db.png)<br>
+![local_db1.png](/images/local_db_1.png)<br>
+![local_db2.png](/images/local_db_2.png)<br>
 
 ## Visual Studio 를 사용하는 방법
 
-프로젝트의 docker 컨테이너를 실행시키고, 
-우선 extention 탭에서 remote-containers를 설치한다.
-원격 탐색기 탭에서 현재 실행하고 있는 컨테이너와 연결한다.
-컨테이너 내부에서 작업하고 저장을 할 경우 
-local editor에서도 동일하게 적용됨을 볼 수 있다.
+프로젝트의 docker 컨테이너를 실행시키고, <br>
+우선 extention 탭에서 remote-containers를 설치한다.<br>
+원격 탐색기 탭에서 현재 실행하고 있는 컨테이너와 연결한다.<br>
+컨테이너 내부에서 작업하고 저장을 할 경우 <br>
+local editor에서도 동일하게 적용됨을 볼 수 있다.<br>
+예전에 블로그에 정리한 글을 참고하면 사진과 함께 더 자세히 알 수 있다.<br>
+[벨로그 글](https://velog.io/@n0wkim/Docker-%EA%B0%9C%EB%B0%9C%ED%99%98%EA%B2%BD-%EC%84%B8%ED%8C%85)
 
 ## 파이참을 사용하는 방법
 
-파이참이 아직 익숙하지 않아 적용하지 못했다.
-[참고](https://soundprovider.tistory.com/entry/%EB%94%A5%EB%9F%AC%EB%8B%9D-%EA%B0%9C%EB%B0%9C%ED%99%98%EA%B2%BD-%EC%84%B8%ED%8C%85%EA%B8%B0Docker-PyCharm-2)
+파이참이 아직 익숙하지 않아 적용하지 못했다.<br>
+[참고](https://soundprovider.tistory.com/entry/%EB%94%A5%EB%9F%AC%EB%8B%9D-%EA%B0%9C%EB%B0%9C%ED%99%98%EA%B2%BD-%EC%84%B8%ED%8C%85%EA%B8%B0Docker-PyCharm-2) <br>
 뭔가 복잡하다...ㅠ 나중에 시도해보자.
 
 # Reference
 
-https://subicura.com/2017/01/19/docker-guide-for-beginners-1.html
-https://docs.docker.com/get-started/overview/
-https://github.com/appleboy/ssh-action
-https://github.com/Burnett01/rsync-deployments
+https://subicura.com/2017/01/19/docker-guide-for-beginners-1.html <br>
+https://docs.docker.com/get-started/overview/ <br>
+https://github.com/appleboy/ssh-action <br>
+https://github.com/Burnett01/rsync-deployments <br>
 https://soundprovider.tistory.com/entry/%EB%94%A5%EB%9F%AC%EB%8B%9D-%EA%B0%9C%EB%B0%9C%ED%99%98%EA%B2%BD-%EC%84%B8%ED%8C%85%EA%B8%B0Docker-PyCharm-2
