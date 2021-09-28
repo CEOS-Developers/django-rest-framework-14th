@@ -346,3 +346,6 @@ local editor에서도 동일하게 적용됨을 볼 수 있다.
 
 https://subicura.com/2017/01/19/docker-guide-for-beginners-1.html
 https://docs.docker.com/get-started/overview/
+https://github.com/appleboy/ssh-action
+https://github.com/Burnett01/rsync-deployments
+https://soundprovider.tistory.com/entry/%EB%94%A5%EB%9F%AC%EB%8B%9D-%EA%B0%9C%EB%B0%9C%ED%99%98%EA%B2%BD-%EC%84%B8%ED%8C%85%EA%B8%B0Docker-PyCharm-2
