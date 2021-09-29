@@ -119,3 +119,70 @@ volumes:
   dbdata:
 
 ```
+
+## Docker Compose 명령어
+> 배포의 마지막 단계에서 Github actions를 통해\
+> EC2 서버 내에서 아래 명령을 수행
+```commandline
+$ sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --build -d
+```
+
+- `-f` \
+  docker-compose 의 설정 파일 명시
+- `up` \
+  docker-compose에 정의되어 있는 모든 컨테이너를 한번에 생성하고 실행
+- `-d` \
+  컨테이너를 백그라운드에서 띄우기
+- `--build` \
+  서비스 시작 전 이미지를 항상 새로 생성
+
+***
+## Nginx
+> Django로 서버를 만들어 놓고 왜 배포할 때 Nginx를 새로 설치해서 사용할까?
+> Nginx는 무엇이고 왜 사용할까
+
+참고 - [우리밋IT - Nginx 영상](https://www.youtube.com/watch?v=ZJpT-Wa-pZ8)
+
+### Nginx 란?
+```text
+# 프론트엔드와 백엔드의 통신
+Client  <-> Web Server <-> WAS <-> Database
+브라우저        Nginx       Django      MySQL
+```
+>Nginx는 위에서 Web Server에 해당하는 소프트웨어의 일종
+
+### `Web Server` vs `WAS(Web Application Server)`
+- Web Server\
+단순히 정적 파일을 응답 (HTML, CSS, JS)
+- WAS(Web Application Server)\
+클라이언트 요청에 대해 `동적인 처리`가 이뤄진 후 응답 (로그인 처리, 회원가입 처리 등 ...)
+
+> Django는 Web Server로의 역할, WAS로의 역할도 수행 가능
+
+### Nginx와 같은 Web Server를 사용하는 이유?
+> 단순 정적 파일을 응답하는 작업에 대한 부담을 줄여주기 위해!!
+
+### Nginx의 장점
+- 빠르다
+- 리버스 프록시
+  ```text
+  # 클라이언트와 인터넷 사이에 있는 포워드 프록시 (우리가 흔히 아는 프록시)
+                                    WAS1
+  client    proxy    internet       WAS2
+                                    WAS3
+  
+  # 인터넷과 백엔드 사이에 있는 리버스 프록시
+                                    WAS1
+  client    internet    Nginx       WAS2
+                                    WAS3
+  ```
+  - 로드 밸런싱 (load-balancing)\
+    클라이언트의 요청을 받아 적절한 WAS에 전달
+  - 캐싱 서버로의 역할\
+    같은 자원에 대한 반복적인 요청을 직접 처리
+- SSL 지원\
+  HTTPS 인증서를 제공. 자세한 내용은 추후 공부해야지..
+- 웹페이지 접근 인증
+- 압축
+- 비동기 처리
+- 
