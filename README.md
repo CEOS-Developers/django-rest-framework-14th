@@ -8,7 +8,7 @@
 
 ## Docker와 docker-compose
 
-docker는 위에서 말한 가상 컨테이너 기술이다. 애플리케이션을 신속하게 구축, 
+Docker는 위에서 말한 가상 컨테이너 기술이다. 애플리케이션을 신속하게 구축, 
 테스트 및 배포할 수 있는 소프트웨어 플랫폼으로 Docker는 소프트웨어를 컨테이너라는 표준화된 유닛으로 패키징하며, 
 이 컨테이너에는 라이브러리, 시스템 도구, 코드, 런타임 등 소프트웨어를 실행하는 데 필요한 모든 것이 포함되어 있다.
 
@@ -83,7 +83,41 @@ volumes:
 
 * 이미지를 여러개 띄워서 서로 네트워크도 만들어주고 컨테이너의 밖의 호스트와도 어떻게 연결할지, 파일 시스템은 어떻게 공유할지(volumes) 제어해주는것이 docker-compose이다.
     * 위 파일에서는 db와 web 두개의 컨테이너를 정의하여 서로 소통할 수 있다.
-## 컨테이너의 이점
+  
+## 이미지란?
+>이미지는 컨테이너 실행에 필요한 파일과 설정값등을 포함하고 있는 것으로 상태값을 가지지 않고 변하지 않는다. 컨테이너는 이미지를 실행한 상태라고 볼 수 있고 추가되거나 변하는 값은 컨테이너에 저장된다. 
+같은 이미지에서 여러개의 컨테이너를 생성할 수 있고 컨테이너의 상태가 바뀌거나 컨테이너가 삭제되더라도 이미지는 변하지 않고 그대로 남아있다.
+## 컨테이너란?
+
+>운영체계를 기반으로 만들어진 대부분의 Software는 그 실행을 위하여 OS와 Library를 포함, Software가 필요로 하는 파일 등으로 구성된 실행환경이 필요한데, 
+하나의 시스템 위에서 둘 이상의 Software를 동시에 실행하려고 한다면 문제가 발생할 수 있다.   
+>
+> 예를 들어 두 소프트웨어가 동일한 Library를 사용하고 있지만 서로 다른 버전을 사용하는 경우에 문제가 발생한다.   
+> 이러한 문제점의 가장 간단한 해결책은 두 Software를 위한 시스템을 각각 준비하는 것인데, 이럴 경우 비용의 문제가 생긴다.  
+> 
+> 위와 같은 문제점들을 효율적으로 해결하는 것이 바로 컨테이너이다.
+> 컨테이너는 개별 소프트웨어의 실행에 필요한 실행환경을 독립적으로 운용할 수 있도록 기반환경 또는 다른 실행환경과의 간섭을 막고 실행의 독립성을 확보해주는 운영체계 수준의 격리 기술을 말한다. 
+
+
+### 컨테이너 vs 가상 머신(Virtual Machine)
+우선 가상머신이란 호스트 운영체제에서 구동되며 그 바탕이 되는 하드웨어에 가상으로 액세스하는 Linux, Windows 등의 게스트 운영체제를 의미한다.
+* 유사점: 컨테이너는 가상 머신과 마찬가지로 애플리케이션을 관련 라이브러리 및 종속 항목과 함께 패키지로 묶어 소프트웨어 서비스 구동을 위한 격리 환경을 마련해 준다.
+* 차이점: 가상 머신은 하드웨어 스택을 가상화합니다. 컨테이너는 이와 달리 운영체제 수준에서 가상화를 실시하여 다수의 컨테이너를 OS 커널에서 직접 구동하므로 컨테이너는 훨씬 가볍고 운영체제 커널을 공유하며, 시작이 훨씬 빠르고 운영체제 전체 부팅보다 메모리를 훨씬 적게 차지한다.
+
+![VMvsContainer](https://user-images.githubusercontent.com/79985974/135488158-e9fdecb6-7854-4d5d-92d7-be65881b286a.PNG)
+
+### 컨테이너의 이점
+#### 1. 모듈성
+Docker의 컨테이너화 접근 방식은 전체 애플리케이션을 분해할 필요 없이 애플리케이션의 일부를 분해하고, 업데이트 또는 복구하는 능력에 집중되어 있다.
+#### 2. 계층 및 이미지 버전 제어
+각 Docker 이미지 파일은 일련의 계층으로 이루어져 있으며 이 계층들은 단일 이미지로 결합된다. 이미지가 변경될 때 계층이 생성되고, 
+사용자가 실행 또는 복사와 같은 명령을 지정할 때마다 새 계층이 생성된다.   
+Docker는 새로운 컨테이너를 구축할 때 이러한 계층을 재사용하므로 구축 프로세스가 훨씬 더 빨라지고  계층화에는 버전 관리가 내재되어 있으며 새로운 변경 사항이 발생할 때마다 내장 변경 로그가 기본적으로 적용되므로 컨테이너 이미지를 완전히 제어할 수 있다.
+#### 3. 롤백
+모든 이미지에는 계층이 있으며, 현재의 이미지 반복이 적절하지 않은 경우 이전 버전으로 롤백하면 된다.
+#### 4. 신속한 배포
+Docker 기반 컨테이너는 배포 시간을 몇 초로 단축할 수 있다. 각 프로세스에 대한 컨테이너를 생성함으로써 사용자는 유사한 프로세스를 새 앱과 빠르게 공유할 수 있다. 
+또한, 컨테이너를 추가하거나 이동하기 위해 OS를 부팅할 필요가 없으므로 배포 시간이 크게 단축된다. 이뿐만 아니라 배포 속도가 빨라 컨테이너에서 생성된 데이터를 효율적으로 쉽게 생성하고 삭제할 수 있다.
 
 ## 서버 작동 원리
 
@@ -214,3 +248,56 @@ nginx:1.19.0-alpine라는 이미지는 이미 누군가가 만들어놨고, ngin
 RUN rm /etc/nginx/conf.d/default.conf # default config 파일을 삭제
 COPY nginx.conf /etc/nginx/conf.d #nginx.conf라는 파일을 옮겨준다
 ```
+## Github Actions
+
+```yaml
+name: Deploy to EC2
+on: [push] # push 될 때 마다 이 workflow를 수행
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@master
+
+    - name: create env file #깃헙 설정에 복사한 ENV_VARS의 값을 모두 .env file로 만든다.
+      run: |
+        touch .env
+        echo "${{ secrets.ENV_VARS }}" >> .env
+
+    - name: create remote directory # ec2 서버에 디렉토리를 하나 만들어준다.
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: mkdir -p /home/ubuntu/srv/ubuntu
+
+    - name: copy source via ssh key # ssh key를 이용해 현재 푸시된 소스를 서버에 복사한다.
+      uses: burnett01/rsync-deployments@4.1
+      with:
+        switches: -avzr --delete
+        remote_path: /home/ubuntu/srv/ubuntu/
+        remote_host: ${{ secrets.HOST }}
+        remote_user: ubuntu
+        remote_key: ${{ secrets.KEY }}
+
+    - name: executing remote ssh commands using password # 서버에 접속하여 deploy.sh 를 실행시킨다.
+      uses: appleboy/ssh-action@master
+      env:
+        DEPLOY_USERNAME: hanqyu
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: |
+          ****sh /home/ubuntu/srv/ubuntu/config/scripts/deploy.sh
+
+```
+## 요약
+1.  branch main으로 push를 한다.
+2. Github Actions이 코드를 서버에 올리고 deploy.sh를 실행시킨다.
+3. deploy.sh는 docker-compose.prod.yml 파일을 실행시킨다.
+4. docker-compose.prod.yml에서 web이라는 컨테이너와 nginx라는 컨테이너 생성하고 실행한다.
