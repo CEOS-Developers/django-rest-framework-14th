@@ -179,10 +179,36 @@ Client  <-> Web Server <-> WAS <-> Database
   - 로드 밸런싱 (load-balancing)\
     클라이언트의 요청을 받아 적절한 WAS에 전달
   - 캐싱 서버로의 역할\
-    같은 자원에 대한 반복적인 요청을 직접 처리
+    동일한 자원에 대한 반복적인 요청을 직접 처리
+    ```
+    $ python manage.py collectstatic
+    ```
+    명령을 통해 정적 파일을 한군데 모으는 것도 이러한 이유라고 한다.\
+    Nginx가 해당 디렉토리에서 정적 파일에 대한 요청을 바로 처리할 수 있게끔
+
+
 - SSL 지원\
   HTTPS 인증서를 제공. 자세한 내용은 추후 공부해야지..
 - 웹페이지 접근 인증
 - 압축
 - 비동기 처리
-- 
+
+### Nginx와 Django 사이 gunicorn
+
+```yaml
+# docker-compose.prod.yml
+web:
+  command: gunicorn django-rest-framework-14th.wsgi:application --bind 0.0.0.0:8000
+```
+배포용 docker-compose 파일의 web 컨테이너에서 gunicorn 관련 명령을 실행하는 것을 확인할 수 있다.
+Nginx까진 이해했는데 gunicorn은 또 무엇인가..
+
+> gunicorn은 WSGI(Web Server Gateway Interface) 서버
+>> WSGI는 파이썬 어플리케이션이 웹 서버와 통신하기 위한 인터페이스\
+> `gunicorn`, `uWSGI` 같은 WSGI 서버는 웹서버에서의 요청을 해석하여 파이썬 어플리케이션 쪽으로 던지는 역할
+
+![](./images/webstructure.png)
+
+> `gunicorn`과 `python runserver`는 같은 역할을 하지만\
+> `runserver`는 단일 쓰레드로 동작하기 때문에 request 요청이 많아질 경우 처리능력이 떨어진다.\
+> 따라서 production 환경에서는 runserver 사용하지 못함
