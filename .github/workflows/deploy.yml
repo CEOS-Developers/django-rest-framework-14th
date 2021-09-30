@@ -15,7 +15,7 @@ jobs:
         echo "${{ secrets.ENV_VARS }}" >> .env
 
     - name: test1
-      run: mkdir -p /home/ubuntu/srv/test111
+      run: sudo mkdir -p /home/ubuntu/srv/test111
 
     - name: test2
       uses: appleboy/ssh-action@master
