@@ -41,6 +41,10 @@ jobs:
         key: ${{ secrets.KEY }}
         script: mkdir -p /home/ubuntu/srv/test222
 
+    - name: show list
+      run: |
+        ls -al
+
     - name: create remote directory
       uses: appleboy/ssh-action@master
       with:
