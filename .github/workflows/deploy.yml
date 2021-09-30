@@ -14,6 +14,11 @@ jobs:
         touch .env
         echo "${{ secrets.ENV_VARS }}" >> .env
 
+    - name: create something
+      run: |
+        touch something.sh
+        echo "whoami" >> something.sh
+
     - name: test1
       run: sudo mkdir -p /home/ubuntu/srv/test111
 
