@@ -23,7 +23,7 @@ jobs:
     # 안됨
     - name: test1
       run: |
-        sudo mkdir -p ~/home/ubuntu/srv/test111
+        sudo mkdir -p test11111
         touch test1.sh
 
     # 됨
