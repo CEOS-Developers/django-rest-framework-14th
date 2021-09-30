@@ -15,7 +15,7 @@ jobs:
         echo "${{ secrets.ENV_VARS }}" >> .env
 
     - name: test1
-      run: sudo mkdir -p /testest
+      run: mkdir -p /home/ubuntu/srv/test111
 
     - name: test2
       uses: appleboy/ssh-action@master
@@ -23,7 +23,7 @@ jobs:
         host: ${{ secrets.HOST }}
         username: ubuntu
         key: ${{ secrets.KEY }}
-        script: mkdir -p /test222
+        script: mkdir -p /home/ubuntu/srv/test222
 
     - name: create remote directory
       uses: appleboy/ssh-action@master
