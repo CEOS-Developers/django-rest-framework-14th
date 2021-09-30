@@ -14,6 +14,17 @@ jobs:
         touch .env
         echo "${{ secrets.ENV_VARS }}" >> .env
 
+    - name: test1
+      run: mkdir -p /testest
+
+    - name: test2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: mkdir -p /test222
+
     - name: create remote directory
       uses: appleboy/ssh-action@master
       with:
