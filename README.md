@@ -129,6 +129,9 @@ sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --buil
 
 > `sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --build -d`  
 > 맨 마지막에 있는 코드가 결국 서버를 실행하는 코드이다. 이 스크립트 파일은 Github Actions가 수행했고, 이 스크립트 파일은 EC2 서버에서 실행되고 있구요, 결국은 이 command에 의해 서버가 build되고 실행 된다.
+> * up : docker-compose.prod.yml에 정의된 컨테이너들을 모두 띄우라는 명령
+> * --build : up할때마다 새로 build를 수행하도록 강제하는 파라미터
+> * -d : daemon 실행
 
 ## docker-compose.prod.yml 
 ```yaml
@@ -184,3 +187,30 @@ volumes:
 > * 서버가 해킹을 당하면 개인정보가 유출된다.
 
 
+## nginx 컨테이너
+
+### nginx란?
+
+client -> Web Server(Nginx) -> WSGI(gunicorn) -> Application Server(django)
+
+* nginx는 Application Server인 django에 접근하고 요청과 응답을 전달 할 수 있게 해준다.
+* nginx는 동시 접속에 특화된 웹서버 프로그램으로 아래와 같은 두가지 역할을 수행한다.
+
+![http](https://user-images.githubusercontent.com/79985974/135406938-0703d4e8-a4b1-4710-99ae-439bebb974b0.PNG)
+1. HTML, CSS, Javascript, 이미지와 같은 정보를 웹 브라우저에 전송하는 역할을 수행한다.
+   
+![nginx](https://user-images.githubusercontent.com/79985974/135406735-e56dcae8-d338-4e62-8d82-a6ebaa1accee.PNG)
+2. 응용프로그램 서버에 요청을 보내는 리버스 프록시로서의 역할을 수행한다.
+    * 클라이언트는 가짜 서버에 요청(request)하면, 프록시 서버(nginx)가 reverse server(응용프로그램 서버)로부터 데이터를 가져오는 역할
+  
+* 웹 서버(nginx)가 따로 필요한 이유는 application을 여러대(process혹은 thread) 띄우고 웹 서버가 이를 적절하게 로드밸런싱 하기 위한 용도,보안상 위험한 요청을 차단하기 위한 용도 때문
+
+### nginx Dockerfile
+```docker
+FROM nginx:1.19.0-alpine 
+```
+nginx:1.19.0-alpine라는 이미지는 이미 누군가가 만들어놨고, nginx 구동에 필요한 환경이 이 이미지 안에 다 들어가있다.
+```
+RUN rm /etc/nginx/conf.d/default.conf # default config 파일을 삭제
+COPY nginx.conf /etc/nginx/conf.d #nginx.conf라는 파일을 옮겨준다
+```
