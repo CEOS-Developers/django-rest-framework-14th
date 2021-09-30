@@ -14,19 +14,24 @@ jobs:
         touch .env
         echo "${{ secrets.ENV_VARS }}" >> .env
 
-    # 됨
     - name: create something
       run: |
         touch something.sh
         echo "whoami" >> something.sh
 
-    # 안됨
     - name: test1
       run: |
-        sudo mkdir -p test11111
+        sudo mkdir -p test123123/ttteeest
         touch test1.sh
 
-    # 됨
+    - name: ssh-test
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: mkdir -p ssh-test/ssssshhhhhh
+
     - name: test2
       uses: appleboy/ssh-action@master
       with:
