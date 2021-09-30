@@ -43,6 +43,7 @@ jobs:
 
     - name: show list
       run: |
+        pwd
         ls -al
 
     - name: create remote directory
