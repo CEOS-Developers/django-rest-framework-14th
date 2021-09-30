@@ -85,3 +85,102 @@ volumes:
     * 위 파일에서는 db와 web 두개의 컨테이너를 정의하여 서로 소통할 수 있다.
 ## 컨테이너의 이점
 
+## 서버 작동 원리
+
+docker-compose.prod.yaml 파일은 서버에서 Github Actions가 실행시켜주는 파일이다.  
+
+Github Actions가 실행시켜주는 파일의 맨 아래에 가면 이런게 있다.
+```bash
+sh /home/ubuntu/srv/ubuntu/config/scripts/deploy.sh
+```
+
+이때 config/scripts/deploy.sh는 Actions가 내 프로젝트에서 복사해갔다.
+### config/scripts/deploy.sh
+```python
+#!/bin/bash
+
+# Installing docker engine if not exists
+if ! type docker > /dev/null #docker를 깔아주는 코드, EC2 인스턴스에는 아무것도 없기 때문에 직접 깔아줘야 한다.
+then
+  echo "docker does not exist"
+  echo "Start installing docker"
+  sudo apt-get update
+  sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+  sudo apt update
+  apt-cache policy docker-ce
+  sudo apt install -y docker-ce
+fi
+
+# Installing docker-compose if not exists
+if ! type docker-compose > /dev/null #docker-compose를 깔아주는 코드
+then
+  echo "docker-compose does not exist"
+  echo "Start installing docker-compose"
+  sudo curl -L "https://github.com/docker/compose/releases/download/1.27.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+fi
+
+echo "start docker-compose up: ubuntu"
+sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --build -d
+```
+
+
+> `sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --build -d`  
+> 맨 마지막에 있는 코드가 결국 서버를 실행하는 코드이다. 이 스크립트 파일은 Github Actions가 수행했고, 이 스크립트 파일은 EC2 서버에서 실행되고 있구요, 결국은 이 command에 의해 서버가 build되고 실행 된다.
+
+## docker-compose.prod.yml 
+```yaml
+version: '3'
+services:
+
+  web:
+    container_name: web#!/bin/sh
+
+python manage.py collectstatic --no-input
+
+exec "$@"
+    build:
+      context: ./
+      dockerfile: Dockerfile.prod
+    command: gunicorn django_docker.wsgi:application --bind 0.0.0.0:8000
+    environment:
+      DJANGO_SETTINGS_MODULE: django_docker.settings.prod
+    env_file:
+      - .env
+    volumes:
+      - static:/home/app/web/static
+      - media:/home/app/web/media
+    expose:
+      - 8000
+    entrypoint:
+      - sh
+      - config/docker/entrypoint.prod.sh
+
+  nginx:
+    container_name: nginx
+    build: ./config/nginx
+    volumes:
+      - static:/home/app/web/static
+      - media:/home/app/web/media
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+
+volumes:
+  static:
+  media:
+```
+* docker-compose.yml와 다르게 db 컨테이너가 없고 nginx 컨테이너가 있다.
+  
+
+### db 컨테이너가 없는 이유
+
+>* 데이터가 날아가고 유출 위험이 있다.
+>* 서버는 여러 인스턴스를 띄우고 지울 수있는데 서버에 db를 띄운다면 다른 서버가 db에 붙지도 못하고, 인스턴스를 날리면 데이터도 날리게 된다.
+> * 인스턴스의 자원을 같이 쓰기 때문에 효율적이지도 않다.
+> * 서버가 해킹을 당하면 개인정보가 유출된다.
+
+
