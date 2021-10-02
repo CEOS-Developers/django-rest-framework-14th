@@ -16,7 +16,7 @@
 | --- | --- |
 | 하이퍼바이저가 여러개의 VM을 띄우고 실행. OS 전체를 가상화하는 방식.(전가상화의 경우) | 같은 OS를 공유하고(OS의 리소스를 컨테이너들이 공유) 프로세스만 격리하는 방법. |
 | VM마다 독립적인 실행환경 제공 -> 많은 용량 차지 | os의 자원을 컨테이너들이 공유 -> 부팅시간 짧고, 공간 차지 적음 |
-| 속도 저하(리소스 분할 및 퍼포먼스 오버헤드), CI/CD 어려움 | 빠른 속도, 효율성, 이식성 좋음. CI/CD, MSA와 조화 |
+| 속도 저하(리소스 분할 및 퍼포먼스 오버헤드), CI/CD 어려움 | 빠른 속도, 효율성, 이식성 좋음 |
 
 ![image](https://user-images.githubusercontent.com/77983074/135456938-32daee35-ecf6-409e-9048-d2fb63fd435e.png)
 
@@ -24,19 +24,42 @@
 
 **\- docker 구조**
 
->1) docker client와 docker server(engine)
+>1. docker client와 docker server(engine)
 >
->2) docker image
+>2. docker image
 >
 >  -**Dockerfile**: 내가 생성하고자 하는 컨테이너, 그 환경을 만들기 위해 필요한 패키지를 설치하고 동작하기 위한 설정을 담은 파일. Dockerfile을 빌드하면 자동으로 Docker image가 생성됨. 
 >
 >  -**Docker Image**: 서비스 운영에 필요한 서버 프로그램, 소스 코드, 컴파일된 실행 파일 등을 묶은 형태로 컨테이너를 생성하는 템플릿 역할. <- 이미지는 변경 불가능. 컨테이너의 비저장성은 >컨테이너 내용을 일관되게 한다.
 >
->3) docker registry: docker image를 저장하는 repostory. docker hub.
+>3. docker registry: docker image를 저장하는 repostory. docker hub.
 >
->4) docker container: docker image를 run하여 docker container를 생성한다. 
+>4. docker container: docker image를 run하여 docker container를 생성한다. 
 
----
+**\- docker를 쓰는 이유?**
+
+
+>**1. control이 쉽다.** OS 위의 사용자 단에 client를 제공하여 CLI로 쉽게 컨트롤 할 수 있다.
+>
+>**2. 경량화.** 커널을 직접 컨트롤하는 container 기반 가상화로 리소스와 기능이 제한되어 있는 환경에서도 배포 가능하도록 경량화된 애플리케이션을 제공한다.
+>
+>**3. CI/CD.** 지속적인 통합과 자동 배포를 진행하기 위해 필요한 서비스 운영 환경에 대한 패키징을 Docker image를 통해 구현 가능하다. 
+
+<details>
+<summary>CI/CD?</summary>
+  
+<div markdown="1">
+<br>
+  <b>CI(Continuous Integration)</b>: 지속적 통합. 새로운 소스코드의 빌드, 테스트, 병합. MSA(Micro Service Architecture) 환경에서 CI의 적용은 기능 충돌 방지 등의 benefit을 제공해줄 수 있다. 
+  
+  <b>CD(Continuous Delivery/Deployment)</b>: 지속적 배포(서비스 제공). 변경 사항이 고객의 production 환경까지 릴리즈 되는 것.
+  
+![image](https://user-images.githubusercontent.com/90975718/135703973-2c53a451-7328-4a66-82a5-842b4780166c.png)
+  
+  <출처: redhat>
+
+</div>
+</details>
 
 ### **2\. docker-compose란?**
 
@@ -52,7 +75,7 @@
 >
 >**2) 앱 컨테이너와 데이터베이스 컨테이너의 실행 순서**
 >
->기본적으로 도커 컨테이너들은 각각 격리된 환경에서 실행되므로 별도의 옵션을 지정하지 않으면 다른 컨테이너의 존재를 알 수 없다. 따라서 반드시 데이터베이스 컨테이너를 실행한 다음에 앱 컨테이>너를 실행하며 db 컨테이너를 연결해줘야 한다. 그렇지 않으면 앱 컨테이너에서 데이터베이스 컨테이너를 찾을 수 없다. -> 만약 앱컨테이너를 먼저 실행했다면 종료하고 순서를 맞춰 다시 실행해야하는 >불편함이 존재.
+>기본적으로 도커 컨테이너들은 각각 격리된 환경에서 실행되므로 별도의 옵션을 지정하지 않으면 다른 컨테이너의 존재를 알 수 없다. 따라서 반드시 데이터베이스 컨테이너를 실행한 다음에 앱 컨테이>너를 실행하며 db 컨테이너를 연결해줘야 한다. 그렇지 않으면 앱 컨테이너에서 데이터베이스 컨테이너를 찾을 수 없다. -> 만약 앱컨테이너를 먼저 실행했다면 종료하고 순서를 맞춰 다시 실행해야하는 불편함이 존재.
 
 **\->** **도커 컴포즈를 사용하면 컨테이너 실행에 필요한 옵션을 docker-compose.yml이라는 파일에 적어둘 수 있고, 컨테이너 간 실행 순서나 의존성도 관리할 수 있다.**
 
