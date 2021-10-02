@@ -184,3 +184,92 @@ COPY <복사할 파일> <이미지에서 파일을 복사할 경로>
 ```
 라고 한다.
 
+장고에서 도커 세팅을 할 때, 여러가지 파일을 만날 수 있는데, 각 파일이 어떤 역할을 하는지 한번 알아보자.
+
+## Dockerfile vs Docker-compse
+
+두 파일 내용이 되게 비슷하게 생겼는데, 무엇이 다른지 알아보자.
+
+### Dockerfile
+
+1.  목적 :
+    - `bash image` 파일로 수정된 `image` 를 만드는 일련의 과정들을 정리해 놓은 파일이다.
+    - 이 파일을 이용하여 손쉽게 동일한 이미지를 반복해서 만들 수 있다.
+    
+
+이미지가 뭐지?? 라는 생각이 들 수 있는데, 도커가 만드는 이미지에 대해서 이해를 하려면 도커의 전반적인 구동 방식을 이해하고 있어야 한다.
+
+도커의 작동원리를 간단히 복습해보자.
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9ac8afe7-46ad-4d7b-b933-0366e0cd1d60/Untitled.png)
+
+도커는 가상 머신과 비슷하다고 생각하면 되지만, 큰 차이가 있다.
+
+가상 머신은 OS위에 게스트 OS 전체를 가상화하여 사용하는 방식이기 때문에, 사용하는 컴퓨터의 리소스를 분할하여 사용하여 속도저하가 발생하고, 주변 장치들과 완벽한 호환이 어렵다.
+
+이러한 단점을 개선하기 위해 프로세스를 격리하는 방식을 사용하게 되고, 그 방식을 사용하는 것이 도커이다.
+
+도커는 이 격리 환경을 만들기 위해 리눅스의 `namespace`와 `cgroup` 이라는 기능을 사용한다. 그리고 이 기능들을 사용하며 만들어진 컨테이너를 `LXC`(리눅스 컨테이너) 라고 부른다. 이 기능들에 대한 자세한 설명은 여기로!
+
+[Docker(container)의 작동 원리: namespaces and cgroups](https://tech.ssut.me/what-even-is-a-container/)
+
+도커는 게스트 OS가 필요하긴 하지만, 전체 OS를 가상화하는 방식이 아니기 때문에, 호스트형 가상화 방식에 비해 성능이 많이 향상되었다.
+
+- `컨테이너` : 이미지를 실행한 상태로 볼 수 있고, 변하는 값은 컨테이너에 저장된다.
+- `이미지` : 컨테이너 실행에 필요한 파일과 설정 값 등을 포함하고 있는 것.(Immutable) 16진수 ID로 구분되며, 각각의 이미지는 독립적이다.
+
+### Docker-compose
+
+다중 컨테이너 도커 어플리케이션을 정의하고 동작하게 해주는 툴이다. `.yml` 파일로 작성되며, 모든 서비스들의 생성 및 시작을 하나의 명령어로 수행할 수 있게 해준다.
+
+그러니까, 여러 컨테이너 실행을 관리할 수 있게 해주는 것이다.
+
+핵심 명령어를 살펴보자.
+
+- `services` : 하나의 어플리케이션에는 여러 개의 서비스들이 연결되어 사용된다. 예를 들면, 웹 서비스도 필요하고, `spring` 이나 `mysql` 과 같은 DB서버도 필요하다. 이러한 서비스들을 하위 항목에 작성하는 것이다.
+- `db : image` :  내 `db` 항목 안에 이미지 설정이 있는데, 이게 왜 있는 거냐면, `docker hub` 에서 이미지를 받아와서 사용할 때 이 설정을 사용하는 것이다.
+- `volumes` : 이 항목을 보면 로컬 환경의 경로가 있는데, 데이터베이스는 휘발성 데이터가 아니기 때문에 도커가 종료되거나 다시 실행되더라도 지워지면 안된다. 그러므로 로컬 환경의 폴더와 데이터를 연결하여 파일이 손실되는 것을 막기 위해 사용하는 명령어다.
+
+## Github Actions
+
+### 핵심 개념
+
+소프트웨어 workflow를 자동화할 수 있도록 도와주는 도구.
+
+이것을 이해하기 위해 알아야 하는 개념은 `Workflow` , `Event`, `Job`, `Step`, `Action`, `Runner` 등이 있음.
+
+1. Workflow
+- 여러 Job으로 구성되고, Event에 의해 트리거될 수 있는 자동화된 프로세스.
+- 최상위 개념이고, `.yml` 이나 `.yaml` 으로 작성되며, 레포지토리의 `.github/workflows` 폴더 아래에 저장된다.
+
+2. Event
+- Workflow를 실행(Trigger)하는 특정 활동이나 규칙
+- ex) `특정 branch로 Push`, `특정 branch로 Pull Request`, `특정 시간대에 반복(Cron)`, `Webhook을 사용해 외부 이벤트를 통해 실행` 등... 자세한 내용은 아래 링크 참고하자.
+
+[Events that trigger workflows - GitHub Docs](https://help.github.com/en/actions/reference/events-that-trigger-workflows#external-events-repository_dispatch)
+
+3. Job
+- 여러 Step으로 구성되고, 가상 환경의 인스턴스에서 실행된다.
+- 다른 Job에 의존 관계를 가질 수도 있고, 독립적으로 병렬 실행 할 수도 있다.
+
+4. Step
+- Task들의 집합. 커맨드를 날리거나 action을 실행할 수 있음.
+
+5. Action
+- Workflow의 가장 작은 블럭이다.
+- Job을 만들기 위해 Step들을 연결할 수 있다.
+- 재사용이 가능하다.
+- 개인적으로 만든 Action을 사용할 수도, Github Marketplace에 있는 공용 Action을 사용할 수도 있다.
+
+6. Runner
+- Workflow가 실행될 인스턴스로, `Github Action Runner` 어플리케이션이 설치된 머신이다.
+- 직접 호스팅하는 `Self-hosted runner`, 깃헙에서 호스팅해주는 `Github-hosted runner` 로 구분할 수 있다.
+- Github-hosted runner는 Azure의 Standard_DS2_v2로 vCPU 2, 메모리 7GB, 임시 스토리지 14GB 이다.
+
+### Workflow 이해하기.
+
+Workflow안에 있는 `.yml` 파일을 하나하나씩 분석해보면서 이해해보자.
+
+- `name` : Workflow의 이름을 지정
+- `on` : Event에 대해 작성하는 부분으로, 어떤 조건에 workflow를 trigger할지 작성한다. 단일 event를 사용할 수도, array로 작성할 수도 있다.
+- `jobs` : 여러 Job이 있을 경우, **병렬 실행이 Default**다. `runs-on` 은 어떤 OS에서 실행될지를 지정해 주는것이고, steps의 `uses` 는 어떤 액션을 사용할 지 지정하는데, 이미 만들어진 액션을 사용할 때 지정한다.
