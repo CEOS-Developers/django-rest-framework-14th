@@ -14,37 +14,7 @@ jobs:
         touch .env
         echo "${{ secrets.ENV_VARS }}" >> .env
         ls -al
-
-    - name: create something
-      run: |
-        touch something.sh
-        echo "whoami" >> something.sh
-
-    - name: test1
-      run: |
-        sudo mkdir -p test123123/ttteeest
-        touch test1.sh
-
-    - name: ssh-test
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ubuntu
-        key: ${{ secrets.KEY }}
-        script: mkdir -p ssh-test/ssssshhhhhh
-
-    - name: test2
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ubuntu
-        key: ${{ secrets.KEY }}
-        script: mkdir -p /home/ubuntu/srv/test222
-
-    - name: show list
-      run: |
         pwd
-        ls -al
 
     - name: create remote directory
       uses: appleboy/ssh-action@master
@@ -58,7 +28,7 @@ jobs:
       uses: burnett01/rsync-deployments@4.1
       with:
         switches: -avzr --delete
-        remote_path: /home/ubuntu/srv/test222/
+        remote_path: /home/ubuntu/srv/ubuntu
         remote_host: ${{ secrets.HOST }}
         remote_user: ubuntu
         remote_key: ${{ secrets.KEY }}
