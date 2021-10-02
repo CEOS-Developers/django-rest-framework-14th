@@ -104,7 +104,7 @@ name: copy source via ssh key
 
 이 부분이 가장 이해가 안갔다. 먼저 [burnett01/rysnc-deployments](https://github.com/Burnett01/rsync-deployments) 를 찾아보았다.  
 
-`Github Action`이 GITHUB_WORKSPACE에 있는 파일들을 `rsync`를 통해 배포할 수 있도록 해준다고 한다.
+`Github Action`이 [GITHUB_WORKSPACE](#github-workspace)에 있는 파일들을 `rsync`를 통해 배포할 수 있도록 해준다고 한다.
 
 `rsync`란 간단하게 말하자면 원격에 있는 파일과 디렉토리를 복사하고 동기화 하기 위해서 사용하는 툴이다.  
 remote-update protocol을 이용하여 차이가 있는 파일만 복사하고, 데이터를 압축하여 송/수신하기 때문에 더 적은 bandwidth를 사용한다는 장점이 있다.
@@ -622,7 +622,7 @@ web:
 
 ## 서버 및 컨테이너에 접속하기
 
-앞으로 서버에 접속하게될일이 많을 것 같아 간단하게 sheel script 파일로 만들었다.
+앞으로 서버에 접속하게될일이 많을 것 같아 간단하게 shell script 파일로 만들었다.
 ![public-ip-dns](img/public-ip-dns.png)
 
 ```shell
@@ -648,10 +648,93 @@ ec2 서버에 docker를 이용하여 서버를 구동하기 때문에, 먼저 �
 > sudo docker exec -it web sh
 ```
 
-접속완료!
+**접속완료!**
+
+## GITHUB WORKSPACE
+
+승우님과 경준님 질문을 통해 `github action`의 동작과정을 조금 더 자세하게 알게됐다
+
+```yaml
+run: |
+        touch .env
+        echo "${{ secrets.ENV_VARS }}" >> .env
+```
+
+1. 이 touch를 하였을 때, .env 파일은 어디에 생기는 것일까?
+
+```yaml
+ name: create remote directory
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: mkdir -p /home/ubuntu/srv/ubuntu
+```
+
+2. 왜 create remote directory step에선 ssh를 이용해서 디렉토리를 생성할까?
+
+<br>
+<br>
+
+```yaml
+# deploy.yml
+name: Deploy to EC2
+on: [push]
+jobs:
+```
+
+push를 할 때 이 야믈에 설정된 `job`들이 실행된다. `job`은 `step`들이 모인 것이며 하나의 `job`내에선 같은 [runner](https://github.com/actions/runner) 에서 실행된다.  
+이 `runner`는 `github`에서 제공하는 것과 개인의 것 두가지로 나눌 수 있는데, 우리는 `github`에서 제공하는 `runner`를 사용한다.  
+
+`github`에서 제공하는 `runner`는 `github`가 호스팅하는 가상머신을 뜻하며, 실제로 어떻게 돌아가는지 알고싶어서 `deploy.yml`의 기존 step들을 수정한 뒤, workflow를 들여다 보았다.  
+
+pwd와 ls -al 명령어를 사용하여 실제 어디서 동작하는지 보았다.  
+
+![when-touch-env](img/when-touch-env.png)
+
+현재 `django-rest-framework-14th` repository에 있는 파일들이 전부 있는 것을 확인할 수 있다. 여기에 touch .env를 입력하였기 때문에, .env 파일이 추가되었다.  
+
+![after-touch-env](img/after-touch-env.png)
+
+.env 파일이 만들어진 뒤, 이 디렉토리의 위치와 이 디렉토리에 존재하는 파일들을 보여주는 사진이다.  
+
+**/home/runner/work/django-rest-framework-14th/django-rest-framework-14th**
+
+가상환경에 repository에 존재하는 모든 파일들이 올라간 뒤, 그 곳에서 작업하는 것을 실제로 볼 수 있었다.
+
+1번 질문의 답은 runner의 인스턴스에 repository의 모든 파일들이 업로드 되고, 그 곳에서 .env 파일도 생성된다 라고 할 수 있겠다.  
+
+2번 질문의 답도 이 runner 인스턴스에 대한 이해를 마치고 나니, 간단하게 답변할 수 있었다.  
+
+먼저 
+
+```yaml
+run: mkdir -p {directory} 
+```
+
+를 이용해서 디렉토리를 생성한다면, `runner` 인스턴스내에 새로운 디렉토리를 생성하는 것이다.  
+
+`runner`인스턴스 내부가 아닌, ec2 인스턴스에 새로운 디렉토리를 생성하고 싶다면 다음과 같이 `ssh`를 사용하여 만들어야 한다.  
+
+```yaml
+- name: create remote directory
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: mkdir -p /home/ubuntu/srv/ubuntu
+```
+
+`ssh`를 이용하게되면 `runner` 인스턴스와는 전혀 상관 없이 직접 ec2 인스턴스에 접속하여 mkdir 명령을 수행하는 것이기 때문이다!
+
+
+<br>
+<br>
 
 # 결론
-docker에 대해 굉장히 자세하게 알게되어서 굉장히 기분이 좋다.  
+docker와 git action에 대해 굉장히 자세하게 알게되어서 굉장히 기분이 좋다.  
 강해진 느낌이 든다.
 
 <br>
@@ -669,3 +752,7 @@ https://joont92.github.io/docker/volume-container-추가하기/
 https://jay-ji.tistory.com/66
 
 https://docs.docker.com/develop/develop-images/multistage-build/
+
+https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
+
+https://docs.github.com/en/actions/learn-github-actions/environment-variables
