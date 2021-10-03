@@ -162,7 +162,7 @@ sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --buil
 
 
 > `sudo docker-compose -f /home/ubuntu/srv/ubuntu/docker-compose.prod.yml up --build -d`  
-> 맨 마지막에 있는 코드가 결국 서버를 실행하는 코드이다. 이 스크립트 파일은 Github Actions가 수행했고, 이 스크립트 파일은 EC2 서버에서 실행되고 있구요, 결국은 이 command에 의해 서버가 build되고 실행 된다.
+> 맨 마지막에 있는 코드가 결국 서버를 실행하는 코드이다. 이 스크립트 파일은 Github Actions가 수행했고, 이 스크립트 파일은 EC2 서버에서 실행되고 있으며, 결국은 이 command에 의해 서버가 build되고 실행 된다.
 > * up : docker-compose.prod.yml에 정의된 컨테이너들을 모두 띄우라는 명령
 > * --build : up할때마다 새로 build를 수행하도록 강제하는 파라미터
 > * -d : daemon 실행
