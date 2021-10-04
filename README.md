@@ -212,3 +212,276 @@ Nginx까진 이해했는데 gunicorn은 또 무엇인가..
 > `gunicorn`과 `python runserver`는 같은 역할을 하지만\
 > `runserver`는 단일 쓰레드로 동작하기 때문에 request 요청이 많아질 경우 처리능력이 떨어진다.\
 > 따라서 production 환경에서는 runserver 사용하지 못함
+
+# 3주차 - Django 모델링
+## Django와 MySQL 연동하기
+Django에서 MySQL을 사용하기 위해서는 커넥터가 필요하다.
+> 일반적으로 mysqlclient이나 pymysql을 사용\
+> c로 작성된 mysqlclient가 속도 면에서 우수하다고 한다.
+
+> $ pip install mysqlclient
+
+가상환경 내 커넥터 패키지를 설치해주었다.\
+이후 mysql에 내가 사용할 데이터베이스를 생성하고 확인한다.
+> $ mysql -u root -p\
+> mysql> create database <DB명>;\
+> mysql> use <DB명>;\
+> mysql> show tables;\
+>> 테이블이 빈 것을 확인하면 정상!
+
+이후 setting.py에서 데이터베이스 설정을 수정
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('DATABASE_NAME'),
+        'USER': env('DATABASE_USER'),
+        'PASSWORD': env('DATABASE_PASSWORD'),
+        'HOST': env('DATABASE_HOST'),
+        'PORT': env('DATABASE_PORT'),
+    }
+}
+```
+
+### 오류 - migrate 작동 에러
+설정을 완료하고 난 후 `python manage.py migrate` 명령을 통해 MySQL에 장고 기본 테이블을 생성하려 시도했으나 작동하지 않았다.
+> NameError: name '_mysql' is not defined after setting change to mysql
+
+정확한 원인은 모르겠지만 M1 맥을 사용하는 사람들에게 나와 같은 현상이 많은 것 같다.\
+python이 _mysql이라는 패키지를 인식하지 못하는 듯...
+수차례의 구글링과 몇번의 삽질 끝에 문제를 해결하였다.
+> $ pip install pymysql
+
+pymysql 이라는 패키지를 설치해주고 settings.py에 아래 두 줄을 추가해준다.
+```python
+import pymysql
+pymysql.install_as_MySQLdb()
+```
+
+근본적인 해결책이 아닐 수도 있고 mysqlclient가 아직 M1 맥에 대해 호환이 잘 안되는 걸 수도 있지만 일단 동작한다는 점에 감사하게 생각한다.\
+다시 한번 `python manage.py migrate` 명령을 실행해 확인한다.\
+정상적으로 작동하였고, `mysql> show tables;` 명령 실행시 아래와 같이 장고의 기본 테이블이 출력된다
+```text
++----------------------------+
+| Tables_in_jstagram         |
++----------------------------+
+| auth_group                 |
+| auth_group_permissions     |
+| auth_permission            |
+| auth_user                  |
+| auth_user_groups           |
+| auth_user_user_permissions |
+| django_admin_log           |
+| django_content_type        |
+| django_migrations          |
+| django_session             |
++----------------------------+
+10 rows in set (0.01 sec)
+```
+## 인스타그램 ERD
+
+### 인스타그램 서비스 분석
+
+> 사용자가 게시물(이미지, 영상 포함)을 올리고 다른 사용자들의 게시물에 좋아요, 댓글을 남기는 구조
+
+[erdcloud](https://www.erdcloud.com/) 이용하여 ERD(Entity-Relationship Diagram 작성
+
+![](images/Instagram_Modeling.png)
+- 모델 정의
+  - 
+  - User: 사용자 
+    - email
+    - name
+    - password
+    - created_at
+    
+  - Post: 게시물(피드)
+    - text
+    - created_at
+    
+  - Media: 게시물에 들어가는 사진, 동영상
+    - content_url
+    
+  - Like: 게시물에 누른 좋아요
+  - Comment: 게시물에 단 댓글
+    - text
+- 관계 정의
+  - 
+  - User : Post = 1 : N
+  > 하나의 User가 여러개의 Post 생성 가능\
+  > 하나의 Post는 하나의 User 정보를 가짐
+  - Post : Media = 1 : N
+  > 하나의 Post에 여러개의 Media 삽입 가능\
+  > 하나의 Media는 하나의 Post 정보를 가짐
+  - User : Like = 1 : N
+  - Post : Like = 1 : N
+  > 한명의 User는 여러 Post에 Like 가능\
+  > 하나의 Post에 여러 User로부터의 Like 존재
+  - User : Comment = 1 : N
+  - Post : Comment = 1 : N
+  > 한명의 User는 여러 Post에 Comment 가능\
+  > 하나의 Post에 여러 User로부터의 Comment 존재
+  
+## Django 모델 생성
+앞서 작성한 ERD를 바탕으로 장고 모델을 정의한다
+### 내가 원하는 User 모델 만들기
+만약 장고에서 기본으로 제공해주는 유저 모델의 특성 외에 추가할 것이 있다면 네가지 방법이 존재한다.
+- Proxy 방법
+
+필드는 추가하지 않고 메서드만 만들어 사용하고 싶을 때
+- OneToOne 방법
+```python
+from django.contrib.auth.models import User # Django 기본 User 모델
+
+class Profile(models.Model):
+    # User 객체와 1대1로 관계를 맺는 Profile 모델 생성
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # 내가 추가하고 싶은 필드
+    new_field = models.CharField(max_length=500, blank=True)
+```
+모델을 정의해주고
+```python
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    instance.profile.save()
+```
+`create_user_profile`와 `save_user_profile` 메서드를 User.save() 이벤트와 묶어준다.\
+이를 통해 User 객체를 생성하고 갱신할 때 연결된 Profile 객체에도 반영된다.
+> ### Django DB Query 최적화하기
+>> 위의 Profile 같이 다른 모델과 관계가 지정된 모델의 경우\
+> Queryset 사용에 주의할 필요가 있다고 한다\
+> `profiles = Profile.objects.all()`\
+> `profiles = Profile.objects.all().select_related('user')`\
+> \
+> 두 쿼리문은 같은 역할을 하지만 만약
+> ```html
+> {% for profile in profiles %}
+> <div> {{profile.user.username}} </div>
+> {% endfor %}
+> ```
+> 이와 같이 관계된 모델에 대한 field 값을 참조할 경우\
+> `profiles = Profile.objects.all()` 는 profile 객체만큼의 쿼리문을 추가로 실행한다.\
+> 만약 100개의 profile이 존재한다면, 총 1+100 = 101개의 쿼리문\
+> 반면, `select_related` 사용 시 첫 쿼리문에서 관계된 모델의 필드값까지  가져오기 때문에 추가로 실행되는 쿼리문이 없다.
+
+- AbstractBaseUser 방법
+
+앞선 방법으로 부족하거나, django의 유저 인증 관련한 부분을 바꾸고 싶다면 django의 기본 유저모델 자체를 커스텀하는 방법이 있다.\
+모델을 0부터 만드는 개념이라 좀 어려운게 단점..
+
+- AbstractUser 방법
+
+> Django User 모델이 기본적으로 제공하는 11개 field
+> - id, username, first_name, last_name, email, password
+> - last_login, is_superuser, is_staff, is_active, date_joined
+```python
+from django.contrib.auth.models import AbstractUser
+class User(AbstractUser):
+    # 추가로 사용할 필드 설정
+    nickname = models.CharField(max_length=30, blank=True)
+```
+```python
+# settings.py
+AUTH_USER_MODEL = 'api.User'
+```
+> OneToOne 방법과 다른점은 추가로 Class(Table) 생성하지 않는다는 점
+
+### 하나의 모델에서 둘 이상의 Foreignkey 사용 시
+
+```python
+class Like(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='user_likes')
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='post_likes')
+```
+두 개 이상의 ForeignKey 사용할 경우, 각각에 적절한 related_name을 부여해서 충돌이 없도록 한다.
+
+### ImageField, FileField 사용
+Post에 삽입되는 Image 또는 Video를 위해 ImageField, FileField를 사용할 경우 `pillow` 패키지가 필요하다
+> $ pip install pillow
+
+
+### DB 확인
+User 모델을 커스텀하기 전 migrate를 통해 DB에 Django 기본 테이블을 생성해놨기 때문에
+DB를 삭제한 후 다시 생성해서 migrate 명령을 수행했다.
+```
+mysql> show tables;
++---------------------------+
+| Tables_in_jstagram        |
++---------------------------+
+| api_comment               |
+| api_image                 |
+| api_like                  |
+| api_post                  |
+| api_user                  |
+| api_user_groups           |
+| api_user_user_permissions |
+| api_video                 |
+| auth_group                |
+| auth_group_permissions    |
+| auth_permission           |
+| django_admin_log          |
+| django_content_type       |
+| django_migrations         |
+| django_session            |
++---------------------------+
+15 rows in set (0.00 sec)
+```
+api 앱에 생성한 모델이 DB Table로 생성된 것을 확인할 수 있다.
+
+## ORM 적용해보기
+User 객체 3개를 생성하였다.
+![](images/create_user.png)
+
+User 객체를 ForeignKey로 갖는 Post 객체를 생성할 때는 생성자의 인자로 User 객체를 넘겨줘야 한다
+```
+user1 = User.objects.get(id=1)
+user2 = User.objects.get(id=2)
+user3 = User.objects.get(id=3)
+```
+
+세개의 User 객체를 변수에 담아준 뒤
+```
+post1 = Post(text="post1", user=user3)
+post2 = Post(text="post2", user=user2)
+post3 = Post(text="post3", user=user3)
+post1.save(); post2.save(); post3.save();
+```
+
+ForeignKey 설정에 맞게 Post 객체를 생성해 준다.
+![](images/post_queryset.png)
+
+총 3개의 Post가 생성되었고, user3이 작성한 Post는 두개인 것을 확인할 수 있다.
+
+### Like 객체 생성해보기
+
+```
+like1 = Like(user=user1, post = post3)
+like2 = Like(user=user1, post = post2)
+like3 = Like(user=user2, post = post2)
+```
+
+![](images/like_queryset.png)
+내가 정의한 __str__ 메서드에 맞게 Like 객체가 출력되는 것을 확인하였다.
+
+## 3주차 과제 회고
+
+모델을 머리속으로만 생각하고 설계하는 것은 쉽지만\
+ERD 를 직접 작성하면서 설계하는 것은 생각보다 고려할 부분이 많다.\
+특히 모델간의 관계(1:1, 1:N, N:M)을 설정함에 있어서 이게 맞는 관계인가에 대해 계속 고민하게 되는 듯 하다.
+
+다행인건 Django ORM이 굉장히 유저친화적으로 되어 있어서 복잡한 SQL문법을 쓰지 않아도 된다는 점..
+
+데이터 다루는 건 언제나 어렵고 그나마 인스타그램이라는 서비스를 가지고 공부하니까 좀 나은것 같다
+
+
+# 참고자료
+- [Django Tips #3 Optimize Database Queries](https://simpleisbetterthancomplex.com/tips/2016/05/16/django-tip-3-optimize-database-queries.html)
+
