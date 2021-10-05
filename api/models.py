@@ -51,7 +51,9 @@ class User(AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
+    # 사용자 username field를 nickname으로 설정하겠다.
     USERNAME_FIELD = 'nickname'
+    # 필수로 작성해야하는 field. 항상 표시되기 때문에 USERNAME_FIELD나 비밀번호를 포함하면 안된다고...
     REQUIRED_FIELDS = []
 
     def __str__(self):
