@@ -78,8 +78,36 @@ class Profile(models.Model):
         return self.user.username
 
 
+class Post(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
+    content = models.TextField(max_length=500, blank=True)
+    created_time = models.DateTimeField(auto_now_add=True)
+    updated_time = models.DateTimeField(auto_now=True)
+    comment_available =  models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.content
 
 
+class Comment(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField(max_length=500)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    created_time = models.DateTimeField(auto_now_add=True)
+    updated_time = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return '{} : {}'.format(self.author, self.content)
 
 
+class File(models.model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_files')
+    file = models.FileField(upload_to='post_files')
 
+
+class Like(models.model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_likes')
+
+    def __str__(self):
+        return '{} likes {}'.format(self.user, self.post)
