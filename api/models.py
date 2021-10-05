@@ -51,7 +51,6 @@ class User(AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
-
     USERNAME_FIELD = 'nickname'
     REQUIRED_FIELDS = []
 
@@ -83,31 +82,41 @@ class Post(models.Model):
     content = models.TextField(max_length=500, blank=True)
     created_time = models.DateTimeField(auto_now_add=True)
     updated_time = models.DateTimeField(auto_now=True)
-    comment_available =  models.BooleanField(default=True)
+    comment_available = models.BooleanField(default=True)
+    location = models.CharField(max_length=150, null=True, blank=True)
 
     def __str__(self):
-        return self.content
+        return '{} : {}'.format(self.author.nickname, self.content)
 
 
 class Comment(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField(max_length=500)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True)
     created_time = models.DateTimeField(auto_now_add=True)
     updated_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{} : {}'.format(self.author, self.content)
+        return '{} : {}'.format(self.author.nickname, self.content)
 
 
-class File(models.model):
+class File(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_files')
     file = models.FileField(upload_to='post_files')
 
 
-class Like(models.model):
+class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_likes')
 
     def __str__(self):
-        return '{} likes {}'.format(self.user, self.post)
+        return '{} likes {}'.format(self.user.nickname, self.post.content)
+
+
+class Follow(models.Model):
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers') # user의 구독자
+    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followings') # user에게 구독 당한 사람
+
+    def __str__(self):
+        return '{} follows {}'.format(self.follower.nickname, self.following.nickname)
