@@ -98,7 +98,7 @@ class Comment(models.Model):
     updated_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{} : {}'.format(self.author.nickname, self.content)
+        return '{}이 {}번째 글에 남긴 댓글 : {}'.format(self.author.nickname, self.post_id, self.content)
 
 
 class File(models.Model):
@@ -115,8 +115,8 @@ class Like(models.Model):
 
 
 class Follow(models.Model):
-    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers') # user의 구독자
-    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followings') # user에게 구독 당한 사람
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followings')
+    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
 
     def __str__(self):
         return '{} follows {}'.format(self.follower.nickname, self.following.nickname)
