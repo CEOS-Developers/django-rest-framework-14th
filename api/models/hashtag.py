@@ -1,5 +1,5 @@
 from django.db import models
-from .user import Profile
+from .member import Member
 from .comment import Comment
 from .post import Post
 
@@ -14,7 +14,7 @@ class Hashtag(models.Model):
 
 
 class CommentHashtag(models.Model):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(Member, on_delete=models.CASCADE)
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
 
     class Meta:

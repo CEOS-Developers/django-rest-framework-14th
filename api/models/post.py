@@ -1,10 +1,10 @@
 from django.db import models
-from .user import Profile
+from .member import Member
 
 
 class Post(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    profile = models.ForeignKey(Member, on_delete=models.CASCADE)
     content_text = models.TextField(max_length=300)
     created_date = models.DateTimeField(auto_now=True)
 
@@ -36,7 +36,7 @@ class Photo(models.Model):
 class PostLike(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(Member, on_delete=models.CASCADE)
     created_date = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -46,7 +46,7 @@ class PostLike(models.Model):
 class PostTag(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(Member, on_delete=models.CASCADE)
     created_date = models.DateTimeField(auto_now=True)
 
     class Meta:
