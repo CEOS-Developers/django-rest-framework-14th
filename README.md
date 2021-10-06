@@ -233,9 +233,11 @@ client -> Web Server(Nginx) -> WSGI(gunicorn) -> Application Server(django)
 ![http](https://user-images.githubusercontent.com/79985974/135406938-0703d4e8-a4b1-4710-99ae-439bebb974b0.PNG)
 1. HTML, CSS, Javascript, 이미지와 같은 정보를 웹 브라우저에 전송하는 역할을 수행한다.
    
-![nginx](https://user-images.githubusercontent.com/79985974/135406735-e56dcae8-d338-4e62-8d82-a6ebaa1accee.PNG)
+![nginx](https://user-images.githubusercontent.com/79985974/135406735-e56dcae8-d338-4e62-8d82-a6ebaa1accee.PNG)     
+
 2. 응용프로그램 서버에 요청을 보내는 리버스 프록시로서의 역할을 수행한다.
     * 클라이언트는 가짜 서버에 요청(request)하면, 프록시 서버(nginx)가 reverse server(응용프로그램 서버)로부터 데이터를 가져오는 역할
+    * 웹 응용프로그램 서버에 리버스 프록시(Nginx)를 두는 이유는 요청 에 대한 버퍼링이 있기 때문이다. 프록시 서버를 둠으로써 요청을 배분하는 역할을 한다.
   
 * 웹 서버(nginx)가 따로 필요한 이유는 application을 여러대(process혹은 thread) 띄우고 웹 서버가 이를 적절하게 로드밸런싱 하기 위한 용도,보안상 위험한 요청을 차단하기 위한 용도 때문
 
