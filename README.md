@@ -1,3 +1,6 @@
+
+# 2주차
+
 # DOCKER의 개념
 
 
@@ -756,3 +759,132 @@ https://docs.docker.com/develop/develop-images/multistage-build/
 https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
 
 https://docs.github.com/en/actions/learn-github-actions/environment-variables
+
+
+# 3주차
+
+## Instagram Database Modeling
+
+### 간단한 설명
+
+인스타그램 서비스는 먼저 `user`의 `id`, `password`로 로그인을 하며, 로그인을 한 뒤엔 `user`의 `nickname`이 보이게 된다.  
+
+user는 post를 photo, video와 함께 게시할 수 있으며, post에 text는 없어도 된다.  
+
+post에 다른 user들을 tag할 수 있다. 또한 다른 user들이 post에 like를 누를 수 있다.  
+
+각 post엔 comment들을 달 수 있다. comment도 post와 마찬가지로 다른 user를 tag할 수 있으며, comment에 like를 누를 수 있다.  
+
+post와 comment엔 `hashtag`라는 기능이 존재한다. 이 hashtag를 user가 누르게 되면, hashtag를 단 다른 post들이나 comment들을 전부 볼 수 있다.
+
+### 연관관계 
+
+`user`, `post`, `comment`, `like`, `hashtag`, `video`, `photo`, `tag` 들의 관계를 알아보자.
+
+* `user`가 여러 `post` 쓸 수 있지만 한 `post`가 여러 `user` 에게 쓰이지 않으므로 `1 : N` 관계이다.    
+
+
+* `user`가 여러 `comment` 쓸 수 있지만 한 `comment`가 여러 `user` 에게 쓰이지 않으므로 `1 : N` 관계이다.
+
+
+* `post`가 여러 `video`, `photo`들을 사용할 수 있지만 `video`, `photo`가 여러 `post`들에게 올림받진 않으므로 `1 : N` 관계이다.  
+
+
+* `post`와 `comment`는 여러 `like`를 받을 수 있지만 하나의 `like`는 여러 곳에 뿌려지지 못하므로 `1 : N` 관계이다.  
+
+
+* `user`가 여러 곳에 `like`를 할 수 있지만 `like`의 주체는 `user` 한 명이므로 `1 : N` 관계이다.
+
+
+* `post`가 여러 `hashtag`를 사용할 수 있고, `hashtag`도 여러 `post`를 나타낼 수 있으므로 `N : M` 관계이다.
+
+
+* `post`엔 여러 `user`를 `tag` 할 수 있다. `user`들도 여러 `post`에 태그당할 수 있으므로 `N : M` 관계이다.
+
+
+### 완성된 모델
+
+![database](img/database.png)
+
+### ORM 쿼리 이용하기
+
+1. 데이터베이스에 해당 모델 객체 3개 넣기
+![](img/)
+
+```python
+# script.py
+
+#!/usr/bin/env python
+
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django-rest-framework-14th.settings.dev")
+
+import django
+django.setup()
+
+from random import randint
+from api.models.hashtag import *
+from api.models.member import *
+from api.models.post import *
+from api.models.comment import *
+from django.contrib.auth.models import User
+
+for i in range(0, 3):
+    # 난수 생성
+    num = randint(1, 1000)
+    randomNumber = str(num)
+
+    # user 생성
+    name = 'user' + randomNumber
+    email = name + '@gmail.com'
+    pwd = name + 'pwd'
+    user = User.objects.create_user(username=name, email=email, password=pwd)
+    user.save()
+
+    # member 생성
+    nickname = 'member' + randomNumber
+    p1 = Member(nickname=nickname, user=user)
+    p1.save()
+
+    # post 저장
+    post1 = Post(profile=p1, content_text="으하하하ㅏㅎ" + randomNumber)
+    post2 = Post(profile=p1, content_text="차돌짬뽕" + randomNumber)
+    post3 = Post(profile=p1, content_text="호날두" + randomNumber)
+
+    post1.save()
+    post2.save()
+    post3.save()
+
+    # video 저장
+    jjambbong = Video(post=post2, content_url="https://youtu.be/iI5S9QreayI", playing_time="500")
+    jjambbong.save()
+```
+
+`script.py`를 다음과 같이 작성하였다.
+```shell
+> python script.py
+```
+
+
+2. 삽입한 객체들을 쿼리셋으로 조회해보기 (단, 객체들이 객체의 특성을 나타내는 구분가능한 이름으로 보여야 함)
+![](img/)
+
+`python shell`로 진입하였다. `post`를 쿼리셋으로 조회한 결과는 다음과 같다.
+
+3. filter 함수 사용해보기
+![](img/)
+
+`filter` 함수를 사용한 결과는 위와 같다. `filter`로 조회한 객체는 갯수가 1개이더라도 `queryset`이므로 다룰 때 주의해야한다.
+
+### 회고
+
+`mysqlclient` 설치부터 시작해서 오류 발생에.. `shell`에서 `import` 안되고.. 너무 많은 오류들 때문에 힘들었다.  
+
+그래도 직접 db 설계 해보니까 재밌었고 좋은 경험이었다.
+
+`python` 이란 언어를 처음 써보니까 '이건 왜 안되지?' 라는 경우가 좀 많았던 것 같다.  
+
+조금 더 익숙해지면 괜찮을 것 같다.
+
+
+### 기타 남길 것들
