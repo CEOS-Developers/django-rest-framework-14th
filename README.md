@@ -343,3 +343,155 @@ runserver는 STATIC\_URL 에 지정된 URL을 통해 정적 파일 요청을 받
 만약 ENTRYPOINT 를 사용하여 컨테이너 수행 명령을 정의한 경우, 해당 컨테이너가 수행될 때 반드시 ENTRYPOINT 에서 지정한 명령을 수행되도록 지정된다. 하지만, CMD를 사용하여 수행 명령을 한 경우, 컨테이너를 실행할때 인자값을 주게 되면 Dockerfile에 지정된 CMD 값 대신 지정한 인자값으로 변경하여 실행되게 된다.
 
 참고자료: [https://bluese05.tistory.com/77](https://bluese05.tistory.com/77)
+
+***
+
+## **1\. 모델 설계**
+  
+![image](https://user-images.githubusercontent.com/90975718/136202036-9814e47f-c57e-4d92-b3e5-50a3a5d8d849.png)
+
+#### **1) User: Django에서 지원하는 AbstractBaseUser를 상속** 
+
+-   AbstractBaseUser: password, last\_login, is\_active 필드 제공. django가 제공해주는 필드를 이용하면서 사용자 정의 field 추가를 위해 사용. (AbstractUser보다 제공 필드가 적어 더 유연성이 있다)
+-   login id로 username이 아닌 nickname 사용. (USERNAME\_FIELD='nickname'으로 변경. 애초에 username을 nickname 처럼 받아써도 되겠으나 헷갈리지않도록 구분했다.)
+-   공식문서: [https://docs.djangoproject.com/en/dev/topics/auth/customizing/#a-full-example](https://docs.djangoproject.com/en/dev/topics/auth/customizing/#a-full-example) 
+-   is\_active, is\_admin 필드는 django user 모델의 필수 필드.
+
+>\- nickname: 처음 계정 생성 시 쓰는 userid(중복 불가값으로 unique)
+>
+>\- username: user의 이름
+>
+>\- is\_professional: professional 계정인지 확인. default 값 False.
+>
+>\- is\_private: 비공개 계정인지 확인. default 값 False. 
+>
+>\- phone\_num: 핸드폰 번호
+>
+>\- email: 이메일
+>
+>\- password: 비밀번호
+>
+>권한 설정
+>
+>\- is\_active: 활성 계정인지 확인. default 값 True.
+>
+>\- is\_staff: admin 접근 가능 계정인지 확인. default 값 False.
+>
+>\- is\_superuser: superuser인지 확인. default 값 False.
+>
+>\- is\_admin: admin인지 확인. default 값 False. 
+
+#### **2) Profile: User 모델과 1:1로 연결해 사용자 세부 정보를 저장**
+
+>\- id: PK
+>
+>\- user\_id: FK(User)
+>
+>\- image: 프로필 이미지
+>
+>\- info: 소개글
+>
+>\- website: 웹사이트
+>
+>\- profile\_name: 프로필 설정 이름
+>
+>\- gender: 성
+>
+>\- birth\_date: 생일
+
+#### **3) Post: User 모델과 1:N의 관계.**
+
+>\- id: PK
+>
+>\- content: 내용
+>
+>\- created\_time: 작성 시간
+>
+>\- updated\_time: 수정 시간
+>
+>\- comment\_available: 댓글 작성 가능한지. default 값 True.
+>
+>\- author\_id: FK(User)
+>
+>\- location: 위치 
+
+#### **4) Comment: User, Post와 1:N의 관계**
+
+>\- id: PK
+>
+>\- author\_id: FK. 댓글 작성자 (erd에 author 잘못들어감)
+>
+>\- post\_id: FK(Post)
+>
+>\- created\_time: 작성 시간
+>
+>\- updated\_time: 수정 시간
+
+#### **5) File: Post 모델과 1:N의 관계**
+
+>\- id: PK
+>
+>\- file: image/vedio
+>
+>\- post\_id: FK(Post)
+
+#### **6) Like: User, Post와 1:N의 관계**
+
+>\- id: PK
+>
+>\- post\_id: FK(Post)
+>
+>\- user\_id: FK(User)
+
+#### **7) Follow: Follower:Follwing = N:M의 관계**
+
+>\- id: PK
+>
+>\- follower: FK
+>
+>\- following: FK
+
+## **2\. ORM 테스트**
+
+**1) Post 객체 조회, Follow 객체 조회**
+  
+![image](https://user-images.githubusercontent.com/90975718/136202400-76534447-6f04-4fa3-9747-6812e87eb37d.png)
+
+\- related\_name 이용해서 likes(해당 user의 Like) , post\_likes(해당 post에 대한 Like) 조회
+
+![image](https://user-images.githubusercontent.com/90975718/136202468-75db9c47-34d9-4766-acf7-05a0ddf98266.png)
+
+\- related\_name 이용해서 user의 follwers(user를 follow하는 관계), followings(user가 follow하는 관계) 조회
+
+![image](https://user-images.githubusercontent.com/90975718/136202543-a47f3642-68c3-4f99-89a4-f8ea154e5373.png)
+
+**2) Filter 사용**
+
+![image](https://user-images.githubusercontent.com/90975718/136202712-6102a69f-0e7d-434d-b89f-9f03afe034d5.png)
+
+※ get()과 filter()의 차이
+
+\- get()은 쿼리에 맞는 객체 하나만 반환. 쿼리에 맞는 결과가 없을 시 DoesNotExist 에러가 발생. 여러 객체가 조회되면 MultipleObjectsReturned 에러가 발생. 
+
+\- 쿼리에 맞는 결과가 없다면
+
+![image](https://user-images.githubusercontent.com/90975718/136202788-e5476fd6-cf93-425e-ab62-112682fa2df5.png)
+
+\- 여러 객체가 조회된다면
+
+![image](https://user-images.githubusercontent.com/90975718/136202869-6c7f65fd-b652-4a93-ae5f-c28cafdc3a95.png)
+
+\- filter()는 새로운 쿼리셋 생성 후, 필터 조건에 부합하는 객체들을 넣은 후 리턴. (필터 조건에 부합하는 객체가 없다면 빈 쿼리셋 반환)
+
+\- 여러 객체 조회 시
+
+![image](https://user-images.githubusercontent.com/90975718/136202970-4dd40d58-3aca-496d-b361-b6d596084451.png)
+
+\- 빈 객체 조회 시
+
+![image](https://user-images.githubusercontent.com/90975718/136203007-90a0633d-73ea-4385-ad28-b7d89a10af3f.png)
+
+3\. 간단한 회고
+
+>django의 user 모델 확장 방법을 찾아보면 4가지가 나오는데, 아는 게 없으니 이것저것 다 사용해보자!는 마음으로 섞어서 사용했다. AbstractBaseUser을 이용한 custom user도 만들고 추가적인 내용인 Profile 모델에 넣어 onetoone으로 연결해줬는데 두개를 섞어쓴 것에 대해서는 딱히 별 의미 없다... custom user에 대해서는 계속 찾아봤는데도 아직 감이 잘 안온다. 그래서 프로젝트 중간에 >custom을 하려고 하면 migration 충돌 때문에 골치아프다고 하니 혹시 몰라서 처음부터 custom user를 쓰기로 했다.(django에서도 권장하는 방법이라고...?) User 제공 필드도 써보려고 다 넣다보니 >filed가 너무 많아져서 Profile로 세부 사항은 분리를 해야지 정도로 생각한 것 같다. 나중에 데이터베이스를 드롭하거나 모델을 뒤집어 엎어야 하는 일만 안생겼으면 좋겠다..
+  
