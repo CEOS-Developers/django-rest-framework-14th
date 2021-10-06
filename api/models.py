@@ -19,5 +19,28 @@ class Profile(models.Model):  # 유저의 세부 정보를 담는 모델
     # profile_name = models.TextField()  # 인스타에 표시한 이름
 
 
+class Post(models.Model):  # 작성한 게시물을 담은 모델
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100, null=True)
+    content = models.TextField(null=True)  # 작성한 게시글
+    location = models.TextField()  # 게시글 올린 장소
+    create_date = models.DateTimeField(auto_now_add=True) # 게시글 올린 시간
+    modify_date = models.DateTimeField(auto_now=True)
+    goods = models.PositiveIntegerField()  # 좋아요 개수
 
+    def publish(self): #?????
+        self.upload_at = timezone.now()
+        self.save()
+
+    def __str__(self): #?????
+        return self.content
+
+
+class Image(models.Model):  # 해당하는 게시글
+    post = models.ForeignKey(Post, blank=False, null=False, on_delete=models.CASCADE)
+    content = models.TextField()  # 이미지 url주소???
+
+
+class Video(models.Model):
+    post = models.ForeignKey(Post,on_delete=models.CASCADE)
 
