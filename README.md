@@ -769,13 +769,15 @@ https://docs.github.com/en/actions/learn-github-actions/environment-variables
 
 인스타그램 서비스는 먼저 `user`의 `id`, `password`로 로그인을 하며, 로그인을 한 뒤엔 `user`의 `nickname`이 보이게 된다.  
 
-user는 post를 photo, video와 함께 게시할 수 있으며, post에 text는 없어도 된다.  
+`user`는 `post`를 `photo`, `video`와 함께 게시할 수 있으며, `post`에 `text`는 없어도 된다.  
 
-post에 다른 user들을 tag할 수 있다. 또한 다른 user들이 post에 like를 누를 수 있다.  
+`post`에 다른 `user`들을 `tag`할 수 있다. 또한 다른 `user`들이 `post`에 `like`를 누를 수 있다.  
 
-각 post엔 comment들을 달 수 있다. comment도 post와 마찬가지로 다른 user를 tag할 수 있으며, comment에 like를 누를 수 있다.  
+각 `post`엔 `comment`들을 달 수 있다. `comment`도 `post`와 마찬가지로 다른 `user`를 `tag`할 수 있으며, `comment`에 `like`를 누를 수 있다.  
 
-post와 comment엔 `hashtag`라는 기능이 존재한다. 이 hashtag를 user가 누르게 되면, hashtag를 단 다른 post들이나 comment들을 전부 볼 수 있다.
+`post`와 `comment`엔 `hashtag`라는 기능이 존재한다. 이 `hashtag`를 `user`가 누르게 되면, `hashtag`를 단 다른 `post`들이나 `comment`들을 전부 볼 수 있다.
+
+각 `user`들은 다른 `user`를 follow 할 수 있다.
 
 ### 연관관계 
 
@@ -799,80 +801,359 @@ post와 comment엔 `hashtag`라는 기능이 존재한다. 이 hashtag를 user�
 * `post`가 여러 `hashtag`를 사용할 수 있고, `hashtag`도 여러 `post`를 나타낼 수 있으므로 `N : M` 관계이다.
 
 
-* `post`엔 여러 `user`를 `tag` 할 수 있다. `user`들도 여러 `post`에 태그당할 수 있으므로 `N : M` 관계이다.
+* `post`엔 여러 `user`를 `tag` 할 수 있다. `user`들도 여러 `post`에 태그당할 수 있으므로 `N : M` 관계이다.  
+
+
+* `user`는 여러 `user`를 `follow`할 수 있고, 여러 `user`에게 `follow` 당할 수 있다.
 
 
 ### 완성된 모델
 
 ![database](img/database.png)
+**ERD**
+![tables](img/show-tables.png)
+**TABLE**
+
+<br>
+<br>
+
+
+**Profile**
+```python
+# models/profile.py
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    nickname = models.TextField(max_length=15)
+    private = models.BooleanField(default=False)
+    bio = models.TextField(max_length=300)
+    image_url = models.TextField(max_length=300)
+
+    class Meta:
+        db_table = 'user'
+
+    def __str__(self):
+        return self.nickname
+
+```
+member 모델은 다음과 같이 만들었다.
+user모델을 확장하였고, nickname, 비밀계정 여부, biography, 프로필사진 경로 들을 담는 컬럼들을 만들었다.  
+Meta 클래스를 사용하여 자동 생성되는 테이블의 이름을 정하였다.
+
+**Follow**
+```python
+# models/follow.py
+
+class Follow(models.Model):
+    following_id = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    follower_id = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'follow'
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+user와 user끼리 n:m 관계라서 어떻게 해야하나 고민하다가 중간 테이블을 만드는것처럼 해서 만들었다.
+
+**Post**
+```python
+# models/post.py
+
+class Post(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    content_text = models.TextField(max_length=300)
+    created_date = models.DateTimeField(auto_now_add=True)
+    update_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'post'
+
+    def __str__(self):
+        return self.user.nickname + '의 게시물 :: ' + self.content_text
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+
+    def when_updated(self):
+        return self.update_date.strftime('%Y-%m-%d %H:%M:%S')
+
+
+class Video(models.Model):
+    id = models.AutoField(primary_key=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    content_url = models.TextField(max_length=300)
+    playing_time = models.IntegerField()
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'video'
+
+    def __str__(self):
+        return self.content_url
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+
+
+class Photo(models.Model):
+    id = models.AutoField(primary_key=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    content_url = models.TextField(max_length=300)
+    comment_block = models.BooleanField(default=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'photo'
+
+    def __str__(self):
+        return self.content_url
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+Post의 경우 user와 1:N 관계이기 때문에, foreign key 설정을 해주었다. 또한 글을 쓸 수 있기 때문에 content_text 컬럼도 만들었다.  
+생성, 변경 날짜를 기록하기 위해 created_date, update_date를 만들었다.  
+더 편하게 조회하기 위해 날짜 조회 메서드들을 만들었다.
+
+
+**Comment**
+```python
+# models/comment.py
+
+class Comment(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(Member, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    content_text = models.TextField(max_length=300)
+    created_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'comment'
+
+    def __str__(self):
+        return self.user.nickname + ' says ' + self.content_text
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+이것도 머.. user와 1:N 관계라 foreign key 설정하였고, post와도 1:N 관계이므로 Foreign key 설정하였다.
+
+
+**Like**
+
+```python
+# models/like.py
+
+class LikeComment(models.Model):
+    id = models.AutoField(primary_key=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'like_comment'
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+
+
+class LikePost(models.Model):
+    id = models.AutoField(primary_key=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'like_post'
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+
+```
+
+LikePost, LikeComment가 중복이 많다. 하나의 테이블로 합치고, type을 받을까 했지만 일단 이렇게 했다. post와 user를 fk로 설정했다.
+
+**Hashtag**
+
+```python
+# models/hashtag.py
+
+class Hashtag(models.Model):
+    id = models.AutoField(primary_key=True)
+    hashtag = models.TextField(max_length=30)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'hashtag'
+
+    def __str__(self):
+        return self.hashtag
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+
+
+class HashtagComment(models.Model):
+    hashtag = models.ForeignKey(Hashtag, on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'hashtag_comment'
+
+
+class HashtagPost(models.Model):
+    hashtag = models.ForeignKey(Hashtag, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'hashtag_post'
+```
+
+hashtag와 comment가 n:m 관계이기 때문에, 중간에 HashtagComment 테이블을 만들어 1:N 관계로 풀어주었다.  
+마찬가지로 hashtag와 post도 n:m 관계이기 때문에 1:n 관계로 만들어주기 위해 HashtagPost 테이블을 만들었다.
+
+
+**Tag**
+```python
+# models/tag.py
+
+class TagPost(models.Model):
+    id = models.AutoField(primary_key=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    created_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'tag_post'
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+
+
+class TagComment(models.Model):
+    id = models.AutoField(primary_key=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    created_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'tag_comment'
+
+    def when_created(self):
+        return self.created_date.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+tag와 comment, tag와 post가 각각 n:m 관계라서 이렇게 풀어주었다.
+
 
 ### ORM 쿼리 이용하기
 
-1. 데이터베이스에 해당 모델 객체 3개 넣기
-![](img/)
+1. 데이터베이스에 해당 모델 객체 넣기 
 
 ```python
-# script.py
-
-#!/usr/bin/env python
-
-import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django-rest-framework-14th.settings.dev")
-
-import django
-django.setup()
-
-from random import randint
-from api.models.hashtag import *
-from api.models.member import *
-from api.models.post import *
-from api.models.comment import *
-from django.contrib.auth.models import User
-
-for i in range(0, 3):
-    # 난수 생성
-    num = randint(1, 1000)
-    randomNumber = str(num)
+for i in range(0, 10):
 
     # user 생성
-    name = 'user' + randomNumber
+    name = 'user' + str(randint(1, 100000))
     email = name + '@gmail.com'
     pwd = name + 'pwd'
     user = User.objects.create_user(username=name, email=email, password=pwd)
     user.save()
 
     # member 생성
-    nickname = 'member' + randomNumber
-    p1 = Member(nickname=nickname, user=user)
-    p1.save()
+    nickname_list = ['Yu', 'Park', 'Lee', 'Woo', 'Choi', 'Smith', 'Kane', 'Son', 'Pierre', 'Henry', 'Messi', 'Ronaldo']
+    nickname_cand = nickname_list[randint(0, 11)]
+
+    if Member.objects.filter(nickname=nickname_cand).count() != 0: continue
+
+    nickname = nickname_cand
+    member = Member(nickname=nickname, user=user)
+    member.save()
+
+for i in range(0, 5):
+    
+    # user 선택
+    user = Member.objects.all()[randint(0, Member.objects.all().count() - 1)]
 
     # post 저장
-    post1 = Post(profile=p1, content_text="으하하하ㅏㅎ" + randomNumber)
-    post2 = Post(profile=p1, content_text="차돌짬뽕" + randomNumber)
-    post3 = Post(profile=p1, content_text="호날두" + randomNumber)
+    post_text_list = ['차돌짬뽕', '삼선짬뽕', '홍합짬뽕']
+    post = Post(user=user, content_text=str(randint(1, 100)) + "번째 " + post_text_list[randint(0, 2)])
 
-    post1.save()
-    post2.save()
-    post3.save()
+    photo = Photo(post=post, content_url='https://image/' + post.content_text)
 
-    # video 저장
-    jjambbong = Video(post=post2, content_url="https://youtu.be/iI5S9QreayI", playing_time="500")
-    jjambbong.save()
+    post.save()
+    photo.save()
+
+    # save는 순차적으로 이루어져야함 member -> post -> photo
+
+    comment_list = ['맛있겠네요!', '이상하게 생겼어요', '으윽 이게먼가요', '존맛탱', '오늘 피곤하네', '배고프다']
+    comment_user = Member.objects.all()[randint(0, Member.objects.all().count() - 1)]
+    comment = Comment(user=comment_user, post=post, content_text=comment_list[randint(0, 5)])
+
+    comment.save()
 ```
 
-`script.py`를 다음과 같이 작성하였다.
+`script.py`를 다음과 같이 작성하여 저장하였다.
+
+
 ```shell
 > python script.py
 ```
 
+`mysql`에서 조회한 결과는 다음과 같다.
 
-2. 삽입한 객체들을 쿼리셋으로 조회해보기 (단, 객체들이 객체의 특성을 나타내는 구분가능한 이름으로 보여야 함)
-![](img/)
+![img](img/select-result.png)
 
-`python shell`로 진입하였다. `post`를 쿼리셋으로 조회한 결과는 다음과 같다.
+데이터가 잘 삽입된 것을 확인할 수 있다.
 
-3. filter 함수 사용해보기
-![](img/)
+2. 삽입한 객체들을 `queryset`으로 조회해보기 (단, 객체들이 객체의 특성을 나타내는 구분가능한 이름으로 보여야 함)
+
+```python
+>>> Member.objects.all()
+<QuerySet [<Member: Messi>, <Member: Pierre>, <Member: Kane>, <Member: Choi>, <Member: Henry>, <Member: Woo>]>
+>>> Post.objects.all()
+<QuerySet [<Post: Woo의 게시물 :: 5번째 삼선짬뽕>, <Post: Choi의 게시물 :: 58번째 홍합짬뽕>, <Post: Kane의 게시물 :: 100번째 삼선짬뽕>, <Post: Henry의 게시물 :: 33번째 홍합짬뽕>, <Post: Choi의 게시물 :: 71번째 홍합짬뽕>]>
+>>> Comment.objects.all()
+<QuerySet [<Comment: Pierre says 으윽 이게먼가요>, <Comment: Kane says 존맛탱>, <Comment: Woo says 으윽 이게먼가요>, <Comment: Henry says 맛있겠네요!>, <Comment: Choi says 배고프다>]>
+>>> 
+
+```
+
+`python shell`로 진입하였다. `post`와 `comment`를 쿼리셋으로 조회한 결과는 다음과 같다.
+
+3. `filter` 함수 사용해보기
+
+```python
+
+>>> choi = Member.objects.filter(nickname='Choi').first()
+>>> messi = Member.objects.filter(nickname='Messi').first()
+>>> kane = Member.objects.filter(nickname='Kane').first()
+
+# 단어로 검색
+>>> Post.objects.filter(content_text__contains='차돌')
+<QuerySet []>
+>>> Post.objects.filter(content_text__contains='홍합')
+<QuerySet [<Post: Choi의 게시물 :: 58번째 홍합짬뽕>, <Post: Henry의 게시물 :: 33번째 홍합짬뽕>, <Post: Choi의 게시물 :: 71번째 홍합짬뽕>]>
+>>> Post.objects.filter(content_text__contains='짬뽕')
+<QuerySet [<Post: Woo의 게시물 :: 5번째 삼선짬뽕>, <Post: Choi의 게시물 :: 58번째 홍합짬뽕>, <Post: Kane의 게시물 :: 100번째 삼선짬뽕>, <Post: Henry의 게시물 :: 33번째 홍합짬뽕>, <Post: Choi의 게시물 :: 71번째 홍합짬뽕>]>
+
+# 작성자로 검색
+>>> Post.objects.filter(user=choi)
+<QuerySet [<Post: Choi의 게시물 :: 58번째 홍합짬뽕>, <Post: Choi의 게시물 :: 71번째 홍합짬뽕>]>
+>>> Comment.objects.filter(user=choi)
+<QuerySet [<Comment: Choi says 배고프다>]>
+>>> Comment.objects.filter(user=messi)
+<QuerySet []>
+>>> Comment.objects.filter(user=kane)
+<QuerySet [<Comment: Kane says 존맛탱>]>
+
+```
 
 `filter` 함수를 사용한 결과는 위와 같다. `filter`로 조회한 객체는 갯수가 1개이더라도 `queryset`이므로 다룰 때 주의해야한다.
 
@@ -885,6 +1166,3 @@ for i in range(0, 3):
 `python` 이란 언어를 처음 써보니까 '이건 왜 안되지?' 라는 경우가 좀 많았던 것 같다.  
 
 조금 더 익숙해지면 괜찮을 것 같다.
-
-
-### 기타 남길 것들
