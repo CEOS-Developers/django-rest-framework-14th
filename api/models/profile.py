@@ -6,10 +6,11 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     nickname = models.TextField(max_length=15)
     private = models.BooleanField(default=False)
+    bio = models.TextField(max_length=300)
+    image_url = models.TextField(max_length=300)
 
     class Meta:
-        db_table = 'users'
+        db_table = 'user'
 
     def __str__(self):
         return self.nickname
-
