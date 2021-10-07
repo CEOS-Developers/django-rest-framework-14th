@@ -367,3 +367,90 @@ https://docs.docker.com/get-started/overview/ <br>
 https://github.com/appleboy/ssh-action <br>
 https://github.com/Burnett01/rsync-deployments <br>
 https://soundprovider.tistory.com/entry/%EB%94%A5%EB%9F%AC%EB%8B%9D-%EA%B0%9C%EB%B0%9C%ED%99%98%EA%B2%BD-%EC%84%B8%ED%8C%85%EA%B8%B0Docker-PyCharm-2
+
+---
+
+# 3주차 - Django 모델링
+
+우선 시작에 앞서, **경준님**과 **승우님**에게 무한한 감사를 드립니다.
+경준님의 리드미를 많이 참고했고, 승우님께 자문을 구했습니다.
+
+## 인스타그램 ERD
+
+![erd](/images/erd.png)<br>
+
+장고 모델 모음 필드이다.<br>
+[모델모음](https://donis-note.medium.com/장고-모델-필드-django-model-fields-정리-4297d1bad65b)<br>
+
+Profile 테이블은 `django`에서 제공하는 one-to-one을 이용해서 사용하기로 했다.
+`django`에서 제공하는 테이블은 다음과 같다.
+![erd](/images/auth_user.png)<br>
+
+따라서, 프로필에 추가할 사진이 들어갈 필드만 직접 넣어주기로 했다.
+자세한 코드는 `models.py`를 참고해 주세요.
+
+그리고 정말 놀라운 기능 중 하나가 **이미지 필드** 인데,
+[이미지필드](https://docs.djangoproject.com/en/3.2/topics/files/)
+
+```python
+from django.db import models
+
+class Car(models.Model):
+    name = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+    photo = models.ImageField(upload_to='cars')
+```
+
+```shell
+>>> car = Car.objects.get(name="57 Chevy")
+>>> car.photo
+<ImageFieldFile: cars/chevy.jpg>
+>>> car.photo.name
+'cars/chevy.jpg'
+>>> car.photo.path
+'/media/cars/chevy.jpg'
+>>> car.photo.url
+'http://media.example.com/cars/chevy.jpg'
+```
+위와 같이 참조할 수 있다는게 너무 놀랍다. 갓갓...
+
+새로운 profile을 만드는 과정.
+![usershell](/images/usershell.png)<br>
+포비와 에디도 만들어주자.
+![user](/images/user.png)<br>
+
+mysql에서 실제로 값이 들어갔는지 확인해보자. 
+![api_profile](/images/mysql_api_profile.png)<br>
+장고가 기본으로 제공하는 User 테이블.
+![auth_user](/images/mysql_auth_user.png)<br>
+
+이렇게 object를 가져올 수 있다.
+~~![object](/images/object.png)<br>
+
+user 객체를 받아 post에 넘겨줌으로써 새로운 게시물을 만들 수 있다.
+![post](/images/post.png)<br>
+생성된 post를 받아보는 과정이다. 첫 번째와 마지막 object를 보면 둘 다 1번 id가 작성한 것을 볼 수 있다.
+![poby](/images/poby.png)<br>
+
+필터를 사용하여 객체를 가져오는~~ 모습.
+![filter](/images/filter.png)<br>
+
+# 3주차 과제 회고
+
+일단 시간이 너무 촉박했다.
+그래서 퀄리티가 좀 떨어지는 것 같다...
+그리고 원래 모델을 설계하는 것을 잘 못하기도 했고 이번이 두 번째라
+어느 정도 처음보다 낫겠지 하고 자신감이 있었는데, 자만하면 안된다...
+
+ERD 툴을 처음 써 봐서 그것에 관해서도 공부를 했어야 했고,
+Profile, User의 one to one 관계에 대해서 서로의 테이블을 참조하는 과정이 어려웠었고,
+과제를 진행하면서 만난 오류들도 많아서 많이 힘들었다.
+
+행 삭제, auto increment key 초기화 <br>
+테스트 할 때 너무 필요 없는 값들이 많이 들어가서 삭제하고 primary key를 초기화해 주는데 사용했다.
+[https://lightblog.tistory.com/151](https://lightblog.tistory.com/151) <br>
+[https://amaze9001.tistory.com/28](https://amaze9001.tistory.com/28) <br>
+
+shell 안에서 save() 안했을 경우 오류 <br>
+save()를 하지 않으면 다음과 같이 오류가 생겼었다.
+[https://stackoverflow.com/questions/33838433/save-prohibited-to-prevent-data-loss-due-to-unsaved-related-object](https://stackoverflow.com/questions/33838433/save-prohibited-to-prevent-data-loss-due-to-unsaved-related-object)
