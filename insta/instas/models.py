@@ -8,7 +8,7 @@ class Users(models.Model):
     user_pw = models.CharField(max_length=20)
     email =  models.EmailField()
     def __str__(self):
-        return self.uid
+        return self.user_id
 
 class Profile(models.Model):
     user_id = models.OneToOneField(Users,on_delete=models.CASCADE, primary_key=True)
@@ -28,8 +28,6 @@ class Posts(models.Model):
     user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     location = models.CharField(max_length=30)
     title = models.TextField()
-    email = models.EmailField()
-    comments = models.TextField()
     likes = models.IntegerField()
 
     def __str__(self):
