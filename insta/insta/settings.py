@@ -27,6 +27,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# 파일 업로드 관련한 코드. 저장할 경로와 첨부파일에 접근할 수 있는 URL 경로.
+MEDIA_ROOT = '/media'
+MEDIA_URL = os.path.join(BASE_DIR,'media')
+
+# 파일 업로드 사이즈의 최대값 지정.
+FILE_UPLOAD_MAX_MEMORY_SIZE = '2621440'
 
 # Application definition
 

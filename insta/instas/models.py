@@ -1,16 +1,20 @@
 from __future__ import unicode_literals
 from django.db import models
 
-
 # Create your models here.
 
 class Users(models.Model):
     uid = models.AutoField(primary_key=True)
+    user_id = models.CharField(max_length=20, primary_key=True)
+    user_pw = models.CharField(max_length=20)
+    email =  models.EmailField()
+
+class Profile(models.Model):
+    uid = models.AutoField(primary_key=True)
+    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     user_name = models.CharField(max_length=20)
-    user_id = models.CharField(max_length=20)
     website = models.CharField(max_length=40)
-    introduction = models.CharField()
-    email = models.EmailField()
+    introduction = models.TextField()
     phone_num = models.IntegerField()
     gender = models.CharField(max_length=6)
     post_id = models.IntegerField()
@@ -32,14 +36,14 @@ class Photos(models.Model):
     photo_id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
-    contents_url = models.TextField()
+    photo_url = models.FileField()
     date = models.DateTimeField()
 
 class Videos(models.Model):
     video_id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
-    contents_url = models.TextField()
+    video_url = models.FileField()
     date = models.DateTimeField()
 
 class Comment(models.Model):
