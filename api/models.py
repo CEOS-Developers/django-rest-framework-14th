@@ -6,7 +6,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     nickname = models.CharField(max_length=40, blank=True)
     introduction = models.TextField(blank=True)
-    image = models.ImageField()
+    image = models.ImageField(upload_to="image")
 
     def __str__(self):
         return self.nickname
@@ -16,9 +16,8 @@ class Post(models.Model):
     author = models.ForeignKey(Profile, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, null=True)
     content = models.TextField(null=True)
-    location = models.TextField()
-    create_date = models.DateTimeField(auto_now_add=True)
-    modify_date = models.DateTimeField(auto_now=True)
+    create_at = models.DateTimeField(auto_now_add=True)
+    update_at = models.DateTimeField(auto_now=True)
     like_num = models.PositiveIntegerField()
 
     def __str__(self):
@@ -26,15 +25,16 @@ class Post(models.Model):
 
 
 class File(models.Model):
-    post = models.ForeignKey(Post, blank=False, null=False, on_delete=models.CASCADE)
-    content = models.FileField(upload_to="media")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    content = models.FileField(upload_to="file")
 
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     writer = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField(blank=False)
-    create_date = models.DateTimeField(auto_now_add=True)
+    create_at = models.DateTimeField(auto_now_add=True)
+
 
     def __str__(self):
         return '{} commented {} post'.format(self.writer, self.post.author)

@@ -303,3 +303,74 @@ jobs:
 2. Github Actions이 코드를 서버에 올리고 deploy.sh를 실행시킨다.
 3. deploy.sh는 docker-compose.prod.yml 파일을 실행시킨다.
 4. docker-compose.prod.yml에서 web이라는 컨테이너와 nginx라는 컨테이너 생성하고 실행한다.
+
+
+# 모델링과 Django ORM
+
+## 모델링
+
+### Profile
+```python
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    nickname = models.CharField(max_length=40) 
+    introduction = models.TextField(blank=True) 
+    image = models.ImageField(upload_to="image") 
+
+    def __str__(self):
+        return self.nickname
+```
+1. Profile 모델은 User 모델과 1:1관계로 설정    
+2. 사용자의 프로필 이미지는 ImageField()을 이용하여 지정   
+3. null, blank 둘다 기본값이 False이나 introduction은 비어 있어도 되기 때문에 blank=True로 지정하여 필드가 폼(입력 양식)에서 빈 채로 저장되는 것을 허용
+### Post, File
+```python
+class Post(models.Model):
+    author = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100, null=True)
+    content = models.TextField(null=True)
+    create_at = models.DateTimeField(auto_now_add=True) #생성시간
+    update_at = models.DateTimeField(auto_now=True) # 수정시간
+    like_num = models.IntegerField(null=True)
+
+    def __str__(self):
+        return self.title
+
+class File(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    content = models.FileField(upload_to="file") #media/file/ 아래에 저장
+
+```
+1. null=True는 필드의 값이 NULL(정보 없음)로 저장되는 것을 허용
+2. 사진이나 영상을 업로드할때 FileField을 사용하였다
+    * 먼저 settings에서 MEDIA_ROOT을 지정해줌으로서 해당 경로에 이미지나 영상이 저장된다.
+    * 또한 upload_to 옵션을 사용하여 구체ㅎ적인 디렉토리를 지정해 줄 수 있다.
+    
+3. auto_now=True와 auto_now_add=True의 차이점
+    * 수정일자 : auto_now=True 사용   
+    auto_now=True는 django model 이 save 될 때마다 현재날짜(date.today())로 갱신된다.(갱신 가능)
+   * 생성일자 : auto_now_add=True 사용
+    auto_now_add=True는 django model 이 최초 저장 시에만 현재날짜(date.today())를 적용한다.(갱신 불가능)
+   
+### Comment
+```python
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    writer = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField(blank=False)
+    create_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return '{} commented {} post'.format(self.writer, self.post.author)
+```
+### Follow
+```python
+class Follow(models.Model):
+    follower = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='follower')
+    following = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='following')
+
+    def __str__(self):
+        return '{} -> {}'.format(self.follower.nickname, self.following.nickname)
+```
+
+## Django ORM 적용해보기
