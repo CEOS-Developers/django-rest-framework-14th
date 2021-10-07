@@ -307,7 +307,12 @@ jobs:
 
 # 모델링과 Django ORM
 
-## 모델링
+## 인스타그램 모델링
+### 인스타그램 erd
+![모델링erd](https://user-images.githubusercontent.com/79985974/136395720-bc89cc3f-c2d4-4e3b-accd-3c5d6e0382ce.PNG)
+
+ERD 작성할때 mysql에서 테이블 칼럽을 조회하면 더 자세한 정보들을 알 수있어 참고하기 좋았다!
+![참고](https://user-images.githubusercontent.com/79985974/136396776-1258f7b2-8a65-4161-a9e9-d050da08bab2.PNG)
 
 ### Profile
 ```python
@@ -374,3 +379,48 @@ class Follow(models.Model):
 ```
 
 ## Django ORM 적용해보기
+### DB tables
+![db](https://user-images.githubusercontent.com/79985974/136397254-ba690348-4a64-45b3-a333-9bcd98b9ca40.PNG)
+
+```shell
+>>> from api.models import User, Profile, Post, Comment
+>>> Profile.objects.create(user_id =2, nickname ='chaeri', introduction = 'heyyyyyyy')
+<Profile: chaeri>
+>>> User.objects.create(username='김초코',password='1111')
+<User: 김초코>
+>>> Profile.objects.create(user_id =3, nickname ='choco', introduction = '멍멍')
+<Profile: choco>
+>>> User.objects.create(username='세오스',password='2222')
+<User: 세오스>
+>>> Profile.objects.create(user_id =4, nickname ='ceos', introduction = '후후')
+<Profile: ceos>
+>>> Profile.objects.all()
+<QuerySet [<Profile: chaeri>, <Profile: choco>, <Profile: ceos>]>
+```
+![user](https://user-images.githubusercontent.com/79985974/136398222-a51fe438-3e16-456f-96a5-5eaa0621fcd6.PNG)
+![profile](https://user-images.githubusercontent.com/79985974/136398211-2cdec88f-8e57-4f88-99c9-3f8337b64dad.PNG)
+```shell
+>>> user1 = Profile.objects.get(nickname='chaeri')
+>>> Post.objects.create(author=user1, title='first',content = '신기하다', like_num = 2)
+<Post: first>
+>>> Post.objects.create(author=user1, title='second',content = '모델링 어렵다....ㅠ', like_num = 4)
+<Post: second>
+>>> user2 = Profile.objects.get(nickname='choco')
+>>> Post.objects.create(author=user2, title='배고파',content = '간식 줘', like_num = 5)
+<Post: 배고파>
+
+>>> Post.objects.filter(title='first') # 필터 함수 적용해보기
+<QuerySet [<Post: first>]>
+
+```
+![post](https://user-images.githubusercontent.com/79985974/136398218-5c2a7bc5-4308-447e-b2f0-0703b4533886.PNG)
+
+참고로 table에서 row를 하나 없애고 싶으면 아래와 같이 하면 되고 전체를 지우고 싶으면 where ~를 빼면 된다.
+```mysql
+mysql> delete from tablename where id=1
+```
+
+## 간단한 회고
+venv 가상환경 진입부터 shell에서 orm까지 거의 대부분의 과정에서 오류가 나서 꽤나 힘들었다.     
+오류를 하나 해결하면 또하나가 생겨나서 굉장히 지쳤지만 해결해나가보면서 DB도 직접 설계해보면서 erd도 만드는 게 굉장히 흥미로웠다.   
+이번에 새로 사용해보는 것들이 너무 많아서 굉장히 익숙치 않았지만 앞으로 과제들을 더 수행하면서 실력이 늘 수 있었으면 좋겠다ㅎㅎ
