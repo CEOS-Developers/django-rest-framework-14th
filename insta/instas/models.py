@@ -4,7 +4,6 @@ from django.db import models
 # Create your models here.
 
 class Users(models.Model):
-    uid = models.AutoField(primary_key=True)
     user_id = models.CharField(max_length=20, primary_key=True)
     user_pw = models.CharField(max_length=20)
     email =  models.EmailField()
@@ -12,8 +11,7 @@ class Users(models.Model):
         return self.uid
 
 class Profile(models.Model):
-    uid = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
+    user_id = models.OneToOneField(Users,on_delete=models.CASCADE, primary_key=True)
     user_name = models.CharField(max_length=20)
     website = models.CharField(max_length=40)
     introduction = models.TextField()
@@ -26,9 +24,8 @@ class Profile(models.Model):
         return self.user_name
 
 class Posts(models.Model):
-    uid = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.AutoField(primary_key=True)
-    user_id = models.CharField(max_length=20)
+    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     location = models.CharField(max_length=30)
     title = models.TextField()
     email = models.EmailField()
@@ -40,7 +37,7 @@ class Posts(models.Model):
 
 class Photos(models.Model):
     photo_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     photo_url = models.ImageField(upload_to="post/Photos")
     date = models.DateTimeField()
@@ -50,7 +47,7 @@ class Photos(models.Model):
 
 class Videos(models.Model):
     video_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     video_url = models.FileField(upload_to="post/Videos")
     date = models.DateTimeField()
@@ -60,7 +57,7 @@ class Videos(models.Model):
 
 class Comment(models.Model):
     comment_id = models.AutoField(primary_key=True)
-    uid = models.ForeignKey(Users,on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     comment = models.TextField()
 
@@ -68,7 +65,7 @@ class Comment(models.Model):
         return self.comment
 
 class Story(models.Model):
-    uid = models.ForeignKey(Users,on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
     story_id = models.AutoField(primary_key=True)
     date = models.DateTimeField()
 
