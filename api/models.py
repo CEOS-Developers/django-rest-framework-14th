@@ -40,8 +40,8 @@ class Comment(models.Model):
         return '{} commented {} post'.format(self.writer, self.post.author)
 
 class Follow(models.Model):
-    follower = models.ForeignKey(Profile, on_delete=models.CASCADE)
-    following = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    follower = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='follower')
+    following = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='following')
 
     def __str__(self):
         return '{} -> {}'.format(self.follower.nickname, self.following.nickname)
