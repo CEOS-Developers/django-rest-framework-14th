@@ -11,21 +11,20 @@ class Users(models.Model):
         return self.user_id
 
 class Profile(models.Model):
-    user_id = models.OneToOneField(Users,on_delete=models.CASCADE, primary_key=True)
+    author = models.OneToOneField(Users,on_delete=models.CASCADE, primary_key=True)
     user_name = models.CharField(max_length=20)
     website = models.CharField(max_length=40)
-    introduction = models.TextField()
-    phone_num = models.IntegerField()
+    introduction = models.TextField(blank=True)
+    phone_num = models.IntegerField(blank=False)
     gender = models.CharField(max_length=6)
-    followers = models.IntegerField()
-    following = models.IntegerField()
+    followers = models.IntegerField(blank=False, default=0)
+    following = models.IntegerField(blank=False, default=0)
 
     def __str__(self):
         return self.user_name
 
 class Posts(models.Model):
-    post_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
+    author = models.ForeignKey(Users,on_delete=models.CASCADE)
     location = models.CharField(max_length=30)
     title = models.TextField()
     likes = models.IntegerField()
@@ -34,8 +33,7 @@ class Posts(models.Model):
         return self.title
 
 class Photos(models.Model):
-    photo_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
+    author = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     photo_url = models.ImageField(upload_to="post/Photos")
     date = models.DateTimeField()
@@ -44,8 +42,7 @@ class Photos(models.Model):
         return self.photo_id
 
 class Videos(models.Model):
-    video_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
+    author = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
     video_url = models.FileField(upload_to="post/Videos")
     date = models.DateTimeField()
@@ -54,10 +51,9 @@ class Videos(models.Model):
         return self.video_id
 
 class Comment(models.Model):
-    comment_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users,on_delete=models.CASCADE)
+    author = models.ForeignKey(Users,on_delete=models.CASCADE)
     post_id = models.ForeignKey(Posts,on_delete=models.CASCADE)
-    comment = models.TextField()
+    comment = models.TextField(blank=False)
 
     def __str__(self):
         return self.comment
