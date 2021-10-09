@@ -1,24 +1,67 @@
 from __future__ import unicode_literals
 from django.db import models
-
+from django.contrib.auth.models import User
 
 # Create your models here.
 
-class Users(models.Model):
-    uid = models.IntegerField()
-    user_name = models.CharField(max_length=20)
-    user_id = models.CharField(max_length=20)
+class Profile(models.Model):
+    author = models.OneToOneField(User,on_delete=models.CASCADE, primary_key=True)
     website = models.CharField(max_length=40)
-    introduction = models.CharField()
-    email = models.EmailField()
-    phone_num = models.IntegerField()
+    introduction = models.TextField(blank=True)
+    phone_num = models.IntegerField(blank=False)
     gender = models.CharField(max_length=6)
-    post_id = models.IntegerField()
-    followers = models.IntegerField()
-    following = models.IntegerField()
-    story_id = models.IntegerField()
 
-class Posts(models.Model):
-    uid = models.ForeignKey(Users,on_delete=models.CASCADE)
-    post_id = models.IntegerField()
-    user_id = models.ForeignKey
+    def __str__(self):
+        return self.user_name
+
+class Post(models.Model):
+    author = models.ForeignKey(User,on_delete=models.CASCADE)
+    location = models.CharField(max_length=30)
+    title = models.TextField(blank=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+class Photos(models.Model):
+    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+    photo_url = models.ImageField(upload_to="post/Photos")
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.post_id
+
+class Videos(models.Model):
+    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+    video_url = models.FileField(upload_to="post/Videos")
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.post_id
+
+class Comment(models.Model):
+    author = models.ForeignKey(User,on_delete=models.CASCADE)
+    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+    comment = models.TextField(blank=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.comment
+
+class Story(models.Model):
+    author = models.ForeignKey(User,on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.story_id
+
+class ViewUser(models.Model):
+    author = models.OneToOneField(User,on_delete=models.CASCADE,primary_key=True)
+    story_id = models.ForeignKey(Story, on_delete=models.CASCADE)
+
+class Likes(models.Model):
+    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.author
