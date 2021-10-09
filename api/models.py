@@ -18,7 +18,7 @@ class Post(models.Model):
     author = models.ForeignKey(User,on_delete=models.CASCADE)
     location = models.CharField(max_length=30)
     title = models.TextField(blank=False)
-    created_date = models.DateTimeField(auto_new_add=True)
+    created_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
@@ -55,7 +55,7 @@ class Story(models.Model):
     def __str__(self):
         return self.story_id
 
-class ViewUser(models.Models):
+class ViewUser(models.Model):
     author = models.OneToOneField(User,on_delete=models.CASCADE,primary_key=True)
     story_id = models.ForeignKey(Story, on_delete=models.CASCADE)
 
