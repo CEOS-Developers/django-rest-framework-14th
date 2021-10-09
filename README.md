@@ -2,7 +2,8 @@
 
 먼저, 인스타그램 어플에 접속하여 어떠한 항목들이 있는지 정리해보았다.
 
-![스크린샷 2021-10-08 오전 2.12.23.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/d235c3ee-4289-4622-813d-5c6c7e53438c/스크린샷_2021-10-08_오전_2.12.23.png)
+![스크린샷 2021-10-08 오전 2 12 23](https://user-images.githubusercontent.com/69099144/136434404-c4e72f78-249d-4d68-a12e-c59f9203f5ed.png)
+
 
 모델링 사진
 
@@ -117,13 +118,14 @@ class Story(models.Model):
 
 ### 객체 생성
 
-![스크린샷 2021-10-08 오전 2.10.56.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/d1abb692-f1e5-45f5-85d3-faaa5278836e/스크린샷_2021-10-08_오전_2.10.56.png)
+![스크린샷 2021-10-08 오전 2 10 56](https://user-images.githubusercontent.com/69099144/136434473-76bff5ac-193c-4b31-a6e0-30c4e7c3575b.png)
+
 
 포스트 객체 생성하기
 
 ### 필터 적용해보기
 
-![스크린샷 2021-10-08 오전 2.12.00.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/68b120de-4e68-4197-b687-ee17b524bb31/스크린샷_2021-10-08_오전_2.12.00.png)
+![스크린샷 2021-10-08 오전 2 12 00](https://user-images.githubusercontent.com/69099144/136434487-4981c1d4-5fdd-4bf5-9ce8-bb0e6fb8f945.png)
 
 필터
 
