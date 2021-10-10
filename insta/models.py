@@ -61,8 +61,8 @@ class Bookmark(models.Model):
 
 # 팔로우 모델 구현
 class Follow(models.Model):
-    follower = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='follower')
-    following = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='following')
+    follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower')
+    followee = models.ManyToManyField(Profile, related_name='followee') # follower가 팔로잉하는 사람들
 
     def __str__(self):
-        return '{} -> {}'.format(self.follower.nickname, self.following.nickname)
+        return '{} -> {}'.format(self.follower.nickname, self.followee.nickname)
