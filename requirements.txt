@@ -5,6 +5,7 @@ Django==3.0.8
 django-environ==0.7.0
 filelock==3.3.0
 mysqlclient==2.0.3
+Pillow==8.3.2
 platformdirs==2.4.0
 python-dotenv==0.19.0
 pytz==2021.3
