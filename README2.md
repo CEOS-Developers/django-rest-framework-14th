@@ -247,10 +247,35 @@ class Follow(models.Model):
 이 방법 말고도, 더 좋은 모델링 방법을 생각해보고 있습니다.   
 이 **팔로우** 모델링에 대해서는 추가적인 공부가 더 필요하다고 생각합니다.
 
+
+### <수정>
+
+```angular2html
+# 팔로우 모델 구현
+class Follow(models.Model):
+    follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower')
+    followee = models.ManyToManyField(Profile, related_name='followee') # follower가 팔로잉하는 사람들
+
+    def __str__(self):
+        return '{} -> {}'.format(self.follower.nickname, self.followee.nickname)
+```
+
+원래의 follower, followee의 의미가 아닌,   
+이 관계망은 follower가 주체가 됩니다.   
+* 즉, follower가 로그인한 사용자가 되고, 내가 팔로우하는 사람들의 목록이 followee가 됩니다.   
+</br>
+* 하나의 관계망은 여러 followee를 갖고, 한 명의 followee는 여러 개의 관계망을 갖기 때문에   
+  followee는 Follow객체와 ManyToManyField를 갖습니다.
+
+![Follow수정모델](https://postfiles.pstatic.net/MjAyMTEwMTBfMjYy/MDAxNjMzODQ3MDY4NDY4.mI_IyuDCr8BtoSatut8deKiFL-EbKH_qazo0_BIwwVMg.P2R1dU-K6o4q0L32yrhA30K1sLJa7I0r_0e5fClI0sUg.PNG.sssssjin99/image.png?type=w966)
+
+
+
+
 </br>
 </br>
 
-## 4. ERD 직접 만들어보기
+## 5. ERD 직접 만들어보기
 원래 모델링을 하기 전에 먼저 해야하는 것이 ERD이지만,   
 저는 ERD가 처음이라 이에대한 문법이나 만드는 방법을 뒤늦게 찾아보고 이후에 작성하게 되었습니다.   
 
@@ -266,7 +291,7 @@ ERD를 작성하는 툴을 먼저 익힌 후에, 작성하게 되었습니다.
 
 </br>
 
-## 5. ORM 이용해보기
+## 6. ORM 이용해보기
 ```angular2html
 (venv) PS C:\Users\82109\Desktop\docker\django-rest-framework-14th> python manage.py shell
 Python 3.9.0 (tags/v3.9.0:9cf6752, Oct  5 2020, 15:34:40) [MSC v.1927 64 bit (AMD64)] on win32
@@ -310,5 +335,98 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 </br>
 
-## 6. 간단한 회고
+## 6. Django의 Reverse relations와 Related_name
+
+이전에 처음 Follow모델을 설계할 때, 한 클래스에서 서로 다른 두 컬럼이 같은 테이블을 참조하게 모델링을 하였습니다.   
+(follower, following이 모두 Profile모델을 참조)   
+
+이때, **related_name**을 설정하라는 에러가 났었습니다.
+
+![에러1](https://postfiles.pstatic.net/MjAyMTEwMTBfMjQ0/MDAxNjMzODQ3MDkyMzcz.QUKFedaXVz9KYWAsrL9TI-69EBubjQ8rOvGqOZUDCHcg.m4vwu08cT4Hd9iJioCL1GjgwLkd_vqMPuIJEXuvtIhAg.PNG.sssssjin99/image.png?type=w966)
+
+찾아본 결과, 바로 한 클래스에서 서로 다른 두 컬럼(속성)이 같은 테이블(클래스)를 참조하는 경우에   
+**Related_name**이 필수인 경우라는 것을 알게되었습니다.   
+
+그래서, related_name에 대해 자세히 찾아보게 되었습니다.
+
+### Related_name
+
+```angular2html
+class User(models.Model):
+    name	= models.CharField(max_length = 50)
+    job		= models.ForeignKey('Occupation', on_delete = models.CASCADE)
+    created_at	= models.DateTimeField(auto_now_add = True)
+    	
+class Occupation(models.Model):
+    name = models.CharField(max_length = 50)
+```
+
+여기서 User객체는 Occupation객체를 **정참조** 하고 있으므로, 속성 이름으로 바로 접근 할 수 있습니다.   
+
+```angular2html
+user1 = User.objects.get(id = 1)
+user1.job.name
+>>> 'Developer'
+```
+
+그러나 Occupation객체는 User객체를 **역참조**하고 있으므로 바로 접근이 불가능합니다.   
+```angular2html
+job1   = Occupation.objects.get(name = 'developer')
+people = job1.user.all() # 이게 될까? -> 안됨
+
+Traceback (most recent call last):
+  File "<console>", line 1, in <module>
+AttributeError: 'Occupation' object has no attribute 'user'
+```
+
+* 따라서 역참조 관계에 있을 때는 **[classname]_set** 이라는 속성을 사용하여 접근해야합니다.
+
+
+```angular2html
+job1   = Occupation.objects.get(id = 1)
+people = job1.user_set.all()
+>>> <QuerySet[<Object User Object(1)>, <Object User Object(2)>]>
+```
+
+> 이때, **user_set**대신 사용할 수 있는 것이 **related_name**입니다.
+> 즉, 역참조 대상인 **user**객체를 부를 수 있는 이름입니다.
+>> 즉, **User**클래스를 정의할 때, 정참조 하고 있는 **Occupation**클래스의 인스턴스에서   
+>> 어떤 명칭으로 거꾸로 호출당할 지 정해주는 이름입니다.
+
+</br>
+</br>
+
+
+### related_name 적용하기
+```angular2html
+class User(models.Model):
+    name = models.CharField(max_length = 50)
+    job	 = models.ForeignKey( 
+            'Occupation',
+            on_delete    = models.CASCADE,
+            related_name = 'appliers' ------------------------- [Key Point !]
+        )
+    created_at	= models.DateTimeField(auto_now_add = True)
+    	
+class Occupation(models.Model):
+    name = models.CharField(max_length = 50)
+```
+
+* **Occupation**객체의 인스턴스와 연결되어 있는 **User**객체를 거꾸로 불러올 때,   
+  **appliers**라는 이름으로 부르기 위해 job의 속성에 **related_name = 'appliers'**를 함께 지정하였습니다.
+
+
+
+```angular2html
+job1   = Occupation.objects.get(id = 1)
+people = job1.appliers.all()
+>>> <QuerySet[<Object User Object(1)>, <Object User Object(2)>]>
+```
+
+(추가)
++ 모든 Foreign Key에 related_name을 붙여 줄 필요는 없습니다.   
+  때에 따라, 참조하고 있는 객체 이름에 **_set**을 붙이는 것이 더 직관적인 경우도 많기 때문입니다.   
+
+
+
 
