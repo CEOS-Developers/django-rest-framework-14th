@@ -4,9 +4,6 @@ import os
 import sys
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django-rest-framework-14th.settings')
-django.setup()
-
 
 def main():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django-rest-framework-14th.settings')
