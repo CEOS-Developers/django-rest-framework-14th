@@ -13,7 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # install psycopg2 dependencies
-RUN apk update && apk add --virtual build-deps python3 python3-dev mariadb-dev build-base \
+RUN apk update && apk add --virtual build-deps python3 python3-dev mariadb-dev build-base jped-dev zlib-dev musl-dev \
     && pip3 install mysqlclient
 
 # install dependencies
