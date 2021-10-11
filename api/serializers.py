@@ -5,55 +5,60 @@ from .models import *
 class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        field = '__all__'
+        fields = '__all__'
 
 
 class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
-        field = '__all__'
+        fields = '__all__'
 
 
 class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like
-        field = '__all__'
+        fields = '__all__'
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    user_nickname = serializers.SerializerMethodField()
+    author_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        field = ['content', 'created_date', 'get_user_nickname']
+        fields = ['author_name', 'author', 'post', 'content', 'created_date']
 
-    def get_user_nickname(self, obj):
-        return obj.user.nickname
+    def get_author_name(self, obj):
+        return obj.author.nickname
 
 
 class PostSerializer(serializers.ModelSerializer):
-    likes = LikeSerializer(many=True, read_only=True)  #read_only: 요청 파라미터에 포함되지 않음.
+    author_name = serializers.SerializerMethodField()
+    post_likes = LikeSerializer(many=True, read_only=True)   # read_only: 요청 파라미터에 포함되지 않음.
     comments = CommentSerializer(many=True, read_only=True)
-    files = FileSerializer(many=True, read_only=True)
+    post_files = FileSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'content', 'created_date', 'updated_date', 'author_id', 'likes', 'comments', 'files']
+        fields = ['author_name', 'author', 'content', 'created_date', 'updated_date', 'post_likes', 'comments', 'post_files']
+
+    def get_author_name(self, obj):
+        return obj.author.nickname
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['id', 'info', 'profile_name', 'user_id']
+        fields = ['id', 'info', 'profile_name', 'user']
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # profile = ProfileSerializer(read_only=True)
+    # profiles = ProfileSerializer(read_only=True)
     posts = PostSerializer(many=True, read_only=True)
-    follower = FollowSerializer(many=True, read_only=True)
-    following = FollowSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    followers = FollowSerializer(many=True, read_only=True)
+    followings = FollowSerializer(many=True, read_only=True)
     # likes = LikeSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = ['nickname', 'username', 'password', 'email', 'posts', 'follower', 'following']
+        fields = ['nickname', 'username', 'password', 'email', 'posts', 'comments', 'followers', 'followings']
