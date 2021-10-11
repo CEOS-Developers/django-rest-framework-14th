@@ -113,7 +113,7 @@ class Comment(Base):
     parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return '{}이 {}번째 글에 남긴 댓글 : {}'.format(self.author.nickname, self.post_id, self.content)
+        return '{}이(가) {}번째 글에 남긴 댓글 : {}'.format(self.author.nickname, self.post_id, self.content)
 
 
 class File(Base):
