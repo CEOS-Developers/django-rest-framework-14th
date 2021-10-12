@@ -37,11 +37,11 @@ class User(AbstractUser, Base):
 
 
 class Follow(Base):
-    following_user = models.ForeignKey('user', on_delete=models.CASCADE, related_name='following')
-    follower_user = models.ForeignKey('user', on_delete=models.CASCADE, related_name='follower')
+    from_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
+    to_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
 
     class Meta:
         db_table = 'follow'
 
     def __str__(self):
-        return self.following_user.nickname + ' follows ' + self.follower_user.nickname
+        return self.from_user.nickname + ' follows ' + self.to_user.nickname
