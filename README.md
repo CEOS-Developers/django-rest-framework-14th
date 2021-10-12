@@ -481,7 +481,96 @@ ERD 를 직접 작성하면서 설계하는 것은 생각보다 고려할 부분
 
 데이터 다루는 건 언제나 어렵고 그나마 인스타그램이라는 서비스를 가지고 공부하니까 좀 나은것 같다
 
+## 3주차 과제 피드백
+
+가능하면 모든 모델에 created_at, updated_at 필드를 부여하는 것이 추후 데이터 관리에 도움이 된다고 한다. 좋은 습관을 들이기 위해 나도 기존의 모델을 조금 수정하기로 했다.
+```python
+# models.py
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+```
+위와 같이 Timestamp 데이터를 담는 `Abstract Model`을 선언해주고 다른 모델에서 이를 상속하여 사용한다.
+
+- `Abstract Model`은 여러 Model에 공통으로 사용되는 필드가 있을 때, 코드의 중복을 최소화하기 위해 사용
+- `Abstract Model`은 가상의 모델이기 때문에, DB에서 테이블이 생성되지 않음
+
+```python
+class Post(BaseModel):
+    text = models.TextField(blank=True)
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='posts')
+
+    def __str__(self):
+        return 'post_' + str(self.id)
+```
+- 기존 `Post` 에서 create_at 필드를 직접 설정해줬던 것과 달리, BaseModel을 상속받는 것을 통해 created_at, updated_at 필드가 자동으로 추가된다.
+
+
+# 4주차 DRF - Serializer
+## django admin 이용해서 모델 관리하기
+지난 과제 때는 생성한 모델에 데이터를 추가하고 관리하는 과정을 ORM 쿼리를 사용했다. 장고에서는 이 외에도 Django admin 페이지를 통해 `GUI` 로 모델을 관리하는 방법을 제공한다.
+```python
+# admin.py
+from django.contrib import admin
+from .models import *
+
+admin.site.register(User)
+admin.site.register(Post)
+admin.site.register(Image)
+admin.site.register(Video)
+admin.site.register(Like)
+admin.site.register(Comment)
+```
+이처럼 admin.py에 내가 생성한 모델을 등록하면 서버를 실행한 후 localhost:8000/admin 주소에서 모델을 관리할 수 있다.
+![](images/django_admin.png)
+
+각각의 모델 목록도 확인할 수 있다. 이때 나오는 이름은 내가 모델에 부여했던 `__str__` 반환값과 같다.
+
+![](images/django_admin_post.png)
+
+그런데 각 객체의 필드값을 확인하려면 하나씩 클릭해서 들어가야 하고, 이 과정이 불편하게 느껴졌다. 역시나 유저친화적인 장고는 이 부분에 대한 해결책을 제공해준다.. 장고짱
+```python
+# admin.py
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_text',
+                    'get_likes_count',
+                    'get_comments_count',
+                    'created_at', 'updated_at']
+    list_display_links = ['id', 'get_text']
+
+    def get_text(self, post):
+        return f'{post.text[:20]} ...'
+    get_text.short_description = '내용'
+
+    def get_likes_count(self, post):
+        return f'{post.post_likes.count()}개'
+    get_likes_count.short_description = '좋아요'
+
+    def get_comments_count(self, post):
+        return f'{post.post_comments.count()}개'
+    get_comments_count.short_description = '댓글'
+```
+- 앞서 `admin.site.register(Post)`로 간단히 등록해주었던 코드를 내 입맛에 맞게 바꿔주었다.
+- `list_display` 에는 리스트에서 보고싶은 필드 또는 멤버 함수 지정 가능
+- 멤버 함수를 만들어서 내가 원하는 정보를 한눈에 보기 쉽도록 만들었다
+  > 게시글 내용을 앞의 20글자만 보여주고, 좋아요 수, 댓글 수를 요약해서 보여줄 수 있도록!!
+
+- 커스텀 이후 django admin 화면
+  
+![](images/django_admin_post_custom.png)
+> 한결 보기 편해졌다..
+
+
+
+
+
 
 # 참고자료
 - [Django Tips #3 Optimize Database Queries](https://simpleisbetterthancomplex.com/tips/2016/05/16/django-tip-3-optimize-database-queries.html)
-
+- [REST API 제대로 알고 사용하기](https://meetup.toast.com/posts/92)
+- [admin 커스터마이징](https://wayhome25.github.io/django/2017/03/22/django-ep8-django-admin/)
