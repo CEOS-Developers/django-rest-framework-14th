@@ -565,6 +565,175 @@ class PostAdmin(admin.ModelAdmin):
 ![](images/django_admin_post_custom.png)
 > 한결 보기 편해졌다..
 
+## Serializer 작성하기
+- 클라이언트의 요청에 Json 형태로 응답하기 위해 Serializer를 사용
+- ModelSerializer 사용하면 나의 모델에 맞게 장고가 기본적인 Serializer를 작성해주고, 필요에 의해 커스텀해서 사용 가능
+
+```python
+class MySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MyModel # 사용 모델
+        fields = ['id', 'field1', 'field2', 'field3'] # 선택된 필드만
+        fields = '__all__' # 모든 필드 사용
+```
+
+과제에서 가장 공을 들인 부분이 PostSerializer 이다. 인스타그램의 핵심 기능이라고도 볼수 있기 때문에 게시글에 관련된 데이터를 어떻게 정리해서 Json 형식으로 넘겨줄까에 대해 고민을 많이 했다.
+```python
+class PostSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    like_username_list = serializers.SerializerMethodField()
+    post_comments = CommentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Post
+        fields = ['id', 'text', 'author', 'like_username_list', 'post_comments', 'created_at', 'updated_at', ]
+
+    def get_author(self, obj):  # 작성자 username 반환
+        return obj.user.username
+
+    def get_like_username_list(self, obj):  # 게시글에 좋아요 누른 사용자의 username만을 받아와서 리스트로 저장
+        return [like.user.username for like in obj.post_likes.all()]
+```
+- 원래 Post에는 user_id가 저장되어 있는데, 나는 username을 보내고 싶어서 author라는 필드를 추가했다. `SerializerMethodField` 를 사용하였다.
+- `like_username_list` 또한 내가 추가한 정보인데, 게시글에 좋아요 누른 사용자의 username을 받아와서 리스트로 저장하였다. 인스타그램에서 좋아요한 사람 목록이 뜨는 느낌으로 생각했다.
+- `post_comments` 는 NestedSerializer 방법을 이용했는데, 이는 댓글에 대한 모든 정보(작성자, 시간, 등등..)가 필요하기 때문이다. CommentSerializer를 이용해서 Comment에 대한 데이터 값을 직렬화하고 이를 PostSerializer 내에 합치는 구조라고 보면 될 것 같다.
+
+## 과제 수행 결과
+### 모델 선택 및 데이터 삽입 - Post 모델
+```python
+class Post(BaseModel):
+    text = models.TextField(blank=True)
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='posts')
+
+    def __str__(self):
+        return 'post_' + str(self.id)
+
+class Like(BaseModel):
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='user_likes')
+    post = models.ForeignKey(
+        'Post', on_delete=models.CASCADE, related_name='post_likes')
+
+    def __str__(self):
+        return self.user.username + '_likes_post' + str(self.post_id)
+
+class Comment(BaseModel):
+    text = models.CharField(max_length=100, blank=False)
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='user_comments')
+    post = models.ForeignKey(
+        'Post', on_delete=models.CASCADE, related_name='post_comments')
+
+    def __str__(self):
+        return self.user.username + '_comments_post' + str(self.post_id)
+```
+> Post와 Like, Comment 객체를 생성한 후 admin 사이트에 들어가 커스텀한 대로 잘 나오는 것을 확인하였다.
+
+![](images/post_list.png)
+
+### 모든 Post 객체를 가져오는 API 만들기
+- URL: api/posts
+- Method: GET
+
+```json
+[
+    {
+        "id": 1,
+        "text": "post1",
+        "author": "user3",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-04T19:38:56.832719+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 2,
+        "text": "post2",
+        "author": "user2",
+        "like_username_list": [
+            "user1",
+            "user2"
+        ],
+        "post_comments": [],
+        "created_at": "2021-10-04T19:47:06.953963+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 3,
+        "text": "post3",
+        "author": "user3",
+        "like_username_list": [
+            "user1"
+        ],
+        "post_comments": [
+            {
+                "id": 1,
+                "created_at": "2021-10-12T18:12:50.703905+09:00",
+                "updated_at": "2021-10-12T18:12:50.704003+09:00",
+                "text": "우린 깐부자나",
+                "user": 1,
+                "post": 3
+            },
+            {
+                "id": 2,
+                "created_at": "2021-10-12T18:13:10.307574+09:00",
+                "updated_at": "2021-10-12T18:13:10.307699+09:00",
+                "text": "그만해 이러다 다죽어",
+                "user": 3,
+                "post": 3
+            }
+        ],
+        "created_at": "2021-10-04T19:47:43.490490+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 4,
+        "text": "첫번째 포스트입니다",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T15:15:36.616461+09:00",
+        "updated_at": "2021-10-12T15:15:36.616534+09:00"
+    },
+    {
+        "id": 5,
+        "text": "post_api test",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T20:43:16.684445+09:00",
+        "updated_at": "2021-10-12T20:43:16.684728+09:00"
+    },
+    {
+        "id": 6,
+        "text": "인스타그램 예시 포스트 데이터",
+        "author": "mongus",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T21:41:59.792145+09:00",
+        "updated_at": "2021-10-12T21:41:59.792247+09:00"
+    }
+]
+```
+
+### 새로운 데이터를 create 요청하는 API
+- URL: api/posts
+- Method: POST
+- Body: {"text": "blahblah"}
+
+```json
+{
+    "id": 7,
+    "text": "blahblah",
+    "author": "user1",
+    "like_username_list": [],
+    "post_comments": [],
+    "created_at": "2021-10-12T21:54:48.448050+09:00",
+    "updated_at": "2021-10-12T21:54:48.448767+09:00"
+}
+```
+
 
 
 
