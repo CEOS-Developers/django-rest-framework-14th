@@ -4,13 +4,8 @@ from user.models import User, Follow
 
 class DynamicFieldsModelSerializer(ModelSerializer):
     def __init__(self, *args, **kwargs):
-        print(kwargs)
-
         fields = kwargs.pop('fields', None)
         excludes = kwargs.pop('excludes', None)
-
-
-        print(fields, excludes)
 
         if fields is not None and excludes is not None:
             raise ValueError
@@ -47,5 +42,10 @@ class UserSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'login_id', 'email', 'nickname', 'bio', 'follower', 'following', 'profile_picture']
-        exclude = []
+        fields = [
+            'id', 'login_id', 'email',
+            'nickname', 'bio', 'profile_picture',
+            'following', 'follower',
+            'is_private', 'is_active', 'is_superuser',
+            'created_date'
+        ]
