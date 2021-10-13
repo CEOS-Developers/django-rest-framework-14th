@@ -13,8 +13,8 @@ class UserManager(BaseUserManager):
         )
 
         password = data.get('password')
-
         user.set_password(password)
+
         user.save()
         return user
 
@@ -98,10 +98,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return True
 
     def is_followed(self, from_user):
-        # follower_exist = self.follower.filter(from_user__id=from_user_id).exists()
-        # if follower_exist:
-        #     return True
-        # return False
         try:
             self.follower.get(from_user=from_user)
 
