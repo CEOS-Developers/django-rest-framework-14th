@@ -1166,3 +1166,1007 @@ for i in range(0, 5):
 `python` 이란 언어를 처음 써보니까 '이건 왜 안되지?' 라는 경우가 좀 많았던 것 같다.  
 
 조금 더 익숙해지면 괜찮을 것 같다.
+
+
+# 4주차
+
+## 3주차 피드백 반영
+
+app을 나눠서 모델들을 전부 다시 구성했다. 만들어진 테이블들은 다음과 같다.
+![reorganize-tables](img/tables-after-reorganize)
+
+모델에 좀 더 쉽게 조회할 수 있도록 메서드들도 추가했다.
+
+```python
+# user/models.py
+
+class User(AbstractBaseUser, PermissionsMixin):
+    
+    # field 생략
+    
+    def get_all_posts(self):
+        return self.post.all()
+
+    def get_all_comments(self):
+        return self.comment.all()
+
+    def get_all_followers(self):
+        return self.follower.all()
+
+    def get_followers_count(self):
+        return self.get_all_followers().count()
+
+    def get_all_followings(self):
+        return self.following.all()
+
+    def get_followings_count(self):
+        return self.get_all_followings().count()
+
+    def is_following(self, to_user):
+        try:
+            self.following.get(to_user=to_user)
+
+        except Follow.DoesNotExist:
+            return False
+
+        return True
+
+    def is_followed(self, from_user):
+        try:
+            self.follower.get(from_user=from_user)
+
+        except self.DoesNotExist:
+            return False
+
+        return True
+
+```
+그런데 이렇게 모델에 메서드들을 많이 사용해도 되는지 모르겠다.
+아직 장고의 컨벤션들을 잘 몰라서 이런 부분들이 좀 어려운 것 같다.
+
+## 1. 데이터 삽입
+
+***User Model***
+```python
+class User(AbstractBaseUser, PermissionsMixin):
+    id = models.AutoField(primary_key=True)
+    login_id = models.CharField(max_length=255, unique=True, null=False, blank=False)
+    email = models.EmailField(max_length=50, unique=True, null=False, blank=False)
+    nickname = models.CharField(max_length=30, unique=True, null=False, blank=False)
+    bio = models.TextField(blank=True)
+    profile_picture = models.ImageField(upload_to='', blank=True)
+
+    is_private = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+
+    created_date = models.DateTimeField(auto_now_add=True, editable=False)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = 'nickname'
+    REQUIRED_FIELDS = ['login_id', 'email']
+
+    class Meta:
+        db_table = 'user'
+
+    def __str__(self):
+        return self.nickname
+
+    def get_all_posts(self):
+        return self.post.all()
+
+    def get_all_comments(self):
+        return self.comment.all()
+
+    def get_all_followers(self):
+        return self.follower.all()
+
+    def get_followers_count(self):
+        return self.get_all_followers().count()
+
+    def get_all_followings(self):
+        return self.following.all()
+
+    def get_followings_count(self):
+        return self.get_all_followings().count()
+
+    def is_following(self, to_user):
+        try:
+            self.following.get(to_user=to_user)
+
+        except Follow.DoesNotExist:
+            return False
+
+        return True
+
+    def is_followed(self, from_user):
+        try:
+            self.follower.get(from_user=from_user)
+
+        except self.DoesNotExist:
+            return False
+
+        return True
+```
+
+***Follow Model***
+```python
+class Follow(Base):
+    from_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
+    to_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
+
+    class Meta:
+        db_table = 'follow'
+
+    def __str__(self):
+        return str(self.from_user.id) + ' follows ' + str(self.to_user.id)
+
+```
+
+***결과***   
+![user-data](img/user-data)
+
+
+## 2. 모든 데이터를 가져오는 API 만들기
+***모든 'User'의  list를 가져오는 API 요청 : /api/user GET***
+
+***Code***
+```python
+@csrf_exempt
+@api_view(['GET', 'POST'])
+# /api/user
+def user_list(request):
+    # display all user list
+    if request.method == 'GET':
+        users = User.objects.all()
+        fields = request.GET.getlist('fields') or None
+        excludes = request.GET.getlist('excludes') or None
+
+        try:
+            serializer = UserSerializer(users, fields=fields, excludes=excludes, many=True)
+        except ValueError:
+            return JsonResponse({'message': 'Wrong url parameter : '
+                                            'Fields and Excludes cannot exist at the same time'}, status=400)
+
+        response = serializer.data
+        return JsonResponse(response, status=200, safe=False)
+```
+fields와 excludes를 받아 원하는 필드들을 파라미터를 통해 동적으로 응답받을 수 있게 하였다.
+
+***Result***
+
+```json
+[
+    {
+        "id": 1,
+        "login_id": "dbwnsghks",
+        "email": "",
+        "nickname": "junhwan",
+        "bio": "",
+        "profile_picture": null,
+        "following": [
+            {
+                "id": 11,
+                "to_user": 23
+            },
+            {
+                "id": 12,
+                "to_user": 19
+            },
+            {
+                "id": 13,
+                "to_user": 20
+            },
+            {
+                "id": 17,
+                "to_user": 27
+            }
+        ],
+        "follower": [
+            {
+                "id": 14,
+                "from_user": 19
+            },
+            {
+                "id": 15,
+                "from_user": 20
+            },
+            {
+                "id": 16,
+                "from_user": 23
+            }
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-13T11:35:04.430813"
+    },
+    {
+        "id": 19,
+        "login_id": "asdf",
+        "email": "asjdlfj@gmail.com",
+        "nickname": "ujunhn",
+        "bio": "",
+        "profile_picture": null,
+        "following": [
+            {
+                "id": 14,
+                "to_user": 1
+            }
+        ],
+        "follower": [
+            {
+                "id": 12,
+                "from_user": 1
+            }
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-13T13:38:59.983112"
+    },
+    {
+        "id": 20,
+        "login_id": "1111asdf",
+        "email": "sdfsa@naver.com",
+        "nickname": "aa",
+        "bio": "",
+        "profile_picture": null,
+        "following": [
+            {
+                "id": 15,
+                "to_user": 1
+            }
+        ],
+        "follower": [
+            {
+                "id": 13,
+                "from_user": 1
+            }
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-13T13:42:28.408398"
+    },
+    {
+        "id": 23,
+        "login_id": "harrykane",
+        "email": "Kane@naver.com",
+        "nickname": "Kane",
+        "bio": "",
+        "profile_picture": null,
+        "following": [
+            {
+                "id": 16,
+                "to_user": 1
+            }
+        ],
+        "follower": [
+            {
+                "id": 11,
+                "from_user": 1
+            }
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-13T14:36:26.717770"
+    },
+    {
+        "id": 25,
+        "login_id": "ronaldo",
+        "email": "ronaldo@naver.com",
+        "nickname": "Ronaldo",
+        "bio": "",
+        "profile_picture": null,
+        "following": [],
+        "follower": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-14T00:43:57.725138"
+    },
+    {
+        "id": 26,
+        "login_id": "kaka",
+        "email": "Kaka@naver.com",
+        "nickname": "Kaka",
+        "bio": "",
+        "profile_picture": null,
+        "following": [],
+        "follower": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-14T00:44:12.250733"
+    },
+    {
+        "id": 27,
+        "login_id": "messi",
+        "email": "messi@naver.com",
+        "nickname": "messi",
+        "bio": "",
+        "profile_picture": null,
+        "following": [],
+        "follower": [
+            {
+                "id": 17,
+                "from_user": 1
+            }
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-14T00:44:38.017259"
+    },
+    {
+        "id": 28,
+        "login_id": "ceos",
+        "email": "ceos@naver.com",
+        "nickname": "ceosjjang",
+        "bio": "",
+        "profile_picture": null,
+        "following": [],
+        "follower": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-14T02:25:00.265495"
+    }
+]
+```
+
+## 3. 새로운 데이터를 create하도록 요청하는 API 만들기
+User를 추가하는 API 요청 결과 : /api/user POST 
+
+***Body Data***
+
+```json
+{
+    "login_id":"chasdfa",
+    "email":"casfsdfha@naver.com",
+    "nickname":"Chdfa",
+    "password":"q1w2e3r4"
+}
+```
+
+
+중복된 데이터 입력시 오류 검증
+```json
+{
+    "login_id": [
+        "user의 login id은/는 이미 존재합니다."
+    ],
+    "email": [
+        "user의 email은/는 이미 존재합니다."
+    ],
+    "nickname": [
+        "user의 nickname은/는 이미 존재합니다."
+    ]
+}
+```
+`serializer`에서 unique field들에 대한 중복값 검증을 알아서 해준다.  
+안해주는지 알고 혼자 짰다가 다 지웠다..
+
+## 지금까지 만든 API 정리
+
+### /api/user GET
+* 유저 전체 목록을 가져온다.
+* 파라미터를 주어 원하는 필드의 데이터를 동적으로 가져올 수 있다.
+
+***method: GET***  
+***url: localhost:8000/api/user?fields=nickname&fields=created_date***
+---
+```json
+[
+    {
+        "id": 1,
+        "nickname": "junhwan",
+        "created_date": "2021-10-13T11:35:04.430813"
+    },
+    {
+        "id": 19,
+        "nickname": "ujunhn",
+        "created_date": "2021-10-13T13:38:59.983112"
+    },
+    {
+        "id": 20,
+        "nickname": "aa",
+        "created_date": "2021-10-13T13:42:28.408398"
+    },
+    {
+        "id": 23,
+        "nickname": "Kane",
+        "created_date": "2021-10-13T14:36:26.717770"
+    },
+    {
+        "id": 25,
+        "nickname": "Ronaldo",
+        "created_date": "2021-10-14T00:43:57.725138"
+    },
+    {
+        "id": 26,
+        "nickname": "Kaka",
+        "created_date": "2021-10-14T00:44:12.250733"
+    },
+    {
+        "id": 27,
+        "nickname": "messi",
+        "created_date": "2021-10-14T00:44:38.017259"
+    },
+    {
+        "id": 28,
+        "nickname": "ceosjjang",
+        "created_date": "2021-10-14T02:25:00.265495"
+    },
+    {
+        "id": 29,
+        "nickname": "Chdfa",
+        "created_date": "2021-10-14T02:54:38.041593"
+    }
+]
+```
+
+### /api/user POST
+* body data를 이용하여 유저를 생성한다.
+
+### /api/user/{user_id} GET
+* 특정 유저를 검색한다.  
+
+***method: GET***  
+***url: localhost:8000/api/user/23?fields=id&fields=email&fields=nickname&fields=created_date&fields=following&fields=follower***
+
+---
+```json
+[
+    {
+        "id": 23,
+        "email": "Kane@naver.com",
+        "nickname": "Kane",
+        "following": [
+            {
+                "id": 16,
+                "to_user": 1
+            }
+        ],
+        "follower": [
+            {
+                "id": 11,
+                "from_user": 1
+            }
+        ],
+        "created_date": "2021-10-13T14:36:26.717770"
+    }
+]
+```
+
+### /api/user/{user_id} PUT
+* {user_id}에 해당하는 유저의 데이터를 body data로 바꾼다.  
+
+***method: PUT***  
+***url: localhost:8000/api/user/23***  
+
+```python
+# user/models.py
+    def update(self, pk, data):
+        user = User.objects.filter(pk=pk)
+        if not user.exists():
+            raise ValueError
+
+        user = user.first()
+
+        for key in data.keys():
+            if not hasattr(user, key):
+                raise AttributeError
+            user.__setattr__(key, data[key])
+        user.save()
+```
+유저 모델에 다음과 같은 메서드를 정의하였다.  
+
+```python
+# user/views.py
+elif request.method == 'PUT':
+    data = JSONParser().parse(request)
+
+    try:
+        User.objects.update(pk, data)
+
+    except IntegrityError:
+        return JsonResponse({"message": str(data) + " is already exist"}, status=304)
+    except ValueError:
+        return JsonResponse({"message": "Id " + str(pk) + " is not exist"}, status=304)
+    except AttributeError:
+        return JsonResponse({"message": str(data) + " have wrong attribute"}, stauts=304)
+
+    return JsonResponse({"message": "Id " + str(pk) + ' is updated successfully'}, status=200)
+```
+
+이렇게 많은 예외들을 한번에 처리할 순 없을까?? 너무 번거롭다.
+
+***body data***
+```json
+{
+    "nickname":"Pogba"
+}
+```
+
+***response***
+```json
+{
+    "message": "Id 23 is updated successfully"
+}
+```
+
+***result***
+
+/api/user/23 GET으로 조회하였다.   
+`nickname`이 Kane -> Pogba 로 변하였다.
+```json
+[
+    {
+        "id": 23,
+        "login_id": "harrykane",
+        "email": "Kane@naver.com",
+        "nickname": "Pogba",
+        "bio": "",
+        "profile_picture": null,
+        "following": [
+            {
+                "id": 16,
+                "to_user": 1
+            }
+        ],
+        "follower": [
+            {
+                "id": 11,
+                "from_user": 1
+            }
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-10-13T14:36:26.717770"
+    }
+]
+
+```
+
+### /api/user/{user_id} DELETE
+* user_id에 해당하는 유저를 지운다.
+
+***method: DELETE***  
+***url: localhost:8000/api/user/23***  
+
+***response***
+```json
+{
+    "message": "Id 23 is deleted successfully"
+}
+```
+
+***result***
+/api/user/23 으로 조회하였다. 성공적으로 삭제되었다.
+```json
+{
+    "message": "Id 23 doesn't exist in database"
+}
+```
+
+###/api/user/{from_user_id}/following/{to_user_id} GET
+
+* {from_user_id}의 유저가 {to_user_id}를 팔로우 하는지 확인한다. 
+
+***method: GET***  
+***url: localhost:8000/1/user/27*** 
+
+```python
+# user/views.py
+
+if from_user.is_following(to_user):
+    return JsonResponse({"message": "True"}, status=200)
+return JsonResponse({"message": "False"}, status=200)
+```
+개인적으로 이 부분이 말하는 것 처럼 써져서 제일 맘에 든다.
+
+***response***
+```json
+{
+    "message": "True"
+}
+```
+
+***method: GET***  
+***url: localhost:8000/1/user/2124*** 
+
+***response***
+```json
+{
+    "message": "id=1 user or id=2124 user does not exist in the database"
+}
+```
+
+### /api/user/{from_user_id}/following/{to_user_id} PUT 
+
+* {from_user_id}의 유저가 {to_user_id}를 팔로우한다.
+
+```python
+# user/models.py
+def follow(self, from_user, to_user):
+    if from_user.is_following(to_user):
+        raise ValueError
+
+    relation = Follow(from_user=from_user, to_user=to_user)
+    relation.save()
+```
+유저 모델에 이렇게 메서드를 정의하였다.
+
+### /api/user/{from_user_id}/following/{to_user_id} DELETE 
+* {from_user_id}의 유저가 {to_user_id}를 언팔로우한다.
+
+
+### /api/user/{user_id}/follower GET
+* {user_id}의 유저를 팔로우하는 유저들의 목록이다.
+* 이 부분은 수정이 필요해 보인다...
+
+```python
+# user/models.py
+if request.method == 'GET':
+    try:
+        user = User.objects.get(pk=pk)
+
+    except User.DoesNotExist:
+        return JsonResponse({'message': '%s does not exist' % (str(pk))}, status=404)
+
+    # 따져보면 맞는데.. 변수명이 너무너무 헷갈린다.
+    user_followers = User.objects.filter(following__to_user=user)
+
+    try:
+        serializer = UserSerializer(
+            user_followers,
+            fields=('id', 'login_id', 'email', 'nickname', 'bio', 'profile_picture'),
+            many=True
+        )
+
+    except ValueError:
+        return JsonResponse({'message': 'Wrong url parameter : '
+                                        'Fields and Excludes cannot exist at the same time'}, status=404)
+
+    return JsonResponse(serializer.data, safe=False, status=200)
+```
+이 부분이 머리를 터지게 했다. 아직도 해결 못함
+
+***method: GET***  
+***url: localhost:8000/1/following
+
+```json
+[
+    {
+        "id": 19,
+        "login_id": "asdf",
+        "email": "asjdlfj@gmail.com",
+        "nickname": "ujunhn",
+        "bio": "",
+        "profile_picture": null
+    },
+    {
+        "id": 20,
+        "login_id": "1111asdf",
+        "email": "sdfsa@naver.com",
+        "nickname": "aa",
+        "bio": "",
+        "profile_picture": null
+    },
+    {
+        "id": 27,
+        "login_id": "messi",
+        "email": "messi@naver.com",
+        "nickname": "messi",
+        "bio": "",
+        "profile_picture": null
+    }
+]
+```
+
+### /api/user/{user_id}/following GET
+* {user_id}의 유저가 팔로우하는 유저들의 목록이다.
+* 위랑 동일
+
+## follow 관계 모델링 
+`serializer` 를 이용하여 `follow` 관계를 살펴보려고 했다. 깊게 생각하지 않고 단순 직관적으로 구성했던 변수명들과 `related_name`들이 헷갈리게 했다.
+
+`serializer`와 결과는 다음과 같다.
+
+```python
+# serializer
+
+class UserSerializer(serializers.ModelSerializer):
+    follower = FollowerSerializer(many=True, read_only=True)
+    following = FollowingSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'nickname', 'bio', 'profile_picture', 'is_private', 'is_active', 'following',
+                  'follower']
+```
+
+```json
+//result
+
+{
+   "id":11,
+   "username":"user78442",
+   "nickname":"Ronaldo",
+   "bio":"",
+   "profile_picture":null,
+   "is_private":false,
+   "is_active":true,
+   "following":[
+      {
+         "id":3,
+         "created_date":"2021-10-12T09:40:52.933096",
+         "update_date":"2021-10-12T09:40:52.933212",
+         "following_user":11,
+         "follower_user":7
+      },
+      {
+         "id":13,
+         "created_date":"2021-10-12T09:46:51.713116",
+         "update_date":"2021-10-12T09:46:51.713149",
+         "following_user":11,
+         "follower_user":7
+      },
+      {
+         "id":14,
+         "created_date":"2021-10-12T09:46:51.738402",
+         "update_date":"2021-10-12T09:46:51.738451",
+         "following_user":11,
+         "follower_user":5
+      },
+      {
+         "id":16,
+         "created_date":"2021-10-12T09:46:53.456473",
+         "update_date":"2021-10-12T09:46:53.456508",
+         "following_user":11,
+         "follower_user":3
+      }
+   ],
+   "follower":[
+      {
+         "id":8,
+         "created_date":"2021-10-12T09:46:50.080478",
+         "update_date":"2021-10-12T09:46:50.080515",
+         "following_user":1,
+         "follower_user":11
+      }
+   ]
+}
+
+```
+
+관계를 확실하게 보기위해 `nested serializer` 를 사용하여 Json으로 만들었는데, 너무너무 헷갈린다.  
+follower에 following_user와 follower_user 라는 변수명으로 들어있다보니 바로 눈에 들어오지 않았다.  
+
+방향을 기준으로 잡으면 좋을 것 같다는 생각이 들어 이렇게 해보았다.
+> from_user -> to_user
+
+`relation_name`이 문제였다. 이 부분이 조금 어려웠다.
+from_user는 to_user를 팔로우한다.  
+
+`user.following.all()`으로 user의 팔로잉목록을 불렀을 때,  
+from_user_id = user_id 인 객체들이 불러져야한다.
+
+그러므로 from_user의 relation_name은 'following', to_user의 relation_name은 'follower' 이다.  
+코드로 나타내면 다음과 같다.
+
+```python
+class Follow(Base):
+    from_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
+    to_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
+```
+
+json으로 만든 Ronaldo씨의 UserSerializer 결과는 다음과 같다.  
+직관적으로 잘 만들어졌다고 생각한다.
+
+```json
+{
+   "id":2,
+   "username":"user40958",
+   "nickname":"Ronaldo",
+   "bio":"",
+   "profile_picture":null,
+   "is_private":false,
+   "is_active":true,
+   "following":[
+      {
+         "id":42,
+         "to_user":6
+      }
+   ],
+   "follower":[
+      {
+         "id":3,
+         "from_user":5
+      },
+      {
+         "id":6,
+         "from_user":3
+      },
+      {
+         "id":8,
+         "from_user":7
+      },
+      {
+         "id":25,
+         "from_user":7
+      },
+      {
+         "id":26,
+         "from_user":1
+      }
+   ]
+}
+```
+
+## serializer.data를 JsonResponse에 넣었을 때 발생하는 오류
+
+```python
+# django.http.response.py
+
+def __init__(self, data, encoder=DjangoJSONEncoder, safe=True,
+             json_dumps_params=None, **kwargs):
+    if safe and not isinstance(data, dict):
+        raise TypeError(
+            'In order to allow non-dict objects to be serialized set the '
+            'safe parameter to False.'
+        )
+
+```
+`dict` 자료형이 아닐 때, `safe`를 `False`로 해놓지 않으면, `TypeError`가 발생하게 된다.
+
+```python
+return JsonResponse(serializer.data, safe=False)
+```
+
+이거 때문에 시간 many 날렸다. 
+
+## DynamicFieldsModelSerializer
+
+* 동적으로 필드들을 조회하고 싶을 때 사용한다.
+
+```python
+class DynamicFieldsModelSerializer(ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        fields = kwargs.pop('fields', None)
+        excludes = kwargs.pop('excludes', None)
+
+        if fields is not None and excludes is not None:
+            raise ValueError
+
+        super(DynamicFieldsModelSerializer, self).__init__(*args, **kwargs)
+
+        if fields is not None:
+            allowed = set(fields)
+            existing = set(self.fields)
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
+
+        elif excludes is not None:
+            not_allowed = set(excludes)
+            for exclude_name in not_allowed:
+                self.fields.pop(exclude_name)   
+
+class UserSerializer(DynamicFieldsModelSerializer):
+    follower = FollowerSerializer(many=True, read_only=True)
+    following = FollowingSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'login_id', 'email',
+            'nickname', 'bio', 'profile_picture',
+            'following', 'follower',
+            'is_private', 'is_active', 'is_superuser',
+            'created_date'
+        ]
+```
+
+위와같이 `UserSerializer`가 `DynamicFieldsModelSerializer`를 상속한다.
+`fields`에 해당하는 필드들만 serialize 되어 반환된다.
+
+이렇게 사용하였다.
+
+```python
+if request.method == 'GET':
+    users = User.objects.all()
+    # GET parameter를 여기서 받는다.
+    fields = request.GET.getlist('fields') or None
+    excludes = request.GET.getlist('excludes') or None
+
+    try:
+        serializer = UserSerializer(users, fields=fields, excludes=excludes, many=True)
+    except ValueError:
+        return JsonResponse({'message': 'Wrong url parameter : '
+                                        'Fields and Excludes cannot exist at the same time'}, status=400)
+
+    response = serializer.data
+    return JsonResponse(response, status=200, safe=False)
+```
+
+이렇게 parameter에서 받아준 fields를 serializer에 fields인자로 넣어주면 해당 필드들만 반환된다!
+
+결과  
+
+***method: GET***  
+***url: localhost:8000/api/user?fields=nickname&fields=created_date***
+---
+```json
+[
+    {
+        "id": 1,
+        "nickname": "junhwan",
+        "created_date": "2021-10-13T11:35:04.430813"
+    },
+    {
+        "id": 19,
+        "nickname": "ujunhn",
+        "created_date": "2021-10-13T13:38:59.983112"
+    },
+    {
+        "id": 20,
+        "nickname": "aa",
+        "created_date": "2021-10-13T13:42:28.408398"
+    },
+    {
+        "id": 23,
+        "nickname": "Kane",
+        "created_date": "2021-10-13T14:36:26.717770"
+    },
+    {
+        "id": 25,
+        "nickname": "Ronaldo",
+        "created_date": "2021-10-14T00:43:57.725138"
+    },
+    {
+        "id": 26,
+        "nickname": "Kaka",
+        "created_date": "2021-10-14T00:44:12.250733"
+    },
+    {
+        "id": 27,
+        "nickname": "messi",
+        "created_date": "2021-10-14T00:44:38.017259"
+    },
+    {
+        "id": 28,
+        "nickname": "ceosjjang",
+        "created_date": "2021-10-14T02:25:00.265495"
+    },
+    {
+        "id": 29,
+        "nickname": "Chdfa",
+        "created_date": "2021-10-14T02:54:38.041593"
+    }
+]
+```
+
+## 회고
+
+이번주는 일이 많아서 너무 힘들었다.... 
+아직도 `python`에 익숙치 않아, 자료형에서 자꾸 헤멘다.  
+
+팔로우 기능이 어려워보여서 만들어보고 싶었는데 잘 돼서 좋다.  
+나름 예외처리도 잘 한것 같다. 그래도 아직은 체계가 안잡힌 느낌이다.   
+잘 짜여진 장고 프로젝트를 보고 모델이나 뷰들을 어떻게 구성했는지 보고싶다.  
+
+instagram의 과거 api를 보니, token을 이용하여 팔로우 기능을 구성하였던 것 같다.  
+token 사용하면 그 때 리팩토링 해야겠다..
+
+## reference
+https://docs.djangoproject.com/en/3.2/topics/auth/customizing/
+https://docs.djangoproject.com/en/3.2/ref/models/querysets/
+https://www.django-rest-framework.org/api-guide/serializers/
+https://developer.twitter.com/en/docs/twitter-api
+https://docs.github.com/en/rest/reference/users
+
