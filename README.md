@@ -1173,7 +1173,7 @@ for i in range(0, 5):
 ## 3주차 피드백 반영
 
 app을 나눠서 모델들을 전부 다시 구성했다. 만들어진 테이블들은 다음과 같다.
-![reorganize-tables](img/tables-after-reorganize)
+![reorganize-tables](img/tables-after-reorganize.png)
 
 모델에 좀 더 쉽게 조회할 수 있도록 메서드들도 추가했다.
 
@@ -1305,7 +1305,7 @@ class Follow(Base):
 ```
 
 ***결과***   
-![user-data](img/user-data)
+![user-data](img/user-data.png)
 
 
 ## 2. 모든 데이터를 가져오는 API 만들기
