@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+
 class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -41,6 +42,7 @@ class Comment(BaseModel):
     def __str__(self):
         return '{} commented {} post'.format(self.writer, self.post.author)
 
+
 class Follow(BaseModel):
     follower = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='follower')
     following = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='following')
@@ -48,11 +50,10 @@ class Follow(BaseModel):
     def __str__(self):
         return '{} -> {}'.format(self.follower.nickname, self.following.nickname)
 
+
 class Like(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
     def __str__(self):
         return '{} liked post'.format(self.user.nickname)
-
-
