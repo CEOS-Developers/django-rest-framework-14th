@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from user.models import User, Follow
 
 
@@ -37,15 +37,32 @@ class FollowerSerializer(ModelSerializer):
 
 
 class UserSerializer(DynamicFieldsModelSerializer):
-    follower = FollowerSerializer(many=True, read_only=True)
-    following = FollowingSerializer(many=True, read_only=True)
+    # follower = FollowerSerializer(many=True, read_only=True)
+    # following = FollowingSerializer(many=True, read_only=True)
+    follower_nickname = SerializerMethodField()
+    following_nickname = SerializerMethodField()
+
+    def get_follower_nickname(self, obj):
+        followers = obj.follower.select_related('from_user').all()
+        ret = [follower.from_user.nickname for follower in followers]
+        return ret
+
+    def get_following_nickname(self, obj):
+        followings = obj.following.select_related('to_user').all()
+        ret = [following.to_user.nickname for following in followings]
+        return ret
 
     class Meta:
         model = User
         fields = [
             'id', 'login_id', 'email',
             'nickname', 'bio', 'profile_picture',
-            'following', 'follower',
+            # 'follower',
+            'follower_nickname',
+            # 'following',
+            'following_nickname',
             'is_private', 'is_active', 'is_superuser',
             'created_date'
         ]
+        exclude = []
+
