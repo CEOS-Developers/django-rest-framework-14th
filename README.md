@@ -230,3 +230,81 @@ class Story(models.Model):
     - 스토리 : 본사람들도 따로 저장해야하니까, 아이디와는 1대1 관계를 맺고 스토리와는 비식별관계를 맺는 1대다 관계의 본사람 모델 정의함.
     - 팔로우, 팔로워 는 어떻게 모델을 작성해야할지 끝까지 완료하지 못했다.
 
+# 4주차 과제
+
+# Serializer
+
+[Django REST framework 시작하기](https://cjh5414.github.io/django-rest-framework/)
+
+(참고자료) → 이건 단순 따라하기 좋게 설명되어 있다.
+
+### 파일 구조
+
+```python
+── api
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── __init__.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── tests.py
+│   └── views.py
+├── django-rest-framework-14th
+    ├── __init__.py
+    ├── asgi.py
+    ├── settings
+    │   ├── __init__.py
+    │   ├── base.py
+    │   ├── dev.py
+    │   └── prod.py
+    ├── urls.py
+    └── wsgi.py
+```
+
+`api app` 안에 `[serializers.py](http://serializers.py)` 파일을 추가해 주었다.
+
+그리고 `settings/base.py` 에 있는 `INSTALLED_APP` 에 `rest_framework` 를 추가해주면 끝!
+
+### serializers.py
+
+```python
+from api.models import Profile
+from rest_framework import serializers
+
+class ProfileSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    website = serializers.CharField(required=False, allow_blank=True, max_length=40)
+    introduction = serializers.CharField(allow_blank=True)
+    phone_num = serializers.IntegerField(allow_null=False)
+    gender = serializers.CharField()
+
+    def create(self, validated_data):
+        return Profile.objects.create(**validated_data)
+
+    def update(self,instance,validated_data):
+        instance.website =validated_data.get('website',instance.website)
+        instance.introduction = validated_data.get('introduction',instance.introduction)
+        instance.phone_num = validated_data.get('phone_num', instance.phone_num)
+        instance.gender = validated_data.get('gender',instance.gender)
+        instance.save()
+        return instance
+```
+
+일단은 이정도로 작성해 주었다.
+
+공식문서 튜토리얼을 참고하면서 작성하였다. [https://www.django-rest-framework.org/api-guide/serializers/](https://www.django-rest-framework.org/api-guide/serializers/)
+
+## 실행 결과
+
+![스크린샷 2021-10-14 오후 9.32.11.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8e4776af-197e-4622-ab28-a9e642f6f46b/스크린샷_2021-10-14_오후_9.32.11.png)
+
+![스크린샷 2021-10-14 오후 9.32.22.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fd02c27f-f1ec-468d-a730-2d3ee8d287af/스크린샷_2021-10-14_오후_9.32.22.png)
+
+`shell` 에서 실행을 해보니 정상적으로 작동한다.
+
+원래 파라미터들이나, 실행했을 때 오류들도 살펴보고, 내가 원래 설계해놓은 모델링도 수정해야 하는데, 시험기간과 과제를 우선적으로 하다보니 꼼꼼하게 살펴보질 못했다.
+
+어떻게 돌아가는지 어느정도 파악을 했으니, 다음에 깊게 파서 정리해 보겠습니다.
