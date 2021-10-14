@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 
 class Profile(models.Model):
@@ -9,6 +11,11 @@ class Profile(models.Model):
     phone = models.TextField(max_length=20)
     bio = models.TextField(max_length=150, blank=True)
     profile_photo = models.ImageField(blank=True, upload_to='profiles')
+
+    def clean(self):
+        existing_account = Profile.objects.filter(account_name=self.account_name).first()
+        if existing_account != None and existing_account.id != self.id:
+            raise ValidationError(_('Account names must be unique.'))
 
     def __str__(self):
         return self.account_name
