@@ -454,3 +454,60 @@ Profile, User의 one to one 관계에 대해서 서로의 테이블을 참조하
 shell 안에서 save() 안했을 경우 오류 <br>
 save()를 하지 않으면 다음과 같이 오류가 생겼었다.
 [https://stackoverflow.com/questions/33838433/save-prohibited-to-prevent-data-loss-due-to-unsaved-related-object](https://stackoverflow.com/questions/33838433/save-prohibited-to-prevent-data-loss-due-to-unsaved-related-object)
+
+# 4주차 - DRF1 : Serializer
+
+## 수행해야 할 과제
+
+- 데이터 삽입
+- 모든 데이터를 가져오는 API 만들기
+- 새로운 데이터를 create하도록 요청하는 API 만들기
+
+## 과제 수행기
+
+### 시작에 앞서
+
+우선 과제를 수행하기 전에 백엔드 천재 **'승우'** 의 조언을 바탕으로
+github action에 빨간불을 초록불로 바꿨다.
+
+그 후, 해당 과제를 수행하기 위해 필요한 패키지들을 `pip`를 통해 설치하였고,
+새로운 패키지가 설치되었으니 `requirements.txt` 를 update해 주었다.
+
+### 작성한 model 을 바탕으로 serializer 만들기
+
+`serializer` 의 경우 어렵지 않게 작성했다. 
+`ModelSerializer` 클래스를 사용하여 미리 `models.py`에 정의한 모델들을 가져왔다.
+정말 무지성으로 코드를 따라했다. 필드를 전부 다 가져오려면 '__all__' 이렇게 하면 된다고 한다.
+`Nested Serializer`라고 무섭게 생긴 이름을 가진 친구도 있는데, 실제로는 별로 안무섭다.
+그냥 동일하게 사용하면 된다. 가져오고 싶은 모델을 한 번 더 가져오는 차이?
+
+그리고 개인적으로 좋다고 생각하는 기능은 `get_~` 으로 relationship을 가지는 다른 모델의
+필드를 가져올 수 있다는 점이다.
+왜 좋다고 생각하냐면, 테이블끼리 어떤 관계를 가지고 있는지 매 번 `models.py` 들어가서 보기 귀찮다.
+근데 `get_~` 이렇게 써 있으면 자연스럽게 '아하 ~에서 가져오는구나' 와 동시에 '아 여기는 서로 이런 관계구나~'
+할 수 있다.
+
+### View, url
+
+view를 만들고 url 설정을 해서 실제로 되는지 확인하기 위한 과정이다.
+내가 정의하고 싶은 method들을 로직에 맞게 적으면 된다.
+rest하게 잘 적어보도록 하자.
+우선 예시 코드의 경우 `if`와 `elif`로 큰 블럭이 나뉘어져 있는데,
+사실 `if` 두 개의 블럭으로 나누어도 되지 않았을까 싶다. 그래서 나는 그렇게 나누었다.
+
+url의 경우 path 설정을 잘 해야 한다. 이름만 보고 어떤 동작을 하는지 알 수 있도록.
+나의 경우는 `path('api/')`로 설정했고, api 내부에 모아 놓을 것 같다.
+그리고 상위 url config를 잊지 않고 꼭 해주어야 하는데, 그렇지 않으면 
+10월 14일의 나처럼 '왜 안되지' 라는 멍청한 생각을 할 수도 있다.
+
+### 결과 간단히 확인하기
+
+![get_user](/images/get_user.png)<br>
+
+### 앞으로 해야 할 일
+
+- `user` 외에 다른 나머지 모델들에 해당하는 api 구현
+- models.py 업데이트 - base model을 상속하는 방식으로 creted_at 등과 같은 필드 추가
+- CRUD 전부 다 테스트 해보기
+- 포스트맨으로도 위의 과정 테스트 해보기
+
