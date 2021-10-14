@@ -35,7 +35,7 @@ def user_list(request):
         if not serializer.is_valid():
             return JsonResponse(serializer.errors, status=400, safe=False)
 
-        User.objects.create(serializer.data)
+        User.objects.create_user(serializer.data)
 
         response = serializer.data
         return JsonResponse(response, status=201, safe=False)
@@ -55,7 +55,7 @@ def user_detail(request, pk):
 
         fields = request.GET.getlist('fields') or None
 
-        serializer = UserSerializer(user, fields=fields, many=True)
+        serializer = UserSerializer(user, fields=fields)
 
         response = serializer.data
         return JsonResponse(response, status=200, safe=False)
@@ -66,21 +66,21 @@ def user_detail(request, pk):
 
         try:
             user = User.objects.get(pk=pk)
-            User.objects.update(user, data)
+            User.objects.update_user(user, data)
 
         except User.DoesNotExist:
             return JsonResponse({"message": "Id " + str(pk) + " is not exist"}, status=304)
         except IntegrityError:
             return JsonResponse({"message": str(data) + " is already exist"}, status=304)
         except AttributeError:
-            return JsonResponse({"message": str(data) + " have wrong attribute"}, stauts=304)
+            return JsonResponse({"message": str(data) + " have wrong attribute"}, status=304)
 
         return JsonResponse({"message": "Id " + str(pk) + ' is updated successfully'}, status=200)
 
     # delete a user
     if request.method == 'DELETE':
         try:
-            User.objects.delete(pk=pk)
+            User.objects.delete_user(pk=pk)
 
         except ValueError:
             return JsonResponse({'message': 'Id ' + str(pk) + ' doesn\'t exist in database'}, status=304)
@@ -108,6 +108,7 @@ def follow_user(request, from_user_id, to_user_id):
 
     # follow from -> to
     elif request.method == 'PUT':
+
         try:
             from_user = User.objects.get(pk=from_user_id)
             to_user = User.objects.get(pk=to_user_id)
@@ -115,6 +116,9 @@ def follow_user(request, from_user_id, to_user_id):
         except User.DoesNotExist:
             return JsonResponse({'message': 'id=%s user or id=%s user '
                                             'does not exist in the database' % (from_user_id, to_user_id)}, status=404)
+
+        if from_user == to_user:
+            return JsonResponse({'message': 'You can\'t follow yourself'}, status=400)
 
         try:
             User.objects.follow(from_user, to_user)
