@@ -734,6 +734,42 @@ class Comment(BaseModel):
 }
 ```
 
+## N+1 문제 관련
+PR을 올리고 준환님께서 감사하게도 Serializer 내의 코드에서 N+1 문제가 발생할 수도 있다고 지적해주셨다. 다시 검토해보니까 문제가 있는 것 같아서 직접 테스트해보기로 했다.
+
+문제가 되는 부분은 PostSerializer에서 게시글에 좋아요한 사람의 목록을 받아오는 코드였다.
+현재 모델은 아래와 같이 연결되어 있다.
+```
+Post          Like          User
+              user          user_likes
+post_likes    post
+```
+
+> PostSerializer 에서 post_likes로 Like 객체들을 참조하고, 각 Like 객체에 연결된 User를 참조
+
+- 원래 코드
+```python
+class PostSerializer(serializers.ModelSerializer):
+
+    def get_like_username_list(self, obj): # 여기서 obj는 Post 객체
+        return [like.user.username for like in obj.post_likes.all().select_related('user')]
+```
+- 쿼리문 수 테스트
+
+좋아요한 유저가 2명 있는 post2 객체를 대상으로 테스트했다.\
+```
+>>> from django.db import connection, reset_queries
+>>> username_list = [like.user.username for like in post2.post_likes.all()]
+>>> len(connection.queries)
+3
+
+>>> reset_queries()
+>>> username_list = [like.user.username for like in post2.post_likes.all().select_related('user')]
+>>> len(connection.queries)
+1
+```
+> 기존에 2+1개의 query를 발생시키던 코드가 `select_related` 사용 시에는 1개의 query만으로 해결되는 것을 확인하였다.
+>> N개의 객체가 연결되어 있을 때는 N+1개의 query를 발생시키게 되고, 성능 저하에 영향을 줄 수 있다
 ## 4주차 과제 회고
 Serializer를 다루면서 프론트와의 협업에 한걸음 다가간 듯 하다. 내가 원하는 형식으로, 내가 원하는 데이터를 담아서 보낼 수 있다는 점에서 Serializer의 편의성에 놀랐다. 한편 설계를 잘못 하면 데이터 쿼리문을 너무 많이 호출하게 되고, 응답시간이 길어질 수도 있다고 한다. 이 부분에 심도 있는 공부가 필요할 것 같다.
 

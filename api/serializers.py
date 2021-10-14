@@ -21,10 +21,12 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'text', 'author', 'like_username_list', 'post_comments', 'created_at', 'updated_at', ]
+        fields = ['id', 'text', 'author', 'like_username_list',
+                  'post_comments', 'created_at', 'updated_at', ]
 
     def get_author(self, obj):  # 작성자 username 반환
         return obj.user.username
 
-    def get_like_username_list(self, obj):  # 게시글에 좋아요 누른 사용자의 username만을 받아와서 리스트로 저장
-        return [like.user.username for like in obj.post_likes.all()]
+    # 게시글에 좋아요 누른 사용자의 username만을 받아와서 리스트로 저장
+    def get_like_username_list(self, obj):
+        return [like.user.username for like in obj.post_likes.all().select_related('user')]
