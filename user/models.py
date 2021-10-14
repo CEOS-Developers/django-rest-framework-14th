@@ -5,7 +5,7 @@ from base.models import Base
 
 
 class UserManager(BaseUserManager):
-    def create(self, data):
+    def create_user(self, data):
         user = self.model(
             login_id=data['login_id'],
             email=data['email'],
@@ -18,20 +18,23 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
-    def update(self, user, data):
+    @staticmethod
+    def update_user(user, data):
         for key in data.keys():
             if not hasattr(user, key):
                 raise AttributeError
             user.__setattr__(key, data[key])
         user.save()
 
-    def delete(self, pk):
+    @staticmethod
+    def delete_user(pk):
         user = User.objects.filter(pk=pk)
         if not user.exists():
             raise ValueError
         user.delete()
 
-    def follow(self, from_user, to_user):
+    @staticmethod
+    def follow(from_user, to_user):
         if from_user.is_following(to_user):
             raise ValueError
 
