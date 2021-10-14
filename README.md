@@ -1290,6 +1290,45 @@ class User(AbstractBaseUser, PermissionsMixin):
         return True
 ```
 
+***User Manager***
+```python
+class UserManager(BaseUserManager):
+    def create(self, data):
+        user = self.model(
+            login_id=data['login_id'],
+            email=data['email'],
+            nickname=data['nickname']
+        )
+
+        password = data.get('password')
+        user.set_password(password)
+
+        user.save()
+        return user
+
+    def update(self, user, data):
+        for key in data.keys():
+            if not hasattr(user, key):
+                raise AttributeError
+            user.__setattr__(key, data[key])
+        user.save()
+
+    def delete(self, pk):
+        user = User.objects.filter(pk=pk)
+        if not user.exists():
+            raise ValueError
+        user.delete()
+
+    def follow(self, from_user, to_user):
+        if from_user.is_following(to_user):
+            raise ValueError
+
+        relation = Follow(from_user=from_user, to_user=to_user)
+        relation.save()
+```
+
+이렇게 `UserManager`를 추가하여 
+
 ***Follow Model***
 ```python
 class Follow(Base):
@@ -2150,6 +2189,49 @@ if request.method == 'GET':
     }
 ]
 ```
+
+## N+1 problem
+
+```python
+# user/serializer.py
+
+class UserSerializer(DynamicFieldsModelSerializer):
+    follower_nickname = SerializerMethodField()
+    following_nickname = SerializerMethodField()
+
+    def get_follower_nickname(self, obj):
+        # obj == User
+        print("########## FOLLOWER START ##########")
+        followers = obj.follower.select_related('from_user').all()
+        ret = [follower.from_user.nickname for follower in followers]
+        print("########## FOLLOWER DONE ##########")
+        return ret
+
+    def get_following_nickname(self, obj):
+        print("########## FOLLOWING START ##########")
+        followings = obj.following.all()
+        ret = [following.to_user.nickname for following in followings]
+        print("########## FOLLOWING DONE ##########")
+        return ret
+
+```
+
+follower는 select_related를 넣어주어 eager하게 가져왔고, following은 그냥 lazy하게 가져온다.  
+이 때 나가는 쿼리는 다음과 같다.
+
+* get_follower_nickname SQL query
+![sql-follower](img/sql-follower.png)
+
+* get_following_nickname SQL query
+![sql-following-1](img/sql-following-1.png)
+![sql-following-2](img/sql-following-2.png)
+
+`following`을 가져왔지만, `user`의 필드를 참조하니까 `user`를 찾는 쿼리가 for문을 돌며 매번 발생한다.  
+만약 following이 1000개였다면, 쿼리는 1000번 발생했을 것이다. 
+
+`follower`의 닉네임을 가져올 때는 다르다. `inner join`을 통해 한번에 가져오는 것을 알 수 있다.  
+따라서, 역참조를 할 땐 `select_related()` 를 사용하여 쿼리를 최적화 해야겠다.
+
 
 ## 회고
 
