@@ -18,13 +18,7 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
-    def update(self, pk, data):
-        user = User.objects.filter(pk=pk)
-        if not user.exists():
-            raise ValueError
-
-        user = user.first()
-
+    def update(self, user, data):
         for key in data.keys():
             if not hasattr(user, key):
                 raise AttributeError

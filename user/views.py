@@ -47,11 +47,13 @@ def user_list(request):
 def user_detail(request, pk):
     # display a user
     if request.method == 'GET':
-        user = User.objects.filter(pk=pk)
-        fields = request.GET.getlist('fields') or None
+        try:
+            user = User.objects.get(pk=pk)
 
-        if not user.exists():
+        except User.DoesNotExist:
             return JsonResponse({'message': "Id " + str(pk) + ' doesn\'t exist in database'}, status=404)
+
+        fields = request.GET.getlist('fields') or None
 
         serializer = UserSerializer(user, fields=fields, many=True)
 
@@ -63,12 +65,13 @@ def user_detail(request, pk):
         data = JSONParser().parse(request)
 
         try:
-            User.objects.update(pk, data)
+            user = User.objects.get(pk=pk)
+            User.objects.update(user, data)
 
+        except User.DoesNotExist:
+            return JsonResponse({"message": "Id " + str(pk) + " is not exist"}, status=304)
         except IntegrityError:
             return JsonResponse({"message": str(data) + " is already exist"}, status=304)
-        except ValueError:
-            return JsonResponse({"message": "Id " + str(pk) + " is not exist"}, status=304)
         except AttributeError:
             return JsonResponse({"message": str(data) + " have wrong attribute"}, stauts=304)
 
@@ -103,6 +106,7 @@ def follow_user(request, from_user_id, to_user_id):
             return JsonResponse({"message": "True"}, status=200)
         return JsonResponse({"message": "False"}, status=200)
 
+    # follow from -> to
     elif request.method == 'PUT':
         try:
             from_user = User.objects.get(pk=from_user_id)
