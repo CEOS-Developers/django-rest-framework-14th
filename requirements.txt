@@ -3,6 +3,7 @@ backports.entry-points-selectable==1.1.0
 distlib==0.3.3
 Django==3.0.8
 django-environ==0.7.0
+djangorestframework==3.12.4
 filelock==3.3.0
 mysqlclient==2.0.3
 Pillow==8.3.2
