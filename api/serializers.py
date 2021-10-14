@@ -1,20 +1,20 @@
-from api.models import Profile
+from .models import Photo
 from rest_framework import serializers
 
-class ProfileSerializer(serializers.Serializer):
+class PhotoSerializer(serializers.HyperlinkedModelSerializer):
+    photo_url = serializers.ImageField(read_only=True)
+    date = serializers.DateTimeField(read_only=True)
     id = serializers.IntegerField(read_only=True)
-    website = serializers.CharField(required=False, allow_blank=True, max_length=40)
-    introduction = serializers.CharField(allow_blank=True)
-    phone_num = serializers.IntegerField(allow_null=False)
-    gender = serializers.CharField()
 
     def create(self, validated_data):
-        return Profile.objects.create(**validated_data)
+        return Photo.objects.create(**validated_data)
 
     def update(self,instance,validated_data):
-        instance.website =validated_data.get('website',instance.website)
-        instance.introduction = validated_data.get('introduction',instance.introduction)
-        instance.phone_num = validated_data.get('phone_num', instance.phone_num)
-        instance.gender = validated_data.get('gender',instance.gender)
+        instance.photo_url = validated_data.get('photo_url',instance.photo_url)
+        instance.date = validated_data.get('date',instance.date)
         instance.save()
         return instance
+
+    class Meta:
+        model = Photo
+        fields = {'photo_url', 'date'}

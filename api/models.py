@@ -23,19 +23,19 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
-class Photos(models.Model):
+class Photo(models.Model):
     photo_url = models.ImageField(upload_to="post/Photos")
     date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.post_id
+        return self.photo_url
 
 class Videos(models.Model):
     video_url = models.FileField(upload_to="post/Videos")
     date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.post_id
+        return self.video_url
 
 class Comment(models.Model):
     author = models.ForeignKey(User,on_delete=models.CASCADE)
@@ -50,7 +50,7 @@ class Story(models.Model):
     date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.story_id
+        return self.author
 
 class ViewUser(models.Model):
     author = models.OneToOneField(User,on_delete=models.CASCADE,primary_key=True)
