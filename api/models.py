@@ -12,7 +12,7 @@ class Profile(models.Model):
     gender = models.CharField(max_length=6)
 
     def __str__(self):
-        return self.user_name
+        return self.introduction
 
 class Post(models.Model):
     author = models.ForeignKey(User,on_delete=models.CASCADE)
