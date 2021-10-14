@@ -26,7 +26,7 @@ class Post(BaseModel):
     content = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return self.title
+        return '{} : {}'.format(self.author, self.title)
 
 
 class File(BaseModel):
@@ -40,7 +40,7 @@ class Comment(BaseModel):
     content = models.TextField(blank=False)
 
     def __str__(self):
-        return '{} commented {} post'.format(self.writer, self.post.author)
+        return '{} commented {} post'.format(self.writer, self.post.title)
 
 
 class Follow(BaseModel):
@@ -56,4 +56,4 @@ class Like(BaseModel):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
     def __str__(self):
-        return '{} liked post'.format(self.user.nickname)
+        return '{} liked {}'.format(self.user.nickname, self.post.title)

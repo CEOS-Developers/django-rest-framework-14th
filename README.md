@@ -424,3 +424,185 @@ mysql> delete from tablename where id=1
 venv 가상환경 진입부터 shell에서 orm까지 거의 대부분의 과정에서 오류가 나서 꽤나 힘들었다.     
 오류를 하나 해결하면 또하나가 생겨나서 굉장히 지쳤지만 해결해나가보면서 DB도 직접 설계해보면서 erd도 만드는 게 굉장히 흥미로웠다.   
 이번에 새로 사용해보는 것들이 너무 많아서 굉장히 익숙치 않았지만 앞으로 과제들을 더 수행하면서 실력이 늘 수 있었으면 좋겠다ㅎㅎ
+
+* * *
+
+# DRF1 - Serializer
+
+## ORM을 통해 데이터 조회
+```shell
+>>> from api.models import User, Profile,Post, Comment, Like
+>>> Post.objects.all()
+<QuerySet [<Post: chaeri : first>, <Post: chaeri : second>, <Post: choco : 배고파>, <Post: ceos : 세오스>]>
+>>> Comment.objects.all()
+<QuerySet [<Comment: choco commented ceos post>, <Comment: chaeri commented ceos post>, <Comment: choco commented ceos post>]>
+>>> Like.objects.all()
+<QuerySet [<Like: chaeri liked 세오스>, <Like: choco liked 세오스>, <Like: ceos liked 세오스>]>
+```
+
+## Serializers
+```shell
+from rest_framework import serializers
+from .models import *
+
+
+class FileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = File
+        fields = ['post', 'content']
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = ['post', 'user']
+
+
+class CommentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Comment
+        fields = ['post', 'writer', 'content']
+
+
+class PostSerializer(serializers.ModelSerializer):
+    author_nickname = serializers.SerializerMethodField()
+    post_like = LikeSerializer(many=True, read_only=True)
+    post_comment = CommentSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Post
+        fields = ['author', 'title', 'content', 'post_like', 'post_comment', 'author_nickname']
+
+    def get_author_nickname(self, obj):
+        return obj.author.nickname
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['user', 'nickname', 'introduction']
+```
+
+## 모든 데이터를 가지고 오는 API
+ * URL: api/posts/
+ * METHOD: GET
+
+```
+
+[
+    {
+        "author": 4,
+        "title": "first",
+        "content": "신기하다",
+        "author_nickname": "chaeri",
+        "created_at": "2021-10-07T21:55:46.046656+09:00",
+        "updated_at": "2021-10-07T21:55:46.047794+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 4,
+        "title": "second",
+        "content": "모델링 어렵다....ㅠ",
+        "author_nickname": "chaeri",
+        "created_at": "2021-10-07T21:56:30.211834+09:00",
+        "updated_at": "2021-10-07T21:56:30.211834+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 5,
+        "title": "배고파",
+        "content": "간식 줘",
+        "author_nickname": "choco",
+        "created_at": "2021-10-07T21:57:34.991820+09:00",
+        "updated_at": "2021-10-07T21:57:34.991820+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 6,
+        "title": "세오스",
+        "content": "ㅎㅎ",
+        "author_nickname": "ceos",
+        "created_at": "2021-10-14T19:48:10.277414+09:00",
+        "updated_at": "2021-10-14T19:48:10.277414+09:00",
+        "post_like": [
+            {
+                "id": 1,
+                "created_at": "2021-10-14T20:01:58.647086+09:00",
+                "updated_at": "2021-10-14T20:01:58.647086+09:00",
+                "post": 5,
+                "user": 4
+            },
+            {
+                "id": 2,
+                "created_at": "2021-10-14T20:02:02.110654+09:00",
+                "updated_at": "2021-10-14T20:02:02.110654+09:00",
+                "post": 5,
+                "user": 5
+            },
+            {
+                "id": 3,
+                "created_at": "2021-10-14T20:02:05.121339+09:00",
+                "updated_at": "2021-10-14T20:02:05.121339+09:00",
+                "post": 5,
+                "user": 6
+            }
+        ],
+        "post_comment": [
+            {
+                "post": 5,
+                "writer": 5,
+                "content": "세오스 짱",
+                "created_at": "2021-10-14T19:59:40.169794+09:00",
+                "updated_at": "2021-10-14T19:59:40.169794+09:00",
+                "writer_nickname": "choco"
+            },
+            {
+                "post": 5,
+                "writer": 4,
+                "content": "세오스 최고",
+                "created_at": "2021-10-14T20:00:14.070063+09:00",
+                "updated_at": "2021-10-14T20:00:14.070063+09:00",
+                "writer_nickname": "chaeri"
+            },
+            {
+                "post": 5,
+                "writer": 5,
+                "content": "백엔드 최고",
+                "created_at": "2021-10-14T20:00:30.106336+09:00",
+                "updated_at": "2021-10-14T20:00:30.106336+09:00",
+                "writer_nickname": "choco"
+            }
+        ]
+    }
+]
+```
+
+## 새로운 데이터를 create하도록 요청하는 API 만들기
+ * URL: api/posts/
+ * Method: POST
+ * Body
+```
+{
+    "author" : 6,
+    "title" : "drf",
+    "content" : "serializer"
+
+}
+```
+
+```
+{
+    "author": 6,
+    "title": "drf",
+    "content": "serializer",
+    "author_nickname": "ceos",
+    "created_at": "2021-10-14T23:49:38.218561+09:00",
+    "updated_at": "2021-10-14T23:49:38.218561+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
