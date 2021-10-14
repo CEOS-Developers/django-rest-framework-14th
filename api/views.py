@@ -5,8 +5,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
-from api.models import Profile
-from api.serializers import ProfileSerializer
+from .models import Profile
+from .serializers import ProfileSerializer
 
 def profile_list(request):
     """
@@ -14,7 +14,7 @@ def profile_list(request):
     """
     if request.method == 'GET':
         profile = Profile.objects.all()
-        serializer = ProfileSerializer(profile, many=True)
+        serializer = ProfileSerializer(profile, many=False)
         return JsonResponse(serializer.data)
 
     elif request.method == 'POST':

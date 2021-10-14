@@ -24,7 +24,6 @@ class Post(models.Model):
         return self.title
 
 class Photos(models.Model):
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
     photo_url = models.ImageField(upload_to="post/Photos")
     date = models.DateTimeField(auto_now_add=True)
 
@@ -32,7 +31,6 @@ class Photos(models.Model):
         return self.post_id
 
 class Videos(models.Model):
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
     video_url = models.FileField(upload_to="post/Videos")
     date = models.DateTimeField(auto_now_add=True)
 
@@ -41,7 +39,6 @@ class Videos(models.Model):
 
 class Comment(models.Model):
     author = models.ForeignKey(User,on_delete=models.CASCADE)
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
     comment = models.TextField(blank=False)
     created_date = models.DateTimeField(auto_now_add=True)
 
