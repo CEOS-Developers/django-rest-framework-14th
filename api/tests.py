@@ -1,3 +1,5 @@
+# 현재는 작동하지 않는 코드를 테스트하기 위해 작성되었던 테스트 코드입니다
+
 from rest_framework import status
 from rest_framework.test import APITestCase, DjangoClient
 from django.contrib.auth.models import User

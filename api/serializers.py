@@ -18,12 +18,13 @@ class PhotoSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     account_name = serializers.SerializerMethodField()
     profile_photo = serializers.SerializerMethodField()
+    photos = PhotoSerializer(many=True, read_only=True)
     likes_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ['id', 'account_name', 'profile_photo', 'caption', 'likes_count', 'comments_count', 'date_posted']
+        fields = ['id', 'account_name', 'profile_photo', 'photos', 'caption', 'likes_count', 'comments_count', 'date_posted']
 
     def get_account_name(self, obj):
         return obj.profile.account_name
@@ -50,11 +51,10 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class PostDetailSerializer(PostSerializer):
-    photos = PhotoSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
 
     class Meta(PostSerializer.Meta):
-        fields = PostSerializer.Meta.fields + ['photos', 'comments']
+        fields = PostSerializer.Meta.fields + ['comments']
 
 
 class LikeSerializer(serializers.ModelSerializer):
