@@ -84,10 +84,11 @@ def like_create(request):
         try:
             post_id = request.data.get('post_id')
             account_name = request.data.get('account_name')
-            Like.objects.create(
+            like = Like.objects.create(
                 post=Post.objects.get(pk=post_id),
                 profile=Profile.objects.filter(account_name=account_name).first()
             )
+            serializer = LikeSerializer(like, many=False)
         except Exception:
             return Response(status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response(status.HTTP_200_OK)
+        return Response(serializer.data, status.HTTP_200_OK)
