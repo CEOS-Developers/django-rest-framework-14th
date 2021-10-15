@@ -41,13 +41,17 @@ class PostSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     account_name = serializers.SerializerMethodField()
+    profile_photo = serializers.SerializerMethodField()
     
     class Meta:
         model = Comment
-        fields = ['id', 'post_id', 'account_name', 'content']
+        fields = ['id', 'post_id', 'account_name', 'profile_photo', 'content']
 
     def get_account_name(self, obj):
         return obj.profile.account_name
+    
+    def get_profile_photo(self, obj):
+        return obj.profile.profile_photo.name
 
 
 class PostDetailSerializer(PostSerializer):
@@ -64,6 +68,9 @@ class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like
         fields = ['id', 'post_id', 'account_name']
+
+    def get_post_id(self, obj):
+        return obj.post.id
     
     def get_account_name(self, obj):
         return obj.profile.account_name
