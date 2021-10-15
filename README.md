@@ -142,6 +142,8 @@ class Photo(models.Model):
   - image_files: file(image)
   - caption: string
 ![Screen Shot 2021-10-15 at 1 10 07 PM](https://user-images.githubusercontent.com/53527600/137435262-6acc088c-d4fd-4281-b82f-b8a660e73094.png)
+
+실제 반환되는 JSON은 아래와 같다. (comment에 profile_photo 가 추가되었다)
 ```JSON
 {
     "id": 5,
@@ -166,6 +168,7 @@ class Photo(models.Model):
             "id": 1,
             "post_id": 5,
             "account_name": "admin_profile",
+            "profile_photo": "profiles/tmp4et5jeut.jpg",
             "content": "포스틱 맛있겠네요ㅎ"
         }
     ]
@@ -199,7 +202,7 @@ URI는 같더라도 각 요청에 따라 반환되는 JSON이 조금씩 다르�
 ```
 
 #### POST api/posts/
-`POST` 시 반환되는 JSON은 `GET api/post/<int:post_id>/`를 했을 때 반환되는 것과 같다. 댓글 목록이 추가되었다. 실제 인스타그램은 댓글을 쓴 사용자의 프로필 사진도 함께 보여주므로, 댓글 반환 시에 댓글을 쓴 사용자의 `profile_photo`도 함께 반환할 수 있도록 구현하고 싶었는데 아직 방법을 찾지 못했다. 
+댓글 목록이 추가되었다. `POST` 시 반환되는 JSON은 `GET api/post/<int:post_id>/`를 했을 때 반환되는 것과 같다. 
 ```JSON
 {
     "id": <Post id>,
@@ -221,11 +224,36 @@ URI는 같더라도 각 요청에 따라 반환되는 JSON이 조금씩 다르�
             "id": <Comment id>,
             "post_id": <Post id>,
             "account_name": <Profile의 account_name>,
+            "profile_photo": <Profile의 profile_photo>,
             "content": <댓글 내용>
         }
     ]
 }
 ```
+
+## 이외 구현한 기능
+현재 구현되어 있는 기능은 `GET api/posts/`, `POST api/posts/` 이외에 몇가지가 더 있다. 
+
+- `GET api/posts/<int:post_id>/`: 1개의 게시글 정보를 불러오기
+- `POST api/comments/`: 댓글 작성하기
+- `GET api/comment/<int:comment_id>/`: 1개의 댓글 정보를 불러오기
+- `POST api/likes/`: 좋아요 표시하기
+
+### GET api/posts/<int:post_id>/
+![Screen Shot 2021-10-15 at 3 25 41 PM](https://user-images.githubusercontent.com/53527600/137441850-2a927c92-76c8-48a6-9309-ea3b37ce5490.png)
+
+### POST api/comments/
+- 요청 시 body에 들어가야 하는 필드
+    - post_id
+    - account_name
+    - content
+![Screen Shot 2021-10-15 at 3 19 59 PM](https://user-images.githubusercontent.com/53527600/137441420-b1136173-b3ed-4627-af72-edb2eae6c85e.png)
+
+### GET api/comment/<int:comment_id>/
+![Screen Shot 2021-10-15 at 3 20 28 PM](https://user-images.githubusercontent.com/53527600/137441429-494be860-18d3-469e-812d-b99916c8a1a9.png)
+
+### POST api/likes/
+![Screen Shot 2021-10-15 at 3 16 35 PM](https://user-images.githubusercontent.com/53527600/137441027-9600f0d7-63f1-4f92-b9a0-b8aa52d6bfc2.png)
 
 ## 회고
 ### 처음에 ViewSet을 쓰게 된 경위
