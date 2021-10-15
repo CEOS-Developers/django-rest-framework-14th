@@ -30,7 +30,7 @@ class PostSerializer(serializers.ModelSerializer):
         return obj.profile.account_name
 
     def get_profile_photo(self, obj):
-        return obj.profile.profile_photo
+        return obj.profile.profile_photo.name
 
     def get_likes_count(self, obj):
         return obj.likes.count()
