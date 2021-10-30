@@ -5,11 +5,16 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 class Profile(models.Model):
+    gender_choice = (   # 성별 선택을 위한 필드.
+        ('M', 'Male'),
+        ('F', 'Female')
+    )
+
     author = models.OneToOneField(User,on_delete=models.CASCADE, primary_key=True)
-    website = models.CharField(max_length=40)
+    website = models.URLField(max_length=50)
     introduction = models.TextField(blank=True)
     phone_num = models.IntegerField(blank=False)
-    gender = models.CharField(max_length=6)
+    gender = models.CharField(max_length=2, choices=gender_choice)
 
     def __str__(self):
         return self.introduction
