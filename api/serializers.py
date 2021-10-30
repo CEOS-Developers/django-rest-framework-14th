@@ -1,20 +1,26 @@
-from .models import Photo
+from .models import *
 from rest_framework import serializers
 
-class PhotoSerializer(serializers.HyperlinkedModelSerializer):
-    photo_url = serializers.ImageField(read_only=True)
-    date = serializers.DateTimeField(read_only=True)
-    id = serializers.IntegerField(read_only=True)
 
-    def create(self, validated_data):
-        return Photo.objects.create(**validated_data)
-
-    def update(self,instance,validated_data):
-        instance.photo_url = validated_data.get('photo_url',instance.photo_url)
-        instance.date = validated_data.get('date',instance.date)
-        instance.save()
-        return instance
-
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Photo
-        fields = {'photo_url', 'date'}
+        model = User
+        fields = {'id', 'username', 'nickname', 'gender', 'phone_num', 'introduction', 'website'}
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = '__all__'
+
+class PostSeralizer(serializers.ModelSerializer):
+    like_users = serializers.SerializerMethodField()
+    comments = CommentSerializer(many=True, read_only=True)
+    class Meta:
+        model = Post
+        fields = {'id', 'user', 'location', 'title', 'like_users', 'commnets', 'created_at', 'updated_at'}
+
+    def get_author(self, obj):
+        return obj.user.username
+
+    def get_comment_list(self, obj):
+        return self.comments
