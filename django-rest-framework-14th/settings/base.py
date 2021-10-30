@@ -81,6 +81,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'django-rest-framework-14th.wsgi.application'
 
+AUTH_USER_MODEL = 'api.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
