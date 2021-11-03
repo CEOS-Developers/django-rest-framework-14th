@@ -547,9 +547,9 @@ postman은 정말 잘 만든 어플리케이션이다. 쓸 때마다 맘에 든�
 원래는 그냥 기본으로 제공하는 어드민 페이지를 썼었다. 그냥 `admin.py`에 모델만 추가해주면 된다.
 근데 경준이가 한 거 보니까 예쁘게 잘 해놔서 나도 저렇게 해야겠다 싶어서 따라했다.
 
-[먹기 좋은 떡이 맛도 있다](https://teamlab.github.io/jekyllDecent/blog/tutorials/Django-Admin-%EC%BB%A4%EC%8A%A4%ED%84%B0%EB%A7%88%EC%9D%B4%EC%A7%95)
-[꿀꺽](https://hckcksrl.medium.com/django-admin-%EC%BB%A4%EC%8A%A4%ED%84%B0%EB%A7%88%EC%9D%B4%EC%A7%95-c933e68a205)
-[공식깃헙링크](https://github.com/silentsokolov/django-admin-rangefilter)
+[1번](https://teamlab.github.io/jekyllDecent/blog/tutorials/Django-Admin-%EC%BB%A4%EC%8A%A4%ED%84%B0%EB%A7%88%EC%9D%B4%EC%A7%95) <br>
+[2번](https://hckcksrl.medium.com/django-admin-%EC%BB%A4%EC%8A%A4%ED%84%B0%EB%A7%88%EC%9D%B4%EC%A7%95-c933e68a205) <br>
+[공식깃헙링크](https://github.com/silentsokolov/django-admin-rangefilter) <br>
 
 *before*
 ![before admin setting](/images/adminbefore.png)<br>
@@ -643,8 +643,8 @@ def post_list(request):
             return JsonResponse(serializer.data, safe=False)
 ```
 
-결과는 성공.
-![get all user's post](/images/get_all_users.png)<br>
+결과는 성공. <br>
+![get all user post](/images/get_all_users_post.png)<br>
 ```json
 [
     {
@@ -758,6 +758,7 @@ post를 새로 만드는 api의 경우도 마찬가지로 user 객체가 필요�
 
 일단 유저 생성 결과 화면을 첨부한다.<br>
 ![createuser](/images/createuser.png)<br>
+![result](/images/result.png)<br>
 
 
 
