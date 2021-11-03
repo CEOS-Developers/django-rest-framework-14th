@@ -478,14 +478,29 @@ github action에 빨간불을 초록불로 바꿨다.
 `serializer` 의 경우 어렵지 않게 작성했다. 
 `ModelSerializer` 클래스를 사용하여 미리 `models.py`에 정의한 모델들을 가져왔다.
 정말 무지성으로 코드를 따라했다. 필드를 전부 다 가져오려면 '__all__' 이렇게 하면 된다고 한다.
-`Nested Serializer`라고 무섭게 생긴 이름을 가진 친구도 있는데, 실제로는 별로 안무섭다.
+`Nested Serializer`라고 무섭게 생긴 이름을 가진 친구도 있는데, 실제로는 별로 안무섭다. (근데 다시 생각해 보니 조금 무섭다.)
 그냥 동일하게 사용하면 된다. 가져오고 싶은 모델을 한 번 더 가져오는 차이?
 
-그리고 개인적으로 좋다고 생각하는 기능은 `get_~` 으로 relationship을 가지는 다른 모델의
-필드를 가져올 수 있다는 점이다.
-왜 좋다고 생각하냐면, 테이블끼리 어떤 관계를 가지고 있는지 매 번 `models.py` 들어가서 보기 귀찮다.
-근데 `get_~` 이렇게 써 있으면 자연스럽게 '아하 ~에서 가져오는구나' 와 동시에 '아 여기는 서로 이런 관계구나~'
-할 수 있다.
+`Serializer Method Field` 의 경우 `Nested serializer`와 유사하게 serializer의
+field로 relationship을 가지는 다른 모델의 필드를 가져올 수 있다. 쉽게 말해 foreign key를
+가지는 다른 테이블을 참조할 수 있다고 이해했다. 
+
+사실 이 기능은 `Nested serializer`만을 사용하여 구현할 수 있다. 
+그냥 새로 serializer를 만들고, 거기서 가져올 필드를 명시한 후, 그 `serializer`를 
+가져올 field에 적어주면 참조가 된다.
+
+나는 여기서 의문을 가졌다. '같은 기능인데, 왜 굳이 `Serializer Method Field`라는 걸 만들었을까?'
+일단 차이점을 생각해 보았다.
+
+### 일반적인 Nested serializer는 언제 사용할까?
+ - 아예 class로 만들어 버리면 다른 필드에서 동일하게 사용할 수 있다.
+ - 어떤 부분에서 문제가 생기거나 수정해야 한다면, 이 `serializer` 를 참조한 모든 곳이 바뀌므로, 일일히 번거롭게 수정할 필요가 없다. 
+
+### Method Field라는 것은 언제 사용할까?
+ - 여러 곳에서 참조해서 사용해야 하는데, 참조해야 하는 필드가 매번 다른 경우.
+ - 오직 딱 한 곳에서만 사용해서 커스터마이징하여 원하는 값만 가져오고 싶을 경우.
+
+내가 생각한 사용해야 하는 곳은 다음과 같다. 혹시 추가로 덧붙이거나, 틀린 부분이 있다면 말해주길 바랍니다.
 
 ### View, url
 
@@ -493,21 +508,257 @@ view를 만들고 url 설정을 해서 실제로 되는지 확인하기 위한 �
 내가 정의하고 싶은 method들을 로직에 맞게 적으면 된다.
 rest하게 잘 적어보도록 하자.
 우선 예시 코드의 경우 `if`와 `elif`로 큰 블럭이 나뉘어져 있는데,
-사실 `if` 두 개의 블럭으로 나누어도 되지 않았을까 싶다. 그래서 나는 그렇게 나누었다.
+사실 `if` 두 개의 블럭으로 나누어도 되지 않았을까 싶어서 그렇게 했지만, 
+굳이 별 차이가 없다고 느껴서 다시 원래대로 되돌렸다.
 
 url의 경우 path 설정을 잘 해야 한다. 이름만 보고 어떤 동작을 하는지 알 수 있도록.
 나의 경우는 `path('api/')`로 설정했고, api 내부에 모아 놓을 것 같다.
 그리고 상위 url config를 잊지 않고 꼭 해주어야 하는데, 그렇지 않으면 
 10월 14일의 나처럼 '왜 안되지' 라는 멍청한 생각을 할 수도 있다.
 
-### 결과 간단히 확인하기
+### 결과 확인하기
 
+모든 유저의 정보를 가져왔다.
 ![get_user](/images/get_user.png)<br>
 
-### 앞으로 해야 할 일
+#### 1. DRF + 브라우저 활용
 
-- `user` 외에 다른 나머지 모델들에 해당하는 api 구현
-- models.py 업데이트 - base model을 상속하는 방식으로 creted_at 등과 같은 필드 추가
-- CRUD 전부 다 테스트 해보기
-- 포스트맨으로도 위의 과정 테스트 해보기
+'rest_framework'를 `pip`로 설치하고, `INSTALLED_APP`에 추가했음에도 불구하고
+왜인지 장고에서 제공해준다는 기능을 사용하지 못했다. 검색도 많이 해 봤는데 마땅한 해결책을 찾을 수 없었다.
+경험상 뭔가 이런 문제는 매우 사소한 것을 놓친 건데, 경로가 잘못되었나...? 잘 모르겠다. 그냥 postman 써야겠다... 
+
+#### 2. Postman 활용
+
+postman은 정말 잘 만든 어플리케이션이다. 쓸 때마다 맘에 든다. 아이콘도 귀여운 것 같다. 
+원래 코딩의 가장 어려운 부분이 네이밍이듯이, REST API의 이름을 짓는 것도 어렵다.
+그래도 최대한 잘 지어보려고 노력했다.
+
+두 개의 post method를 사용했는데, 새로운 user를 추가하는 것과 새로운 post(게시물)을 추가하는 API를 만들었다.
+그리고 모든 유저 조회, 모든 게시물 조회, 해당 유저의 모든 게시물 조회를 하는 API를 만들었다.
+
+### 과제
+
+#### 데이터 삽입
+
+1. ORM 쿼리 또는 django 관리자를 통해 모델에 적절한 **데이터 3개**를 넣은 후 그 결과 화면을 캡쳐해주세요.
+2. **README.md**의 `**모델 선택 및 데이터 삽입**` 아래쪽에 선택한 모델의 구조와 데이터 삽입 결과를 캡쳐한 모습을 보여주세요.
+
+*어드민 페이지 예쁘게 보기* <br>
+원래는 그냥 기본으로 제공하는 어드민 페이지를 썼었다. 그냥 `admin.py`에 모델만 추가해주면 된다.
+근데 경준이가 한 거 보니까 예쁘게 잘 해놔서 나도 저렇게 해야겠다 싶어서 따라했다.
+
+[먹기 좋은 떡이 맛도 있다](https://teamlab.github.io/jekyllDecent/blog/tutorials/Django-Admin-%EC%BB%A4%EC%8A%A4%ED%84%B0%EB%A7%88%EC%9D%B4%EC%A7%95)
+[꿀꺽](https://hckcksrl.medium.com/django-admin-%EC%BB%A4%EC%8A%A4%ED%84%B0%EB%A7%88%EC%9D%B4%EC%A7%95-c933e68a205)
+[공식깃헙링크](https://github.com/silentsokolov/django-admin-rangefilter)
+
+*before*
+![before admin setting](/images/adminbefore.png)<br>
+
+*after*
+![after admin setting](/images/adminafter.png)<br>
+
+
+#### 모든 데이터를 가져오는 API 만들기
+
+1. - **URL**: `api/items/`(URL은 그대로 사용하시기보단 자신의 모델에 맞는 이름을 사용해주세요!)
+2. Method: `GET`
+
+모든 user를 가져오는 api 실행.<br>
+![get all user](/images/getuser.png)<br>
+
+```json
+[
+    {
+        "id": 1,
+        "photo": "",
+        "username": "pororo",
+        "password": "password",
+        "last_name": "뽀",
+        "first_name": "로로",
+        "email": "pororo@gmail.com"
+    },
+    {
+        "id": 4,
+        "photo": "",
+        "username": "poby",
+        "password": "qwer",
+        "last_name": "포",
+        "first_name": "비",
+        "email": "poby@gamil.com"
+    },
+    {
+        "id": 5,
+        "photo": "",
+        "username": "Eddy",
+        "password": "1qaz",
+        "last_name": "",
+        "first_name": "",
+        "email": ""
+    },
+    {
+        "id": 7,
+        "photo": null,
+        "username": "nowkim",
+        "password": "pbkdf2_sha256$180000$hDkcHgUBBFG3$L1TBZXUdAzeUtveERN3dysvn+7QJpm0FuuqgnxuItHA=",
+        "last_name": "",
+        "first_name": "",
+        "email": "peterhyunjae@naver.com"
+    }
+]
+```
+
+모든 post와 user의 모든 post를 가져오는 api를 만들었다.
+실제로 해당 유저의 모든 포스틀 불러오는 api는 필수로 있어야 한다고 생각했기 때문에 추가로 구현하게 되었다.
+모든 포스트와 해당 유저의 모든 포스트를 가져오는 것은 전체를 가져온다는 점에서 동일하다고 판단하여,
+새로운 url을 만들기보다 기존의 모든 포스트를 가져오는 url을 활용해야겠다고 생각했다.
+
+```python
+# urls.py
+urlpatterns = [
+    path('users/', user_list),
+    path('posts/', post_list),
+    # path('posts/<int:user_id>', post_list),
+]
+```
+
+원래 url 구성을 `posts/` 대신에 주석처리 되어있는 친구를 사용했는데,
+저렇게 구성하면 필수로 id를 받아야 하는 문제가 있어서 (parameter를 강제한다.)
+url은 그대로 두고 다른 방법을 생각해야 했다.
+
+[여기를](https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get) 참고하였다.
+그래서 `/?q=''` 이런 식으로 url parameter에서 원하는 값을 찾을 수 있도록 하였다.
+
+```python
+# views.py
+def post_list(request):
+    if request.method == 'GET':
+        queryset = request.GET.get('q', None)
+        if queryset is not None:
+            posts = Post.objects.filter(user__user_id=queryset).all()
+            serializer = PostSerializer(posts, many=True)
+            return JsonResponse(serializer.data, safe=False)
+        else:
+            posts = Post.objects.all()
+            serializer = PostSerializer(posts, many=True)
+            return JsonResponse(serializer.data, safe=False)
+```
+
+결과는 성공.
+![get all user's post](/images/get_all_users.png)<br>
+```json
+[
+    {
+        "id": 1,
+        "images": [],
+        "videos": [],
+        "post_likes": [],
+        "post_comments": [],
+        "created_at": "2021-10-08T00:21:02.539778+09:00",
+        "updated_at": "2021-10-28T20:52:51.599098+09:00",
+        "text": "post1"
+    },
+    {
+        "id": 4,
+        "images": [],
+        "videos": [],
+        "post_likes": [
+            {
+                "id": 1,
+                "created_at": "2021-10-28T23:36:33.711390+09:00",
+                "updated_at": "2021-10-28T23:36:33.711458+09:00",
+                "user": 2,
+                "post": 4
+            }
+        ],
+        "post_comments": [],
+        "created_at": "2021-10-08T00:21:16.423336+09:00",
+        "updated_at": "2021-10-28T20:52:51.599098+09:00",
+        "text": "poby is the best"
+    },
+    {
+        "id": 5,
+        "images": [],
+        "videos": [],
+        "post_likes": [
+            {
+                "id": 2,
+                "created_at": "2021-10-28T23:36:57.451609+09:00",
+                "updated_at": "2021-10-28T23:37:03.801624+09:00",
+                "user": 4,
+                "post": 5
+            },
+            {
+                "id": 3,
+                "created_at": "2021-10-28T23:39:12.938142+09:00",
+                "updated_at": "2021-10-28T23:39:12.938178+09:00",
+                "user": 3,
+                "post": 5
+            }
+        ],
+        "post_comments": [
+            {
+                "id": 1,
+                "created_at": "2021-10-28T23:37:54.359054+09:00",
+                "updated_at": "2021-10-28T23:37:54.359119+09:00",
+                "text": "공부해 뽀로로야",
+                "user": 3,
+                "post": 5
+            },
+            {
+                "id": 2,
+                "created_at": "2021-10-28T23:38:09.650375+09:00",
+                "updated_at": "2021-10-28T23:38:09.650413+09:00",
+                "text": "나도 노는게젤좋긴하지만",
+                "user": 3,
+                "post": 5
+            }
+        ],
+        "created_at": "2021-10-28T23:35:14.699675+09:00",
+        "updated_at": "2021-10-28T23:35:14.699766+09:00",
+        "text": "노는게젤좋아"
+    }
+]
+```
+
+#### 새로운 데이터를 create하도록 요청하는 API 만들기
+
+1. **URL**: `api/items/`
+2. **Method**: `POST`
+3. **Body**: `{"필드명": 필드값, ... }`
+
+새로운 유저를 만드는 api와 새로운 post를 만드는 api를 만들었다.
+
+```python
+# views.py
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = UserSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            u = User.objects.get(username=data['username'])
+            p = Profile.objects.create(user=u, photo=data['photo'])
+            p.save()
+            return JsonResponse(serializer.data, status=201)
+        else:
+            return JsonResponse(serializer.errors, status=400)
+```
+그냥 `serializer.save()` 할 경우 auth_user에만 저장되고, profile에는 저장이 되지 않는 것을 발견하여
+새로 만들어진 유저 객체를 가져와서 profile에도 새로 만들어 주었다.
+사실 이렇게 하는게 아닌 것 같은데 어떻게 수정해야할지 모르겠어서 저렇게 했다.
+
+post를 새로 만드는 api의 경우도 마찬가지로 user 객체가 필요한데,
+이것도 새로 user_id를 통해 user 객체를 얻어와야 하는건가 했는데, 아무래도 아닌 것 같다.
+
+로그를 보면 serializer까지는 잘 생성되는데, 그 이후에 <br>
+'IntegrityError' <br>
+'(1048, "Column 'user_id' cannot be null")' <br>
+이런 오류가 나온다. 
+
+그래서 결과적으로 새로운 post를 생성하는 api는 구현을 하지 못했다.
+
+일단 유저 생성 결과 화면을 첨부한다.<br>
+![createuser](/images/createuser.png)<br>
+
+
+
 
