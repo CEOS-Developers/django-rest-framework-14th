@@ -16,10 +16,10 @@ class Base(models.Model):
 
 # 프로필 모델 구현
 class Profile(Base):
-    user = models.OneToOneField(User, on_delete=models.CASCADE) # user model의 username(이름), password(비밀번호) 이용
+    user = models.OneToOneField(User, on_delete=models.CASCADE) # user model의 username(이름), password(비밀번호) 이용 # auth user과 1대 1 연결
     photo = models.ImageField(upload_to = "profile", blank=True) # 프로필 사진
     # 이용할 것-> username(이름), password(비밀번호)
-    nickname = models.CharField(primary_key=True, max_length=20, unique=True) # 사용자 이름(인스타 아이디명) ex) ssssujini99 # unique=True 중복허용x
+    nickname = models.CharField(max_length=20, unique=True) # 사용자 이름(인스타 아이디명) ex) ssssujini99 # unique=True 중복허용x
     website = models.URLField(blank=True) # 웹사이트
     intro = models.CharField(max_length=100, blank=True) # 소개
     email = models.EmailField(max_length=30, blank=True) # 이메일
@@ -28,7 +28,7 @@ class Profile(Base):
         ('여성', '여성'),
         ('남성', '남성'),
     )
-    gender = models.CharField(max_length=10, choices=GENDER_C) # 성별
+    gender = models.CharField(max_length=10, choices=GENDER_C, blank=True) # 성별
 
     def __str__(self):
         return self.nickname  # 사용자 이름(인스타 아이디명)을 대표로 함
@@ -39,12 +39,14 @@ class Post(Base):
     author = models.ForeignKey(Profile, on_delete=models.CASCADE) # 글쓴이 ## Profile - Post : One to Many 관계
     content = models.CharField(max_length=300, help_text="최대 길이 300자 입력이 가능합니다.", blank=True) # 내용
 
+    def __str__(self):
+        return self.content # 포스트 내용을 대표로 함
+
 
 # (게시글에 업로드 할) 파일 모델 구현 <- 사진과 영상
 class File(Base):
     post = models.ForeignKey(Post, on_delete=models.CASCADE) # 해당 게시글
-    file = models.FileField(upload_to="post", blank=True) # 업로드 할 파일
-    # url = models.CharField(max_length=300, blank=True)
+    file = models.FileField(upload_to="post") # 업로드 할 파일
 
 
 # 좋아요 모델 구현
@@ -59,6 +61,9 @@ class Comment(Base):
     author = models.ForeignKey(Profile, on_delete=models.CASCADE) # 댓글을 쓴 사용자 ## Profile - Comment : One to Many 관계
     content = models.CharField(max_length=50) # 댓글 내용
 
+    def __str__(self):
+        return self.content # 댓글 내용을 대표로 함
+
 
 # 북마크 모델 구현
 class Bookmark(Base):
@@ -69,7 +74,7 @@ class Bookmark(Base):
 # 팔로우 모델 구현
 class Follow(Base):
     follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower', primary_key=True)
-    followee = models.ManyToManyField(Profile, related_name='followee', through='FollowRelation') # follower가 팔로잉하는 사람들
+    followee = models.ManyToManyField(Profile, related_name='followee', through='FollowRelation') # follower가 팔로잉하는 사람들 # 역참조할때도 똑같이 followee
 
     def __str__(self):
         return self.follower.nickname
