@@ -8,14 +8,22 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'nickname', 'gender', 'phone_num', 'introduction', 'website']
 
 class CommentSerializer(serializers.ModelSerializer):
+    nickname = serializers.SerializerMethodField()
     class Meta:
         model = Comment
-        fields = ['comment', 'user','created_date']
+        fields = ['comment', 'nickname','created_date']
+
+    def get_nickname(self,obj):
+        return obj.user.nickname
 
 class LikeSerializer(serializers.ModelSerializer):
+    nickname = serializers.SerializerMethodField()
     class Meta:
         model = Like
-        fields = ['user','created_date']
+        fields = ['nickname']
+
+    def get_nickname(self,obj):
+        return obj.user.nickname
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
