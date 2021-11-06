@@ -33,16 +33,24 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
     post_likes = LikeSerializer(many=True, read_only=True)   # read_only: 요청 파라미터에 포함되지 않음.
     comments = CommentSerializer(many=True, read_only=True)
     post_files = FileSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
-        fields = ['author_name', 'author', 'content', 'created_date', 'updated_date', 'post_likes', 'comments', 'post_files']
+        fields = ['author_name', 'author', 'content', 'created_date', 'updated_date', 'comments_count', 'likes_count', 'post_likes', 'comments', 'post_files']
 
     def get_author_name(self, obj):
         return obj.author.nickname
+
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+
+    def get_likes_count(self, obj):
+        return obj.post_likes.count()
 
 
 class ProfileSerializer(serializers.ModelSerializer):
