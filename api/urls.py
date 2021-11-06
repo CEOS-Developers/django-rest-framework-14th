@@ -3,4 +3,5 @@ from api import views
 
 urlpatterns = [
     path('posts/', views.post_list),
+    path('users/', views.user_list),
 ]

@@ -9,9 +9,18 @@ class FileSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    follower = serializers.SerializerMethodField()
+    following = serializers.SerializerMethodField()
+
     class Meta:
         model = Follow
-        fields = '__all__'
+        fields = ['follower', 'following']
+
+    def get_follower(self, obj):
+        return obj.follower.nickname
+
+    def get_following(self, obj):
+        return obj.following.nickname
 
 
 class LikeSerializer(serializers.ModelSerializer):
@@ -56,17 +65,36 @@ class PostSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['id', 'info', 'profile_name', 'user']
+        fields = ['id', 'image', 'info', 'profile_name', ]
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # profiles = ProfileSerializer(read_only=True)
+    profile = ProfileSerializer(required=True)
     posts = PostSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
+    # comments = CommentSerializer(many=True, read_only=True)
     followers = FollowSerializer(many=True, read_only=True)
     followings = FollowSerializer(many=True, read_only=True)
     # likes = LikeSerializer(many=True, read_only=True)
 
+    posts_count = serializers.SerializerMethodField()
+    followers_count = serializers.SerializerMethodField()
+    followings_count = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['nickname', 'username', 'password', 'email', 'posts', 'comments', 'followers', 'followings']
+        fields = ['nickname', 'username', 'password', 'email', 'profile', 'followers_count', 'followings_count', 'posts_count', 'posts', 'followers', 'followings']
+
+    def create(self, validated_data):
+        profile_data = validated_data.pop('profile')
+        user = User.objects.create(**validated_data)
+        Profile.objects.create(user=user, **profile_data)
+        return user
+
+    def get_posts_count(self, obj):
+        return obj.posts.count()
+
+    def get_followers_count(self, obj):
+        return obj.followers.count()
+
+    def get_followings_count(self, obj):
+        return obj.followings.count()
