@@ -873,6 +873,6 @@ class PostSerializer(serializers.ModelSerializer):
 ]
 ```
   
->user의 save() 실행 이후 profile이 db에 저장되지 않는다는 것을 뒤늦게 깨닫고 django가 제공하는 signals의 post_save() 기능을 사용하여 profile이 자동 생성 및 저장되도록 수정하였다. 근데 >serializer에서도 create() 함수를 만들어 profile을 저장하다보니 django.db.utils.IntegrityError: (1062, "Duplicate entry '9' for key 'api_profile.user_id'") 오류가 발생했다. db에는 >저장이 되긴 하는데, 똑같은 정보를 중복으로 저장하려고 시도하나보다... post_save만 남기면 Write an explicit `.create()` method for serializer `api.serializers.UserSerializer`, or >set `read_only=True` on nested serializer fields. 라는 error가 발생한다. post api도 comments count와 likes count를 추가로 제공하도록 수정했다.
+>user의 save() 실행 이후 profile이 db에 저장되지 않는다는 것을 뒤늦게 깨닫고 django가 제공하는 signals의 post_save() 기능을 사용하여 profile이 자동 생성 및 저장되도록 수정하였다. 근데 serializer에서도 create() 함수를 만들어 profile을 저장하다보니 django.db.utils.IntegrityError: (1062, "Duplicate entry '9' for key 'api_profile.user_id'") 오류가 발생했다. db에는 저장이 되긴 하는데, 똑같은 정보를 중복으로 저장하려고 시도하나보다... post_save만 남기면 Write an explicit `.create()` method for serializer `api.serializers.UserSerializer`, or set `read_only=True` on nested serializer fields. 라는 error가 발생한다. post api도 comments count와 likes count를 추가로 제공하도록 수정했다.
   
   
