@@ -448,3 +448,276 @@ path('task-delete/<int:pk>/', views.taskDelete, name='task-delete'),
 
 이후에 연관있는 모델에서는 어떻게 serializer를 이용하는지 공부한 이후,   
 이를 insta앱에 적용해보도록 하겠습니다!
+
+
+
+
+ # 4주차 과제 변경사항 + 추가
+
+ ## insta 앱의 serializer 만들기
+
+이번에는 저의 insta 모델에 대한 modelSerializer를 직접 만들어보았습니다!   
+소개하면 다음과 같습니다.
+
+```python
+from rest_framework import serializers
+from .models import Profile, Post, Comment, Follow, FollowRelation
+from django.contrib.auth.models import User
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField() # serializer method field 이용
+
+    def get_author(self, obj):
+        return obj.author.nickname # author의 값이 foreignkey로 pk인 id 값을 가져오기 때문에 nickname을 가져오도록 재정의
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'author', 'content', 'post']  # 정참조 시에는 그대로(author, post)
+
+
+class PostListSerializer(serializers.ModelSerializer):
+    comment_set = CommentSerializer(many=True, read_only=True) # Nested Serializer를 이용해 relation을 맺은 다른 모델과의 관계 표현하기
+    author = serializers.SerializerMethodField() # serializer method field 이용
+
+    def get_author(self, obj): # author의 값이 foreignkey로 pk인 id 값을 가져오기 때문에 nickname을 가져오도록 재정의
+        return obj.author.nickname
+
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'content', 'comment_set']
+
+
+class PostCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'content']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
+
+class FolloweeListingField1(serializers.RelatedField):
+    def to_representation(self, value):
+        return value.follower.nickname
+
+
+class ProfileListSerializer(serializers.ModelSerializer):
+    post_set = PostListSerializer(many=True, read_only=True)
+    user = UserSerializer(read_only=True)
+    followee = FolloweeListingField1(many=True, read_only=True) # many to many 관계 모델 기져오기
+
+    class Meta:
+        model = Profile
+        fields = ['id', 'nickname', 'user', 'followee', 'post_set'] # followee: 역참조
+
+
+class ProfilePartSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = ['id', 'nickname', 'user']
+
+
+class FolloweeListingField2(serializers.RelatedField):
+    def to_representation(self, value):
+        return value.nickname
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    follower = serializers.SerializerMethodField()
+    followee = FolloweeListingField2(many=True, read_only=True)
+
+    def get_follower(self, obj):
+        return obj.follower.nickname
+
+    class Meta:
+        model = Follow
+        fields = ['follower', 'followee']
+```
+
+
+### serializers.py 를 만들면서 제가 느낀 점은 다음과 같습니다.   
+1. foreignkey 관계의 모델을 serializer method field로 가져오고, 이를 get_<field_name>으로    
+   pk값이 아닌 원하는 필드의 값으로 가져올 수 있어서 편리했다.   
+2. nested serializer를 통해 serializer에서 상속과 같은 기능을 제공하는것을 알았고, 두 모델간의 관계를 표현할 때
+   매우 유용하였다.
+
+> 연관된 모델에서 가져와야 할 정보가 많은 경우 상속을 이용하는 nested serializer를 이용하고,   
+> 연관된 모델에서 가져와야 할 정보가 한개정도로 작을 때, 그리고 원하는 필드 명으로 가져오고 싶을 때에는 serializer method field를 이용하면 될 것 같다   
+
+3. 팔로우-팔로잉 관계를 어렵게 구현하여서, serializer로 이 관계를 가져올 때 많이 힘들었습니다.   
+그래서 이 모델관계를 다시 수정하고 싶더라구요 ㅠㅠ   
+> 모델관의 관계를 잘 짜야(단순하면서도 필요한 정보 명확히 표현할 수 있게) serializer의 구현이 편하다   
+
+4. 한 모델에서 여러 개의 serializer를 구현할 필요가 있다.
+> 생각을 해 보니, 한 모델에서 모든 정보가 다 필요한 경우가 있을 수 있고, 또는 특정 정보만이 필요할 수도 있습니다   
+> 그래서 list, part 등으로 이름을 나눴는데 이름은 수정이 좀 더 필요할 것 같습니다.
+
+
+ ## insta/urls.py
+
+```python
+from django.urls import path
+from . import views
+from rest_framework.urlpatterns import format_suffix_patterns
+
+urlpatterns = [
+    path('profile/', views.profileList.as_view()), # 프로필 + (모든 정보를 가져오는) api
+    path('profile/<int:pk>/', views.profileDetail.as_view()),
+    # path('profiles/create/', views.profileCreate, name='profile-create'),
+    #
+    path('post/', views.postListAPIView.as_view()),
+    path('post/<int:pk>/', views.postDetailAPIView.as_view()),
+    #
+    path('follow/', views.followList.as_view()),
+    path('follow/<str:pk>/', views.followDetail.as_view()),
+]
+```
+
+rest API를 공부해보고, 나름 restful하게 짜보려고 많이 노력해보았습니다!   
+생각보다 url과 view의 함수명이 100% 마음에 들지는 않는 것 같았습니다   
+직관적이면서도 간결하게? 그리고 중복되지 않게 표현하기가 나름 까다로운 것 같습니다
+
+저는 처음에는 FBV를 기반으로 view 함수를 작성하였는데요,   
+앞으로는 CBV기반으로 더 많이 쓴다고 하여서 한번 다 바꾸어보았습니다.   
+
+
+
+## insta/views.py
+
+
+
+```python
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+
+from rest_framework.response import Response
+from rest_framework.parsers import JSONParser
+from .serializers import UserSerializer, PostListSerializer, PostCreateSerializer, FollowSerializer, ProfileListSerializer, ProfilePartSerializer
+
+from .models import Profile, Post, Follow
+from django.contrib.auth.models import User
+
+# 추가
+from rest_framework.views import APIView
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+
+
+# Post 모델
+# 1. 전체 Post 가져오기 or # 2. 새 Post 작성하기
+class postListAPIView(APIView):
+    def get(self, request, format=None):
+        posts = Post.objects.all()
+        serializer = PostListSerializer(posts, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = PostCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+
+# 3. 특정 Post 가져오기 or # 4. 특정 포스트 수정하기 # 5. 특정 포스트 삭제하기
+class postDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(Post, id=pk)
+
+    def get(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostListSerializer(post)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        post = self.get_object(pk)
+        serializer = PostCreateSerializer(post, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        post = self.get_object(pk)
+        post.delete()
+        return Response(status=201)
+
+
+# Profile 모델
+# 1. 전체 Profile 가져오기 or # 2. 새 Profile 작성하기 (보류)
+class profileList(APIView):
+
+    def get(self, request, format=None):
+        profiles = Profile.objects.all()
+        serializer = ProfileListSerializer(profiles, many=True)
+        return Response(serializer.data)
+
+    # def post(self, request):
+    #     serializer = UserSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         내일 해보도록 하겠습니다.. 아무래도 abstractbase user model을 써야할 것 같습니다
+
+
+
+
+# 3. 특정 Profile 가져오기 or # 4. 특정 Profile 수정하기 # 5. 특정 Profile 삭제하기
+class profileDetail(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(Profile, id=pk)
+
+    def get(self, request, pk, format=None):
+        profile = Profile.objects.get(id=pk)
+        serializer = ProfilePartSerializer(profile)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        Profile = self.get_object(pk)
+        serializer = ProfilePartSerializer(Profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        profile = self.get_object(pk)
+        profile.delete()
+        user = User.objects.get(id=pk)
+        user.delete()
+        return Response(status=204)
+
+
+# # Follow 모델
+# # 1. 전체 팔로우 관계 조회하기
+class followList(APIView):
+    def get(self, request, format=None):
+        follows = Follow.objects.all()
+        serializer = FollowSerializer(follows, many=True)
+        return Response(serializer.data)
+
+
+# # 2. 특정 유저의 팔로우 관계 조회하기
+class followDetail(APIView):
+    def get(self, request, pk, format=None):
+        follow = Follow.objects.get(follower=pk)
+        serializer = FollowSerializer(follow)
+        return Response(serializer.data)
+```
+
+
+드디어 DRF를 이용하여 모든 http method를 구현해보았습니다.   
+특정 url에 어떤 http method를 넣을지,   
+url뒤에 파라미터까지 붙었을 때에는 또 어떤 method를 넣을지 고민을 하고 한 번 짜 보았습니다.   
+
+이제 한번 직접 확인해보겠습니다!   
+먼저, 정말 장고가 편리하다고 느낀 점 중 하나가 바로 장고의 rest framework 입니다.   
+너무너무 유용한 것 같습니다.    
+
+###ⓐ 먼저 'profile/' (모든 정보를 다 가져오는 api) 입니다.
+
+![이미지]()
