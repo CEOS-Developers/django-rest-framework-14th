@@ -33,16 +33,16 @@ class User(AbstractUser):
         return self.username
 
 class Post(BasedateModel):
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    author = models.ForeignKey(User,on_delete=models.CASCADE)
     location = models.CharField(max_length=30, blank=True)
     title = models.TextField(blank=False)
 
     class Meta:
         verbose_name = 'Post'
         verbose_name_plural = 'Posts'
-        
+
     def __str__(self):
-        return self.user.nickname + '_post_' + str(self.id)
+        return self.author.nickname + '_post_' + str(self.id)
 
 class Photo(BasedateModel):
     photo_url = models.ImageField(upload_to="post/Photos")

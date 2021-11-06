@@ -10,20 +10,20 @@ class UserSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = '__all__'
+        fields = ['comment', 'user','created_date']
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = ['user','created_date']
 
 class PostSerializer(serializers.ModelSerializer):
-    like_users = serializers.SerializerMethodField()
-    comments = CommentSerializer(many=True, read_only=True)
+    author = serializers.SerializerMethodField()
+    post_likes = LikeSerializer(many=True,read_only=True)
+    post_comments = CommentSerializer(many=True, read_only=True)
     class Meta:
         model = Post
-        fields = ['id', 'user', 'location', 'title', 'like_users', 'comments', 'created_date', 'updated_date']
+        fields = ['id', 'author', 'location', 'title', 'post_likes', 'post_comments', 'created_date', 'updated_date']
 
     def get_author(self, obj):
-        return obj.user.username
-
-    def get_comment_list(self, obj):
-        return self.comments
-
-    def get_like_users(self,obj):   # 임시로 넣어둠. 왜 오류나지?
-        return obj.user.username
+        return obj.author.nickname
