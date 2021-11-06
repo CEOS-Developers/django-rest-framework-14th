@@ -354,8 +354,10 @@ def post_view(request):
 
 ## Post
 
-
 ### GET API
+
+- URL : `api/posts`
+- Method : GET
 
 ```json
 [
@@ -439,6 +441,130 @@ def post_view(request):
         ],
         "created_date": "2021-11-06T17:05:38.455631+09:00",
         "updated_date": "2021-11-06T17:05:38.455668+09:00"
+    }
+]
+```
+
+## POST
+
+- URL : `api/posts`
+- Method : POST
+- Body
+
+```json
+{
+    "id" : 6,
+    "author" : 1,
+    "location" : "Paris",
+    "title" : "파리 여행",
+    "created_date" : "2021-11-06T12:05:38.455631+09:00",
+    "updated_date": "2021-11-06T19:22:11.455668+09:00"
+}
+
+```
+
+### 결과
+
+```json
+[
+    {
+        "id": 3,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "Seoul",
+        "title": "첫 게시글!",
+        "post_likes": [
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [],
+        "created_date": "2021-11-01T02:03:33.622916+09:00",
+        "updated_date": "2021-11-01T02:03:33.622976+09:00"
+    },
+    {
+        "id": 4,
+        "author": {
+            "id": 2,
+            "username": "test1",
+            "nickname": "test1",
+            "gender": "M",
+            "phone_num": 1039583929,
+            "introduction": "test1111",
+            "website": "http://velog.io/@test"
+        },
+        "location": "Dongdaemungu",
+        "title": "First Post",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "Wow",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-01T02:04:25.779203+09:00"
+            }
+        ],
+        "created_date": "2021-11-01T02:03:49.712405+09:00",
+        "updated_date": "2021-11-01T02:03:49.712457+09:00"
+    },
+    {
+        "id": 5,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "우리집",
+        "title": "Example 3",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            },
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "#좋아요 #맞팔",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-06T17:07:37.584469+09:00"
+            }
+        ],
+        "created_date": "2021-11-06T17:05:38.455631+09:00",
+        "updated_date": "2021-11-06T17:05:38.455668+09:00"
+    },
+    {
+        "id": 6,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "Paris",
+        "title": "파리 여행",
+        "post_likes": [],
+        "post_comments": [],
+        "created_date": "2021-11-06T23:55:28.433851+09:00",
+        "updated_date": "2021-11-06T23:55:28.433921+09:00"
     }
 ]
 ```

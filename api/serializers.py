@@ -33,6 +33,7 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'location', 'title', 'post_likes', 'post_comments', 'created_date', 'updated_date']
 
     def to_representation(self, instance):
-        self.fields['author'] = UserSerializer(read_only=True)
-        return super(PostSerializer,self).to_representation(instance)
+        response = super().to_representation(instance)
+        response['author'] = UserSerializer(User.objects.get(pk=response['author'])).data
+        return response
 
