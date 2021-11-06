@@ -26,12 +26,13 @@ class LikeSerializer(serializers.ModelSerializer):
         return obj.user.nickname
 
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.SerializerMethodField()
     post_likes = LikeSerializer(many=True,read_only=True)
     post_comments = CommentSerializer(many=True, read_only=True)
     class Meta:
         model = Post
         fields = ['id', 'author', 'location', 'title', 'post_likes', 'post_comments', 'created_date', 'updated_date']
 
-    def get_author(self, obj):
-        return obj.author.nickname
+    def to_representation(self, instance):
+        self.fields['author'] = UserSerializer(read_only=True)
+        return super(PostSerializer,self).to_representation(instance)
+

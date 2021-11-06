@@ -308,3 +308,137 @@ class ProfileSerializer(serializers.Serializer):
 원래 파라미터들이나, 실행했을 때 오류들도 살펴보고, 내가 원래 설계해놓은 모델링도 수정해야 하는데, 시험기간과 과제를 우선적으로 하다보니 꼼꼼하게 살펴보질 못했다.
 
 어떻게 돌아가는지 어느정도 파악을 했으니, 다음에 깊게 파서 정리해 보겠습니다.
+
+## 4주차 과제
+## 모든 객체 나타내기
+
+```python
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = '__all__'
+```
+
+`Comment` 에 있는 모든 필드를 나타내고 싶으면, `fields` 에 `__all__` 을 추가하면 된다.
+
+## 에러들
+
+> Forbidden (CSRF cookie not set.): /api/posts
+> 
+
+유저가  해당 요청에 대한 권한이 없다는 뜻. 즉, 권한을 인증할만한 토큰 같은것이 필요하다는 것.
+
+### CSRF란 ?
+
+> CSRF는 사이트간 요정 위조를 말한다. 사이트 간 요청 위조는 웹사이트 취약점 공격의 하나로, 사용자가 자신의 의지와는 무관하게 공격자가 의도한 행위를 특정 웹사이트에 요청하게 하는 공격을 말한다. 유명 경매 사이트인 옥션에서 발생한 개인정보 유출 사건에서 사용된 공격 방식 중 하나다
+> 
+
+해결할 수 있는 다양한 방법
+
+[https://www.dev2qa.com/how-to-enable-or-disable-csrf-validation-in-django-web-application/](https://www.dev2qa.com/how-to-enable-or-disable-csrf-validation-in-django-web-application/)
+
+우리는 `Function-Based View` 기 때문에,
+
+```python
+# views.py
+
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
+
+def post_view(request):
+~~~
+
+```
+
+이렇게 해결해 주었다.
+
+## Post
+
+
+### GET API
+
+```json
+[
+    {
+        "id": 3,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "Seoul",
+        "title": "첫 게시글!",
+        "post_likes": [
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [],
+        "created_date": "2021-11-01T02:03:33.622916+09:00",
+        "updated_date": "2021-11-01T02:03:33.622976+09:00"
+    },
+    {
+        "id": 4,
+        "author": {
+            "id": 2,
+            "username": "test1",
+            "nickname": "test1",
+            "gender": "M",
+            "phone_num": 1039583929,
+            "introduction": "test1111",
+            "website": "http://velog.io/@test"
+        },
+        "location": "Dongdaemungu",
+        "title": "First Post",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "Wow",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-01T02:04:25.779203+09:00"
+            }
+        ],
+        "created_date": "2021-11-01T02:03:49.712405+09:00",
+        "updated_date": "2021-11-01T02:03:49.712457+09:00"
+    },
+    {
+        "id": 5,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "우리집",
+        "title": "Example 3",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            },
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "#좋아요 #맞팔",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-06T17:07:37.584469+09:00"
+            }
+        ],
+        "created_date": "2021-11-06T17:05:38.455631+09:00",
+        "updated_date": "2021-11-06T17:05:38.455668+09:00"
+    }
+]
+```

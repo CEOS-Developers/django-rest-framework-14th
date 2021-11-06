@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 from .models import *
 from .serializers import *
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
 
 def post_view(request):
     """
