@@ -41,8 +41,6 @@ class UserSerializer(serializers.ModelSerializer):
 class FolloweeListingField1(serializers.RelatedField):
     def to_representation(self, value):
         return value.follower.nickname
-    class Meta:
-        model = Follow
 
 
 class ProfileListSerializer(serializers.ModelSerializer):
@@ -66,8 +64,6 @@ class ProfilePartSerializer(serializers.ModelSerializer):
 class FolloweeListingField2(serializers.RelatedField):
     def to_representation(self, value):
         return value.nickname
-    class Meta:
-        model = Follow
 
 
 class FollowSerializer(serializers.ModelSerializer):
