@@ -5,7 +5,7 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = {'id', 'username', 'nickname', 'gender', 'phone_num', 'introduction', 'website'}
+        fields = ['id', 'username', 'nickname', 'gender', 'phone_num', 'introduction', 'website']
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,10 +17,13 @@ class PostSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     class Meta:
         model = Post
-        fields = {'id', 'user', 'location', 'title', 'like_users', 'commnets', 'created_at', 'updated_at'}
+        fields = ['id', 'user', 'location', 'title', 'like_users', 'comments', 'created_date', 'updated_date']
 
     def get_author(self, obj):
         return obj.user.username
 
     def get_comment_list(self, obj):
         return self.comments
+
+    def get_like_users(self,obj):   # 임시로 넣어둠. 왜 오류나지?
+        return obj.user.username
