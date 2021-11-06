@@ -3,11 +3,6 @@ from .models import Profile, Post, Comment, Follow, FollowRelation
 from django.contrib.auth.models import User
 
 
-class FolloweeListingField1(serializers.RelatedField):
-    def to_representation(self, value):
-        return value.follower.nickname
-
-
 class FolloweeListingField2(serializers.RelatedField):
     def to_representation(self, value):
         return value.nickname
@@ -24,7 +19,7 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'content', 'post']  # 정참조 시에는 그대로(author, post)
 
 
-class PostSerializer(serializers.ModelSerializer):
+class PostListSerializer(serializers.ModelSerializer):
     comment_set = CommentSerializer(many=True, read_only=True) # Nested Srializer를 이용해 relation을 맺은 다른 모델과의 관계 표현하기
     author = serializers.SerializerMethodField()
 
@@ -36,20 +31,39 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'content', 'comment_set']
 
 
+class PostCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'content']
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username']
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    post_set = PostSerializer(many=True, read_only=True)
+class FolloweeListingField1(serializers.RelatedField):
+    def to_representation(self, value):
+        return value.follower.nickname
+
+
+class ProfileListSerializer(serializers.ModelSerializer):
+    post_set = PostListSerializer(many=True, read_only=True)
     user = UserSerializer(read_only=True)
     followee = FolloweeListingField1(many=True, read_only=True)
 
     class Meta:
         model = Profile
         fields = ['id', 'nickname', 'user', 'followee', 'post_set'] # followee: 역참조
+
+
+class ProfilePartSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = ['id', 'nickname', 'user']
 
 
 class FollowSerializer(serializers.ModelSerializer):
