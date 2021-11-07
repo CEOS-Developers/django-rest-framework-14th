@@ -718,6 +718,153 @@ url뒤에 파라미터까지 붙었을 때에는 또 어떤 method를 넣을지 
 먼저, 정말 장고가 편리하다고 느낀 점 중 하나가 바로 장고의 rest framework 입니다.   
 너무너무 유용한 것 같습니다.    
 
-###ⓐ 먼저 'profile/' (모든 정보를 다 가져오는 api) 입니다.
+###ⓐ 먼저 'profile/' (모든 정보를 다 가져오는 api) - GET
 
-![이미지]()
+![이미지](https://postfiles.pstatic.net/MjAyMTExMDdfMTgy/MDAxNjM2MjU5MTQ4MzA5.RUTZBQw7LI4QKX6r1MPXB69l79uhW_ZbjpkvEc_Q9mgg.pzGA2PeQqakn3fVAy7zb6BpAdesUopzjIAENXeVIkvgg.PNG.sssssjin99/image.png?type=w966)
+
+```json
+[
+    {
+        "id": 1,
+        "nickname": "ssssujini99",
+        "user": {
+            "id": 1,
+            "username": "ssssujini99"
+        },
+        "followee": [
+            "user2",
+            "user3",
+            "user4"
+        ],
+        "post_set": [
+            {
+                "id": 1,
+                "author": "ssssujini99",
+                "content": "게시글1",
+                "comment_set": [
+                    {
+                        "id": 1,
+                        "author": "user2",
+                        "content": "안녕하세요!",
+                        "post": 1
+                    },
+                    {
+                        "id": 2,
+                        "author": "user3",
+                        "content": "맞팔해요~*^^*",
+                        "post": 1
+                    },
+                    {
+                        "id": 3,
+                        "author": "user4",
+                        "content": "수진님 안녕하세요!",
+                        "post": 1
+                    }
+                ]
+            },
+            {
+                "id": 2,
+                "author": "ssssujini99",
+                "content": "post 2 edit",
+                "comment_set": [
+                    {
+                        "id": 4,
+                        "author": "user2",
+                        "content": "맛있겠네요!!",
+                        "post": 2
+                    },
+                    {
+                        "id": 5,
+                        "author": "user3",
+                        "content": "맛집 정보좀요~",
+                        "post": 2
+                    },
+                    {
+                        "id": 6,
+                        "author": "user4",
+                        "content": "먹팔해요^^",
+                        "post": 2
+                    }
+                ]
+            },
+            {
+                "id": 4,
+                "author": "ssssujini99",
+                "content": "post 3",
+                "comment_set": []
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "nickname": "user2",
+        "user": {
+            "id": 2,
+            "username": "user2"
+        },
+        "followee": [
+            "ssssujini99"
+        ],
+        "post_set": []
+    },
+    {
+        "id": 3,
+        "nickname": "user3",
+        "user": {
+            "id": 3,
+            "username": "user3"
+        },
+        "followee": [
+            "ssssujini99"
+        ],
+        "post_set": []
+    },
+    {
+        "id": 4,
+        "nickname": "user4",
+        "user": {
+            "id": 4,
+            "username": "user4"
+        },
+        "followee": [
+            "ssssujini99"
+        ],
+        "post_set": []
+    }
+]
+```
+
+
+이렇게 모든 데이터를 다 가져오는 api를 한 번 만들어 보았습니다.
+
+###ⓑ 'profile/<int:pk>/' 개별 profile 가져오기  - GET
+
+![이미지](https://postfiles.pstatic.net/MjAyMTExMDdfMTAz/MDAxNjM2MjU5MTU5OTkx.BnMvRfV1Vxg2D8J1NraOBY6s12g18NBvjl2P4FFWZekg.dQ7pXITKP47WDIQCDXoQU60jSDIHFUI0U-ZZAXq91sIg.PNG.sssssjin99/image.png?type=w966)
+
+###ⓒ 'post/' 모든 post 가져오기 - GET
+
+![이미지](https://postfiles.pstatic.net/MjAyMTExMDdfMTA4/MDAxNjM2MjU5MTY2MTM4.G6op02nc79KLmmdl7P0f1wkWI1lqyR2zlk1Es2Y50dgg.cduJfYlXOJFYrPMDZFVaGrF-o_C96R3wT1QzVs3X9Hwg.PNG.sssssjin99/image.png?type=w966)
+
+###ⓓ 'post/' 새로운 post 쓰기 - POST
+
+![이미지](https://postfiles.pstatic.net/MjAyMTExMDdfMzMg/MDAxNjM2MjU5MTc4MjUw.EUdYqLLOEkTqJeRA_jPmMtvXGeK2w_A3yCJ0h5gozosg.wq5My4XvmXo0eoiM0XsPGrgkA7_BY98yFKy4mG80ix0g.PNG.sssssjin99/image.png?type=w966)
+
+<등록 완료 후 확인>
+![이미지](https://postfiles.pstatic.net/MjAyMTExMDdfMTE2/MDAxNjM2MjU5MTg1MzYz.GIMEtnN-br0tP_vPDKtfLlog_Iwr3HeW2ckh4YOg7Acg.NPR4uAHssIX5xBsIm142lNInMHhtN1yb-7fuBv5OzV0g.PNG.sssssjin99/image.png?type=w966)
+
+
+###ⓔ 'follow/' 모든 유저의 팔로우 관계 조회하기 - GET
+
+![이미지](https://postfiles.pstatic.net/MjAyMTExMDdfMjU3/MDAxNjM2MjU5MTkzMTI4.6Afsc_DzovwNGdu6-NcWbZRWeOH-4EUv-ivMfp2Sk8og.XmUdiPOZNwNic6OEQHptV1TqxbCFR90Cksek_1r9ZIcg.PNG.sssssjin99/image.png?type=w966)
+
+
+
+
+### 느낀점 & 회고
+
+profile 을 추가하는 api를 구현하고 싶었는데, 잘 안되었다.   
+user model과 one-to-one 관계로 연결하여, user 객체를 생성한 후에 이를 받아서 profile을 추가해야하나? 이런 생각까지 했었는데,   
+너무 복잡한 것 같고, 그래서 다른분들의 readme를 참고하였는데   
+one-to-one으로 연결하는 대신, Abstractbaseuser등을 이용한 것 같았다!   
+
+그래서 얼른 user model을 이 방법으로 바꾸어야겠다
