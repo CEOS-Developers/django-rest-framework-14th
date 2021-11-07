@@ -702,3 +702,534 @@ caption = models.CharField(max_length=300)
 location = models.TextField()
 ```
 Charfield는 길이 제한이 있지만, TextField는 제한이 없다.
+
+# 4주차 Study 내용 정리
+# Jupyter Notebook
+
+장고를 쓴지 얼마 안됐지만 `python manage.py shell` 을 이용해서 작업하다보면 불편함이 많았다... 
+입력 이력도 남기기 힘들고, Line by Line으로 코드를 입력해야 해서 생산성이 떨어지는 것 같았다. 좀 더 편하게 작업할 수 없을까ㅠ
+
+이전에 파이썬으로 개발을 하거나 리눅스 서버 관리하고 머신러닝 공부를 할 때 GUI 형태로 편하게 개발하고 관리를 했던 
+Jupyter Notebook가 떠올랐다. Python shell과 비슷한데 웹브라우저 상에서 블록 단위로 코드를 실행할 수 있고,
+입력 커맨드와 출력 로그를 파일 형태로 저장할 수 있어 **매우매우매우** 편리하다.
+
+다행히 장고 프로젝트에 대해 jupyter notebook으로 django shell을 사용할 수 있었다.
+
+```bash
+# 꽤 많은 패키지가 깔리니 겁먹지 말자
+# 근데 Github Action에서 또 빨간불이 떠서 천천히 살펴봐야할 것 같다ㅠ
+pip install django-extensions
+pip install "ipython[notebook]"
+```
+
+이후에 settings.py(우리 프로젝트에선 settings/base.py) 의 INSTALLED_APPS에 `django_extension` 을 추가해주면 된다.
+
+```python
+# settings/base.py
+INSTALLED_APPS = [
+...
+'django_extensions',
+]
+```
+
+다음은 shell_plus —notebook 명령어로 jupyter notebook을 실행할 수 있다.
+
+```bash
+python manage.py shell_plus --notebook
+```
+
+manage.py가 있는 디렉토리를 기준으로 jupyter notebook이 실행되었다. 우측 상단에 new를 통해 Django Shell-plus를 누르면 새로운 .ipynb 형태의 파일을 생성할 수 있다.
+
+![jupyter0](./img/4th/jupyter0.png)
+python shell에서 하던 작업을 똑같이 하면 된다. 코드블럭 좌측에 번호가 있는데, 몇번째로 실행됐는지를 나타내는 번호다. 첫번째 코드블럭 좌측에 1번이라 있기 때문에 처음으로 저 코드 블럭이 실행됐다는 뜻이다. 
+
+![jupyter1](./img/4th/jupyter1.png)
+
+참고로 그냥 ORM을 사용하면 비동기 관련 이슈가 있어 다음과 같은 코드를 추가해 실행했다
+
+```python
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+```
+
+## Ref
+
+[https://wayhome25.github.io/django/2017/03/21/django-ep7-django-shell/](https://wayhome25.github.io/django/2017/03/21/django-ep7-django-shell/)
+
+# 4주차 과제 수행 내용
+우선 views.py를 다음과 같이 정의하였다. 4주차 스터디 자료와 동일하게 GET, POST 메소드를 정의했으며, 우선은 user와 post에 대한 일부 메소드만
+정의한 형태이다.
+```python
+# api/views.py
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import JSONParser
+from django.contrib.auth.models import User
+from .models import Profile, Post, Follow, File, Comment, Like
+from .serializers import UserSerializer, ProfileSerializer, PostSerializer, FollowSerializer, FileSerializer, CommentSerializer, LikeSerializer
+
+@csrf_exempt
+def user_list(request):
+    if request.method == 'GET':
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = UserSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+
+
+def post_list(request):
+    if request.method == 'GET':
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+```
+## 한가지 궁금한 점
+지금은 views.py에 모든 모델에 대응되는 메소드를 정의했다. 하지만 **코드의 가독성을 높이기 위해** 이를 모델별로 파일을 분리하여 메소드 정의에 최적화를 
+할 수 있지 않을까? 또한, 지금은 `if requeste.method == 'GET'` 하단에 비즈니스 로직(어떤 작업을 할 지)가 정의되어 있는 형태이다.
+이 비즈니스 로직을 다른 디렉토리에서 여러개의 파일 형태로 관리하고, views.py의 `if requeste.method == 'GET'` 하단에 호출하는 형태로
+분리할 수 있진 않을까? API route와 비즈니스 로직을 분리하는 시도가 될 수 있을 것 같다. 이후 스터디를 통해 view를 깊게 공부할 기회가 있을 것
+같으니 그 때 배우고 해결되지 않으면 더 알아보도록 해야겠다.
+
+다음으로 url은 다음과 같이 매칭시켜주었다.
+```python
+# api/urls.py (하위 url)
+from django.urls import path
+from .views import user_list, post_list
+
+urlpatterns = [
+    path('users',user_list),
+    path('posts', post_list),
+]
+```
+```python
+# django-rest-framework-14th/urls.py (상위 url)
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('api.urls')),
+]
+```
+
+
+# 데이터 삽입
+Jupyter notebook을 이용해 실제 데이터를 넣었다. 이 때 사용된 모델은 User, Profile 모델이다.
+
+참고로 저번 피드백 이후 createdAt, updatedAt과 같은 중복되는 부분들에 대해 BaseModel을 선언하여
+상속받는 형태로 수정해보았다.
+```python
+# Base model
+class BaseModel(models.Model):
+    # 삭제는 Boolean으로 관리하고 실제 DB에서는 지우지 않았다
+    isDeleted = models.BooleanField(default=False)
+    deletedAt = models.DateTimeField(null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # abstract로 정의해 다른 모델이 상속 받을 수 있다
+        # abstract = False라면 migrate시 DB에 테이블이 생성된다
+        abstract = True
+
+    def delete(self, using=None, keep_parents=False):
+        self.is_deleted = True
+        self.deletedAt = datetime.now()
+        self.save()
+
+class Profile(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    username = models.CharField(max_length=50)
+    firstName = models.CharField(max_length=50)
+    lastName = models.CharField(max_length=50)
+    picture = models.CharField(max_length=200)
+
+    class Meta:
+        db_table = 'profile'
+
+    def __str__(self):
+        return self.username
+```
+실제로 데이터를 넣고 14, 15번째 코드블럭 로그에서 삽입이 된 것을 확인할 수 있다.
+![jupyter2](./img/4th/jupyter2.png)
+
+# 모든 데이터를 가져오는 API
+
+일차적으로 User serializer를 다음과 같이 선언했다. 하지만 미흡한 부분이 많다는것을 테스트 몇번을 해보고 알
+게되었다ㅠㅠ
+
+```python
+class UserSerializer(serializers.ModelSerializer):
+    # OneToOne Relationship Searialzer (Profile)
+    # Profile에 1:1로 이어진 필드에 접근하기 위해 이렇게 선언했다!
+    firstName = serializers.CharField(source='profile.firstName')
+    lastName = serializers.CharField(source='profile.lastName')
+    picture = serializers.CharField(source='profile.picture')
+    createdAt = serializers.CharField(source='profile.createdAt')
+    updatedAt = serializers.CharField(source='profile.updatedAt')
+    deletedAt = serializers.CharField(source='profile.deletedAt')
+    isDeleted = serializers.CharField(source='profile.isDeleted')
+
+    # Nested Serailzer
+    # 1:N으로 User를 참조하는 모델들에 대한 정보를 가져오기 위해 이렇게 선언했다!
+    posts = PostSerializer(source='post_set', many=True, read_only=True)
+    comments = CommentSerializer(source='comment_set', many=True, read_only=True)
+    likes = LikeSerializer(source='like_set', many=True, read_only=True)
+    follows = FollowSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id',
+                  'email',
+                  'password',
+                  'username',
+                  'firstName',
+                  'lastName',
+                  'picture',
+                  'createdAt',
+                  'updatedAt',
+                  'deletedAt',
+                  'isDeleted',
+                  'posts',
+                  'comments',
+                  'likes',
+                  'follows',
+                  ]
+```
+
+ 다음은 위에 `GET api/users` 호출시 response이다. 모든 user의 list를 반환해준다. 나는 테스트를 위해
+Postman에서 작업을 했다. (drf가 웹 형태로 안열려서 일단은 포기했다...ㅠㅠ 나중에 해결해보는 걸루,,)
+
+```json
+// GET api/users Response
+[
+    {
+        "id": 1,
+        "email": "",
+        "password": "password",
+        "username": "keemsw__",
+        "firstName": "Seungwoo",
+        "lastName": "Kim",
+        "picture": "",
+        "createdAt": "2021-10-07 10:30:06.757611+00:00",
+        "updatedAt": "2021-10-07 10:30:06.757688+00:00",
+        "deletedAt": null,
+        "isDeleted": "False",
+        "posts": [
+            {
+                "id": 1,
+                "caption": "Hello world!",
+                "comments": [
+                    {
+                        "id": 1,
+                        "text": "hi",
+                        "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                        "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    },
+                    {
+                        "id": 2,
+                        "text": "hello",
+                        "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                        "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    }
+                ],
+                "files": [],
+                "likes": [
+                    {
+                        "id": 1,
+                        "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                        "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    }
+                ],
+                "createdAt": "2021-10-07T19:52:35.737260+09:00",
+                "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 2,
+                "caption": "2nd post",
+                "comments": [],
+                "files": [],
+                "likes": [],
+                "createdAt": "2021-10-14T01:29:29.262631+09:00",
+                "updatedAt": "2021-10-14T01:29:29.262745+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "comments": [],
+        "likes": []
+    },
+   ...
+]
+```
+
+가만히 들여다보니 User를 참조하는 자식 모델들(Profile, Follow, Post, Comment, Like)이 상당히 
+많은데, Nested Serailzer를 위해 그대로 필드에 자식 모델들에 대한 Serializer를 필드값으로 선언하니
+불필요한 데이터까지 너무 많이 담겼다. 추후에 Serializer Method Field를 UserSerializer에 추가해서
+꼼꼼하게 리팩토링 해야겠다.
+
+어느정도 리팩토링에 대한 필요성을 느껴서 바로 몇가지를 추가했다. PostSerializer에 대해 좋아요 수와 댓글 수를 알려줄 수 있도록 Serializer Method Field를 추가로 정의했다.
+
+```python
+class PostSerializer(serializers.ModelSerializer):
+    files = FileSerializer(source='file_set', many=True, read_only=True)
+    comments = CommentSerializer(source='comment_set', many=True, read_only=True)
+    likes = LikeSerializer(source='like_set', many=True, read_only=True)
+
+    # Serializer Method Field
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    class Meta:
+        model = Post
+        fields = [
+            'id',
+            'caption',
+            'like_count',
+            'comment_count',
+            'comments',
+            'files',
+            'likes',
+            'createdAt',
+            'updatedAt',
+            'deletedAt',
+            'isDeleted',
+        ]
+    # 게시물에 달린 좋아요수
+    def get_like_count(self, obj):
+        return obj.like_set.count()
+    # 게시물에 달린 댓글 수
+    def get_comment_count(self, obj):
+        return obj.comment_set.count()
+```
+
+또한 UserSerializer에 팔로워와 팔로잉 수를 알려줄 수 있도록 Serializer Method Field를 추가했다.
+
+```python
+class UserSerializer(serializers.ModelSerializer):
+    # OneToOne Relationship Searialzer (Profile)
+    firstName = serializers.CharField(source='profile.firstName')
+    lastName = serializers.CharField(source='profile.lastName')
+    picture = serializers.CharField(source='profile.picture')
+    createdAt = serializers.CharField(source='profile.createdAt')
+    updatedAt = serializers.CharField(source='profile.updatedAt')
+    deletedAt = serializers.CharField(source='profile.deletedAt')
+    isDeleted = serializers.CharField(source='profile.isDeleted')
+
+    # Nested Serailzer
+    posts = PostSerializer(source='post_set', many=True, read_only=True)
+    comments = CommentSerializer(source='comment_set', many=True, read_only=True)
+    likes = LikeSerializer(source='like_set', many=True, read_only=True)
+
+    # Serializer Method Field
+    follower_number = serializers.SerializerMethodField()
+    followee_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id',
+                  'email',
+                  'password',
+                  'follower_number',
+                  'followee_number',
+                  'username',
+                  'firstName',
+                  'lastName',
+                  'picture',
+                  'createdAt',
+                  'updatedAt',
+                  'deletedAt',
+                  'isDeleted',
+                  'posts',
+                  'comments',
+                  'likes',
+                  ]
+    # 팔로워 수
+    # follow 테이블에서 자신이 followee로 담긴 data의 개수가 팔로워 수 이다
+    def get_follower_number(self, obj):
+        return obj.followee_user.count()
+    # 팔로잉 수
+    # follow 테이블에서 자신이 follower로 담긴 data의 개수가 팔로잉 수 이다
+    # (내가 누군가를 팔로우 하는 것이므로)
+    def get_followee_number(self, obj):
+        return obj.follower_user.count()
+```
+
+따라서 `GET api/users`를 호출하면 like_count, commnet_count가 추가된 것을 확인할 수 있다.
+
+```json
+// GET api/users Response
+[
+    {
+        "id": 1,
+              ...,
+        "follower_number": 1,
+        "followee_number": 1,
+              ...
+        "posts": [
+            {
+                "id": 1,
+                "caption": "Hello world!",
+                "like_count": 1,
+                "comment_count": 2,
+                "comments": [
+                    {
+                        "id": 1,
+                        "text": "hi",
+                        "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                        "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    },
+                    {
+                        "id": 2,
+                        "text": "hello",
+                        "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                        "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    }
+                ],
+                "files": [],
+                "likes": [
+                    {
+                        "id": 1,
+                        "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                        "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    }
+                ],
+                "createdAt": "2021-10-07T19:52:35.737260+09:00",
+                "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+						...
+        ],
+        "comments": [],
+        "likes": []
+    },
+]
+```
+
+# 새로운 데이터를 create하도록 요청하는 API
+
+위에 선언한 내용 그대로 `POST api/users`를 호출하니 에러가 나왔다
+
+![postman0](./img/4th/postman0.png)
+
+문제는 UserSerializer에 read_only 옵션을 True로 붙이지 않았기 때문이다. 따라서 해당 코드를 다음과 같이 바꿔주었다.
+
+```python
+## UserSerializer 중 profile 관련 필드 read_only=True
+...
+# OneToOne Relationship Searialzer (Profile)
+firstName = serializers.CharField(source='profile.firstName', read_only=True)
+lastName = serializers.CharField(source='profile.lastName', read_only=True)
+picture = serializers.CharField(source='profile.picture', read_only=True)
+createdAt = serializers.CharField(source='profile.createdAt', read_only=True)
+updatedAt = serializers.CharField(source='profile.updatedAt', read_only=True)
+deletedAt = serializers.CharField(source='profile.deletedAt', read_only=True)
+isDeleted = serializers.CharField(source='profile.isDeleted', read_only=True)
+...
+```
+
+성공적으로 ceos1이라는 유저를 생성했다
+
+![postman1](./img/4th/postman1.png)
+
+# 마주한 이슈
+
+## 1:N nested serializer 관련 이슈
+
+처음에 스터디 자료대로 nested serializer를 선언했을 때 reponse로 해당 필드가 넘어오지 않았다. 조금 더 검색을 해보니 
+serializer 필드에 옵션으로 넘겨주는 `source`와 model 필드에 옵션으로 선언하는`related_name`에 문제가 있었다.
+
+예를 들어 Post와 Comment 관계에 대해 생각해보자. Post:Comment = 1:N 관계이다. Comment 모델에는
+Post 모델을 참조하고 있을 것이다. 이 때, python shell을 통해 p1 이라는 Post 인스턴스를 참조하는 comment들을 보고
+싶다면, `p1.comment_set`을 통해 확인할 것이다. 다음과 같이 말이다.
+
+![jupyter3](./img/4th/jupyter3.png)
+
+PostSerializer에 Comment에 해당하는 값을 nested 형태로 추가하고 싶다면, `source='comment_set'`이라고 명시를 해줘야
+한다. 그렇지 않다면 인식할 수 없다.
+```python
+class UserSerializer(serializers.ModelSerializer):
+    ...
+    # Nested Serailzer
+    posts = PostSerializer(source='post_set', many=True, read_only=True)
+    comments = CommentSerializer(source='comment_set', many=True, read_only=True)
+    likes = LikeSerializer(source='like_set', many=True, read_only=True)
+    ...
+```
+또는, model에서 `related_name`을 설정하였다면 `source` 값으로 해당 이름을 넘겨줘야 한다. 내가 `related_name`을
+tomato라고 설정했다면 `source`로 tomato를 넘겨줘야한다. 참고로 `related_name`에 해당하는 값은 자식 테이블을 참조하는
+이름이다.
+```python
+# models.py
+class Comment(BaseModel):
+    # tomato라 해봤다
+    post = models.ForeignKey(Post, related_name='tomato', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.CharField(max_length=300)
+
+    class Meta:
+        db_table = 'comment'
+
+    def __str__(self):
+        return 'comment_' + str(self.id)
+```
+
+`p1.tomato`로 접근할 수 있다.
+![jupyter4](./img/4th/jupyter4.png)
+
+### Ref
+[https://stackoverflow.com/questions/57570968/nested-serializer-not-showing-up/57571034](https://stackoverflow.com/questions/57570968/nested-serializer-not-showing-up/57571034)
+
+## OneToOne 확장관계에서의 serializer
+User - Profile 관계는 OneToOne관계로 만들었다. Serializer에서는 1:N일 때의 관계와 다르게 다음과 같이 정의를
+해야 정상적으로 작동한다. `source = profile.필드명` 으로 직접 정의해줘야한다.
+
+```python
+class UserSerializer(serializers.ModelSerializer):
+    # OneToOne Relationship Searialzer (Profile)
+    # 확장된 테이블(Profile)의 필드 하나하나에 대해 선언해준다
+    firstName = serializers.CharField(source='profile.firstName', read_only=True)
+    lastName = serializers.CharField(source='profile.lastName', read_only=True)
+    picture = serializers.CharField(source='profile.picture', read_only=True)
+    createdAt = serializers.CharField(source='profile.createdAt', read_only=True)
+    updatedAt = serializers.CharField(source='profile.updatedAt', read_only=True)
+    deletedAt = serializers.CharField(source='profile.deletedAt', read_only=True)
+    isDeleted = serializers.CharField(source='profile.isDeleted', read_only=True)
+    ...
+```
+### Ref
+[https://stackoverflow.com/questions/27804010/how-to-serialize-a-relation-onetoone-in-django-with-rest-framework](https://stackoverflow.com/questions/27804010/how-to-serialize-a-relation-onetoone-in-django-with-rest-framework)
+
+# 4주차 회고
+시험기간이라 100프로 임하지 못한 아쉬움이 있다ㅠㅠ 시험이후까지 꼼꼼하게 다시 리팩토링을 진행해야 할 것 같다.
+장고가 확실히 자유도가 높고 유저 친화적이라는 생각이 든다. 아직은 익숙하진 않은데, 계속 보다보니 점점 체화되는
+것 같아 기분이 좋다.

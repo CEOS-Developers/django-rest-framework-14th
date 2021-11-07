@@ -1,15 +1,33 @@
 from django.db import models
 from django.contrib.auth.models import User
+from datetime import datetime
 
 # Create your models here.
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    username = models.CharField(max_length=50)
-    firstName = models.CharField(max_length=50)
-    lastName = models.CharField(max_length=50)
-    picture = models.CharField(max_length=200)
+
+# Base model
+class BaseModel(models.Model):
+    # 삭제는 Boolean으로 관리하고 실제 DB에서는 지우지 않았다
+    isDeleted = models.BooleanField(default=False)
+    deletedAt = models.DateTimeField(null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # abstract로 정의해 다른 모델이 상속 받을 수 있다
+        # abstract = False라면 migrate시 DB에 테이블이 생성된다
+        abstract = True
+
+    def delete(self, using=None, keep_parents=False):
+        self.is_deleted = True
+        self.deletedAt = datetime.now()
+        self.save()
+
+class Profile(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    username = models.CharField(max_length=50)
+    firstName = models.CharField(max_length=50, null=True, default=None)
+    lastName = models.CharField(max_length=50, null=True, default=None)
+    picture = models.CharField(max_length=200, null=True, default=None)
 
     class Meta:
         db_table = 'profile'
@@ -17,12 +35,10 @@ class Profile(models.Model):
     def __str__(self):
         return self.username
 
-class Post(models.Model):
+class Post(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     caption = models.CharField(max_length=300)
     location = models.CharField(max_length=100)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    updatedAt = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'post'
@@ -30,11 +46,9 @@ class Post(models.Model):
     def __str__(self):
         return 'post_' + str(self.id)
 
-class File(models.Model):
+class File(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     url = models.CharField(max_length=300)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    updatedAt = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'file'
@@ -42,12 +56,10 @@ class File(models.Model):
     def __str__(self):
         return 'file_' + str(self.id)
 
-class Comment(models.Model):
+class Comment(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.CharField(max_length=300)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    updatedAt = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'comment'
@@ -55,11 +67,9 @@ class Comment(models.Model):
     def __str__(self):
         return 'comment_' + str(self.id)
 
-class Like(models.Model):
+class Like(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    updatedAt = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'like'
@@ -67,11 +77,9 @@ class Like(models.Model):
     def __str__(self):
         return 'like_' + str(self.id)
 
-class Follow(models.Model):
-    follower_user_id = models.ForeignKey(User, related_name='follower_user', on_delete=models.CASCADE)
-    followee_user_id = models.ForeignKey(User, related_name='followee_user', on_delete=models.CASCADE)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    updatedAt = models.DateTimeField(auto_now=True)
+class Follow(BaseModel):
+    follower_user = models.ForeignKey(User, related_name='follower_user', on_delete=models.CASCADE)
+    followee_user = models.ForeignKey(User, related_name='followee_user', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'follow'
