@@ -1,14 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    account_name = models.TextField(max_length=30)
-    phone = models.TextField(max_length=20)
+    account_name = models.CharField(max_length=30, unique=True)
+    phone = models.CharField(max_length=20, unique=True)
     bio = models.TextField(max_length=150, blank=True)
-    profile_photo = models.ImageField(blank=True, upload_to='profiles')
+    profile_photo = models.ImageField(blank=True, upload_to='profiles', default='profiles/tmp4et5jeut.jpg')
+
+    def clean(self):
+        if not self.phone.isdigit():
+            return ValidationError(_('Phone must be numeric only.'))
 
     def __str__(self):
         return self.account_name

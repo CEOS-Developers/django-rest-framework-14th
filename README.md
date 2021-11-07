@@ -1,103 +1,279 @@
-# 2주차 모델링과 Django ORM
-## 인스타그램
-인스타그램은 사진 공유를 기반으로 한 소셜 미디어이다. 
-
-모델링을 진행하기 위해 인스타그램의 핵심 기능을 정리해 보았다. 
-- 사진 및 동영상이 포함된 게시글 공유
-- 게시글에 좋아요 표시
-- 게시글에 댓글 달기
-- 다른 사용자를 팔로우 하기
-
-이외에도 해시태그, 미디어에 타 사용자 태그, 비밀 계정, 24시간 동안만 게시물을 확인할 수 있는 스토리 등등 더욱 많은 기능이 있으나 가장 중점적이라고 생각하면서 구현 가능한 기능만 뽑아서 정리했다. 
-## 모델링
-정리한 핵심 기능을 기반으로 모델을 구성했다. 
-### 사용자 - User/Profile
-가장 관계가 복잡하고 가장 기본이 되는 모델이다. 
-
-#### Attributes
-- account_name: 인스타그램의 사용자 이름(계정 ID)
-- phone: 전화번호
-- bio: 바이오 (Optional)
-- profile_photo: 프로필 사진 (Optional)
-
-User - Profile을 1:1 관계로 설정하는 방식을 사용하였으므로 Django의 기본 모델 User가 가지고 있는 어트리뷰트들은 제외하고 Profile이 가진 어트리뷰트만 나열했다. 
-#### Relations
-사용자는 게시글을 업로드 할 수 있고 게시글에 좋아요를 표할 수 있으며, 댓글을 남길 수 있다. 또한 타 사용자를 팔로우 할 수 있다. 
-
-- 사용자 - 게시글 → `1:N`
-- 사용자 - 좋아요 → `1:N`
-- 사용자 - 댓글 → `1:N`
-- 사용자 - 팔로잉/팔로워 → `1:N`
-### 게시글 - Post
-#### Attributes
-- caption: 게시글 내용 (Optional)
-- date_posted: 게시글을 올린 일시
-  - `DateTimeField`의 `auto_now_add`를 사용하여 자동으로 채워지도록 구현했다.
-#### Relations
-게시글은 하나 이상의 사진이나 동영상을 포함하고 있다. 
-
-- 게시글 - 사진 → `1:N`
-- 게시글 - 동영상 → `1:N`
-- 게시글 - 좋아요 → `1:N`
-- 게시글 - 댓글 → `1:N`
-### 사진 - Photo
-#### Attirbutes
-- image_file: 이미지 파일
-### 동영상 - Video
-#### Attributes
-- video_file: 동영상 파일
-
-`ImageField`가 따로 존재하는 사진과는 달리 동영상 파일은 `FileField`를 통해 받아야 한다. 따라서 `django.core.validators`의 `FileExtensionValidator`를 이용하여 MOV, avi, mp4, webm, mkv의 확장자를 가진 비디오 파일만 업로드 할 수 있도록 했다. 
-### 좋아요 - Like
-별도의 어트리뷰트 없이 FK 만으로 구성된 모델이다. 
-### 댓글 - Comment
-#### Attributes
-- content: 댓글 내용
-### 팔로우 관계 - FollowRelation
-구현이 가장 힘들었던 모델이다. 
-
-- follower: 팔로우를 한 사용자
-- followee: 팔로우를 당한 사용자
-
-의도하고 싶었던 것은 Django ORM을 통해 `p.followings.all()`(이때, p는 어떤 사용자(Profile)) 이렇게 불러왔을때 사용자 p가 팔로우 하고 있는 모든 Profile 모델을 불러오는 것이었다. 
-
+# 4주차 DRF1 : Serializer
+## 과제
+### 데이터 삽입
 ```python
-follower = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='followings')
-followee = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='followers')
+# api/models.py
+
+class Post(models.Model):
+    profile = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='posts')
+    caption = models.TextField(max_length=2200, blank=True)
+    date_posted = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.profile.account_name}'s post: {self.caption}"
+
+
+class Photo(models.Model):
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='photos')
+    image_file = models.ImageField(upload_to='posts/photos')
+
+    def __str__(self):
+        return f"Photo from {self.post.profile.account_name} 's post: {self.post.caption}"
+```
+![Screen Shot 2021-10-15 at 1 55 46 PM](https://user-images.githubusercontent.com/53527600/137434974-446db017-0136-4df5-8554-97ee62abe6ef.png)
+
+### 모든 데이터를 가져오는 API
+- URI: `/api/posts/`
+- Method: `GET`
+![Screen Shot 2021-10-15 at 2 31 30 PM](https://user-images.githubusercontent.com/53527600/137437162-944c1032-8927-4bc1-a870-de817689797b.png)
+```JSON
+[
+    {
+        "id": 1,
+        "account_name": "admin_profile",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 1,
+                "image_file": "/media/posts/photos/01_3oDQNH2.png"
+            },
+            {
+                "id": 2,
+                "image_file": "/media/posts/photos/02_JI81FE0.png"
+            },
+            {
+                "id": 3,
+                "image_file": "/media/posts/photos/03_aNTXhFi.png"
+            }
+        ],
+        "caption": "첫번째 포스트 ",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-10-15T12:53:03.748582+09:00"
+    },
+    {
+        "id": 2,
+        "account_name": "admin_profile",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 4,
+                "image_file": "/media/posts/photos/01_kQBNcRx.png"
+            },
+            {
+                "id": 5,
+                "image_file": "/media/posts/photos/02_C82apOq.png"
+            },
+            {
+                "id": 6,
+                "image_file": "/media/posts/photos/03_eOshgZ8.png"
+            }
+        ],
+        "caption": "first post",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-10-15T12:53:24.608748+09:00"
+    },
+    {
+        "id": 3,
+        "account_name": "test0",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 7,
+                "image_file": "/media/posts/photos/02_fal5dwA.png"
+            },
+            {
+                "id": 8,
+                "image_file": "/media/posts/photos/03_g7x2K2i.png"
+            }
+        ],
+        "caption": "포스트 테스트",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-10-15T13:04:08.731269+09:00"
+    },
+    {
+        "id": 4,
+        "account_name": "test0",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 9,
+                "image_file": "/media/posts/photos/02_wxXsBO1.png"
+            },
+            {
+                "id": 10,
+                "image_file": "/media/posts/photos/03_jydBElM.png"
+            }
+        ],
+        "caption": "포스트 테스트",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-10-15T13:06:01.576258+09:00"
+    },
+    {
+        "id": 5,
+        "account_name": "test1",
+        "profile_photo": "profiles/01_3EM0f2k.png",
+        "photos": [
+            {
+                "id": 11,
+                "image_file": "/media/posts/photos/01_xPKDAkw.png"
+            },
+            {
+                "id": 12,
+                "image_file": "/media/posts/photos/02_oH3Xsw9.png"
+            }
+        ],
+        "caption": "포스틱포스트",
+        "likes_count": 1,
+        "comments_count": 1,
+        "date_posted": "2021-10-15T13:08:49.525477+09:00"
+    }
+]
 ```
 
-그러나 이렇게 구현하면 `p.followings.all()`을 하면 Profile 모델이 아닌 FollowRelation 모델을 불러오게 된다. 가장 애를 먹었던 문제였는데, 
+### 새로운 데이터를 create하도록 요청하는 API 
+- URI: `api/posts/`
+- Method: `POST`
+- 요청 시 body에 들어가야 하는 필드
+  - profile_id: int
+  - image_files: file(image)
+  - caption: string
+![Screen Shot 2021-10-15 at 1 10 07 PM](https://user-images.githubusercontent.com/53527600/137435262-6acc088c-d4fd-4281-b82f-b8a660e73094.png)
 
-```python
-Profile.add_to_class('followings', models.ManyToManyField('self', through=FollowRelation, related_name='followers', symmetrical=False))
+실제 반환되는 JSON은 아래와 같다. (comment에 profile_photo 가 추가되었다)
+```JSON
+{
+    "id": 5,
+    "account_name": "test1",
+    "profile_photo": "profiles/01_3EM0f2k.png",
+    "caption": "포스틱포스트",
+    "likes_count": 1,
+    "comments_count": 1,
+    "date_posted": "2021-10-15T13:08:49.525477+09:00",
+    "photos": [
+        {
+            "id": 11,
+            "image_file": "/media/posts/photos/01_xPKDAkw.png"
+        },
+        {
+            "id": 12,
+            "image_file": "/media/posts/photos/02_oH3Xsw9.png"
+        }
+    ],
+    "comments": [
+        {
+            "id": 1,
+            "post_id": 5,
+            "account_name": "admin_profile",
+            "profile_photo": "profiles/tmp4et5jeut.jpg",
+            "content": "포스틱 맛있겠네요ㅎ"
+        }
+    ]
+}
 ```
 
-이 코드를 추가해 줌으로 해결했다. 
+### 반환되는 JSON의 차이
+URI는 같더라도 각 요청에 따라 반환되는 JSON이 조금씩 다르도록 설계했다. 인스타그램 클론이기 때문에 실제 인스타그램 서비스를 생각해 봤을 때 클라이언트에서 각 화면을 구성할 때 실제로 필요할 것 같은 정보를 반환하는 형식으로 구현했다.
 
-코드를 살펴보면, `add_to_class`는 어트리뷰트를 추가하는 것이 아닌, 메서드를 추가하는 메서드이다. 즉 followings는 존재하는 어트리뷰트가 아니지만, Profile의 메서드로써 어트리뷰트로 불러올 때와 유사하게 동작하게 된다. `ManyToManyField`를 self로 설정하게 되면 Profile은 Profile과 FollowRelation 을 통해 다대다 관계를 맺게되며, 이에 대해 역으로 연결된 객체를 불러 올 때는 followers로 불러 올 수 있는 것이다. 여기서 `ManyToManyField`의 경우 기본적으로 symmetrical 옵션이 True로 설정되어 있는데, 그렇게 되면 profile1이 profile2를 팔로우 할 경우 자동으로 profile2 또한 profile1을 팔로우하게 된다. 따라서 symmetrical 옵션을 False로 반드시 설정해 주어야 한다. 
+#### GET api/posts/
+실제 인스타그램의 경우 해당 사용자가 팔로우 하는 계정의 포스트만 보이도록 쿼리를 하겠지만, 일단 지금은 모든 포스트를 가져올 것이라고 가정했다. 인스타그램의 피드에 들어가면 보이는 포스트는 `해당 포스트를 올린 사용자(계정 username), 해당 계정의 프로필 사진, 포스트 내용, 해당 포스트에 포함된 모든 미디어, 좋아요 수, 댓글 수, 일부 댓글, 좋아요를 누른 사용자 일부, 포스트를 올린 시각(...ago 형식)` 이렇게 구성된다. 
 
-이러한 설정을 통해 원하던 대로 followers, followings를 아래 처럼 불러올 수 있게 되었다. 
-
-<img width="831" alt="Screen Shot 2021-10-08 at 3 56 43 PM" src="https://user-images.githubusercontent.com/53527600/136519103-c5644a6a-901b-4e9d-bdf7-dedb810e7447.png">
-
-## ORM 이용해보기
-### 소스 코드
-```python
-post = Post.objects.all().first()
-
-comment1 = Comment(profile=Profile.objects.filter(id=1).first(), post=post, content="first comment")
-comment1.save()
-
-comment2 = Comment(profile=Profile.objects.filter(id=2).first(), post=post, content="second comment")
-comment2.save()
-
-comment3 = Comment(profile=Profile.objects.filter(id=3).first(), post=post, content="third comment")
-comment3.save()
-
-Comment.objects.all()
+실제 인스타그램의 구성에서 내가 기술적으로 구현하기 힘든 부분은 제외하고 재구성 해 보았다. 내가 만든 인스타그램 클론은 아래와 같은 형식의 JSON을 반환한다.
+```JSON
+{
+    "id": <Post id>,
+    "account_name": <Profile의 account_name>,
+    "profile_photo": <Profile의 profile_photo>,
+    "photos": [
+        {
+            "id": <Photo id>,
+            "image_file": <Photo의 image_file>
+        },
+        ...
+    ],
+    "caption": <게시글 내용>,
+    "likes_count": <좋아요 수>,
+    "comments_count": <댓글 수>,
+    "date_posted": <게시글을 올린 시각>
+}
 ```
-### 결과 화면
-<img width="1334" alt="Screen Shot 2021-10-08 at 6 02 32 PM" src="https://user-images.githubusercontent.com/53527600/136529246-85231244-71ef-4bbc-b2bd-eccc6325c77c.png">
 
-## 간단한 회고
-관계 설정에 생각보다도 많은 시간을 쏟은 것 같다. 그만큼 관계 설정이 어려운 과정이기도 하고, 또한 매우 중요하다는 것을 알게 되었다. FollowRelation 구현이 가장 어려웠고 시간을 많이 썼는데, 아직도 해당 관계 구현에 대해서 100% 만족스럽게 이해를 하지는 못한 것 같아서 아쉽다. 더 많이 공부를 해야 할 것 같다. 
+#### POST api/posts/
+댓글 목록이 추가되었다. `POST` 시 반환되는 JSON은 `GET api/post/<int:post_id>/`를 했을 때 반환되는 것과 같다. 
+```JSON
+{
+    "id": <Post id>,
+    "account_name": <Profile의 account_name>,
+    "profile_photo": <Profile의 profile_photo>,
+    "caption": <게시글 내용>,
+    "likes_count": <좋아요 수>,
+    "comments_count": <댓글 수>,
+    "date_posted": <게시글을 올린 시각>,
+    "photos": [
+        {
+            "id": <Photo id>,
+            "image_file": <Photo의 image_file>
+        },
+        ...
+    ],
+    "comments": [
+        {
+            "id": <Comment id>,
+            "post_id": <Post id>,
+            "account_name": <Profile의 account_name>,
+            "profile_photo": <Profile의 profile_photo>,
+            "content": <댓글 내용>
+        }
+    ]
+}
+```
+
+## 이외 구현한 기능
+현재 구현되어 있는 기능은 `GET api/posts/`, `POST api/posts/` 이외에 몇가지가 더 있다. 
+
+- `GET api/posts/<int:post_id>/`: 1개의 게시글 정보를 불러오기
+- `POST api/comments/`: 댓글 작성하기
+- `GET api/comment/<int:comment_id>/`: 1개의 댓글 정보를 불러오기
+- `POST api/likes/`: 좋아요 표시하기
+
+### GET api/posts/<int:post_id>/
+![Screen Shot 2021-10-15 at 3 25 41 PM](https://user-images.githubusercontent.com/53527600/137441850-2a927c92-76c8-48a6-9309-ea3b37ce5490.png)
+
+### POST api/comments/
+- 요청 시 body에 들어가야 하는 필드
+    - post_id
+    - account_name
+    - content
+![Screen Shot 2021-10-15 at 3 19 59 PM](https://user-images.githubusercontent.com/53527600/137441420-b1136173-b3ed-4627-af72-edb2eae6c85e.png)
+
+### GET api/comment/<int:comment_id>/
+![Screen Shot 2021-10-15 at 3 20 28 PM](https://user-images.githubusercontent.com/53527600/137441429-494be860-18d3-469e-812d-b99916c8a1a9.png)
+
+### POST api/likes/
+![Screen Shot 2021-10-15 at 3 16 35 PM](https://user-images.githubusercontent.com/53527600/137441027-9600f0d7-63f1-4f92-b9a0-b8aa52d6bfc2.png)
+
+## 회고
+### 처음에 ViewSet을 쓰게 된 경위
+예전에 DRF를 한 번 써본적이 있었는데, 그때 browsable API가 상당히 신기하고 편했던 기억이 있었다. 그래서 이번에도 DRF를 사용하면 browsable API를 볼 수 있겠지 생각하고 작업했는데 못생기고 밋밋한 화면만 나왔다. 
+
+|기대했던 화면|코드 작성 후 보이는 화면|
+|----------|-------------------|
+|![robotgetbrwapi-660x452](https://user-images.githubusercontent.com/53527600/137432589-3affc283-0bee-430b-9ab4-08982a30afff.png)|![Screen Shot 2021-10-15 at 1 46 02 PM](https://user-images.githubusercontent.com/53527600/137433650-3bfae81b-69e8-44a3-aae8-c0be434234da.png)|
+
+검색 해 보니 `ViewSet`을 사용하면 browsable API를 사용할 수 있다고 하였다. 심지어 지정된 액션으로 맵핑만 해 주면 정말 간단하고 짧은 뷰 작성만으로도 CRUD를 해 낼 수 있었다! 그래서 열심히 적용을 했으나...
+
+### ViewSet을 다시 적용 해제 한 이유
+모델링 해 놓은 것에 맞추다 보니 생각보다 커스텀 해야 할 것이 많았다. 심지어 아직 Django와 DRF에 대한 이해가 부족한 상태인데, 무지성으로 ViewSet을 따라하려 하다 보니 조금 힘들었다. 심지어 `ViewSet`을 적용하게 된 이유인 browsable API로는 `POST` 액션을 테스트 할 수 없어서 `api/tests.py`에 테스트 코드를 작성하며 API의 작동을 확인해야 했다 T_T
+
+완성하고 나서 수행해야할 과제를 다시 확인해 보는데, 다다음주차 커리큘럼에 `ViewSet`이 있었다...!
+
+![Screen Shot 2021-10-15 at 1 46 51 PM](https://user-images.githubusercontent.com/53527600/137433779-55cdc33b-0061-404f-aa3d-c74ca5b95576.png)
+
+다다음주차에 배울 내용이기도 하고, 지금 까지의 이해도로는 `ViewSet` 적용이 큰 의미가 없는 것 같아서 다시 노션에 공유해 주셨던 view 함수 템플릿을 가져다 쓰는 식으로 리팩토링을 하기로 결정했다.
+
+### 아쉬운 점
+1. 이미지 처리 관련하여서 오류를 **상당히** 많이 겪어서 비디오 파일은 손도 못 댔는데, 다음에는 비디오 파일도 처리할 수 있으면 좋을 것 같다. 
+2. 처음에는 Postman 작동이 생각하는 것 처럼 잘 안 돼서 별로라고 생각했는데, 내가 바보였을 뿐 Postman은 완전 짱이다! 이미지 파일 업로드 테스트 하는 부분에서 Postman 없었으면 큰일 날 뻔 했다. 사용법을 잘 읽어보고 했으면 삽질을 조금 덜 했을텐데... 다음 부터는 새로 접하는 툴은 무작정 해 보려고 하지 말고 **꼭** 사용법을 먼저 읽어봐야 겠다. 
