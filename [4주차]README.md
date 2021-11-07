@@ -1,4 +1,8 @@
-# [4주차 스터디] Serializer
+# DRF와 Serializer
+
+## DRF란??
+
+DRF(Django REST Framework)는 Django 내에서 RESTful API 설계를 돕는 라이브러리이다.
 
 ## Serializer란??
 
@@ -137,9 +141,9 @@ class TrackSerializer(serializers.ModelSerializer):
 
 ---
 
-## 4주차 과제
+# REST API 만들어보기
 
-### 모델 선택 및 데이터 삽입
+## 모델 선택 및 데이터 삽입
 
 ```python
 class TimeStampedModel(models.Model):
@@ -172,55 +176,89 @@ class Comment(TimeStampedModel):
 
 post 모델을 선택해 api를 만들기로 해서 위와 같이 데이터를 3개 삽입하였다.
 
-### 모든 데이터를 가져오는 API 만들기
+## Serializer 정의하기
+
+```python
+# serializers.py
+from rest_framework import serializers
+from .models import Post
+
+class PostSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'caption', 'created_at', 'updated_at', 'comments']
+
+    def get_author(self, obj):
+        return obj.author.username
+
+    def get_comments(self, obj):
+        queries = obj.post_comments.all()
+        comments = []
+        for query in queries:
+            comment = {'author': query.author.username, 'content': query.content, 'created_at': query.created_at}
+            comments.append(comment)
+        return comments
+``` 
+
+## View와 URL
+
+```python
+# views.py
+from .models import Post
+from .serializers import PostSerializer
+from rest_framework import viewsets
+
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    # create() 재정의
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+```
+
+```python
+# urls.py
+from django.urls import path, include
+from rest_framework import routers
+from .views import PostViewSet
+
+router = routers.DefaultRouter()
+router.register(r'posts', PostViewSet)
+
+urlpatterns = [
+    path('', include(router.urls))
+]
+```
+
+## Authentication과 Permission
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # HTTP header로 사용자 id를 넘김 (테스트용으로만 사용)
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        # 인증된 요청만 허용 (로그인한 후에만 request 가능)
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+```
+
+## API 테스트
 
 - URL: `api/posts/`
 - METHOD: `GET`
 - 결과
-```json
-[
-  {
-    "id": 17,
-    "author": "user1",
-    "caption": "포스트111",
-    "created_at": "2021-10-15T00:16:10.758938+09:00",
-    "updated_at": "2021-10-15T00:16:10.758938+09:00",
-    "comments": [
-      {
-        "author": "ming",
-        "content": "Comment!!!!",
-        "created_at": "2021-10-14T16:06:19.338Z"
-      },
-      {
-        "author": "ceos",
-        "content": "HI",
-        "created_at": "2021-10-14T16:07:27.006Z"
-      }
-    ]
-  },
-  {
-    "id": 18,
-    "author": "user2",
-    "caption": "포스트222",
-    "created_at": "2021-10-15T00:16:17.708094+09:00",
-    "updated_at": "2021-10-15T00:16:17.708094+09:00",
-    "comments": [
-      {
-        "author": "user1",
-        "content": "코멘트222",
-        "created_at": "2021-10-14T16:06:31.398Z"
-      }
-    ]
-  },
-  {
-    "id": 19,
-    "author": "user3",
-    "caption": "포스트333",
-    "created_at": "2021-10-15T00:16:26.793209+09:00",
-    "updated_at": "2021-10-15T00:16:26.793209+09:00",
-    "comments": [
-      
-    ]
-  }
-]
-```
+    
+    ![get](https://user-images.githubusercontent.com/71026706/140635420-df52f849-9e69-4905-9dd7-6051effbea72.png)
+    
+- URL: `api/posts/`
+- METHOD: `POST`
+- 결과
+    
+    ![post](https://user-images.githubusercontent.com/71026706/140635423-ec487865-647f-4fc8-a7bb-e210466f2086.png)
