@@ -3,7 +3,15 @@ from django.contrib.auth.models import User
 
 
 # Create your models here.
-class Profile(models.Model):
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+
+    class Meta:
+        abstract = True
+
+
+class Profile(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     photo = models.ImageField(upload_to="profile_img", null=True)
 
@@ -11,16 +19,15 @@ class Profile(models.Model):
         return self.user.username
 
 
-class Post(models.Model):
+class Post(BaseModel):
     text = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='posts')
 
     def __str__(self):
-        return 'post_' + str(self.id) + 'by_' + str(self.user.user.id) + 'text is_' + str(self.text)
+        return 'post_' + str(self.id) + ' / by_' + str(self.user.user.username) + ' / ' + str(self.text)
 
 
-class Image(models.Model):
+class Image(BaseModel):
     image = models.ImageField(upload_to="images", null=True)
     post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='images')
 
@@ -28,7 +35,7 @@ class Image(models.Model):
         return 'image_' + str(self.image)
 
 
-class Video(models.Model):
+class Video(BaseModel):
     video = models.FileField(upload_to="videos", null=True)
     post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='videos')
 
@@ -36,7 +43,7 @@ class Video(models.Model):
         return 'video_' + str(self.video)
 
 
-class Like(models.Model):
+class Like(BaseModel):
     user = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='user_likes')
     post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='post_likes')
 
@@ -44,7 +51,7 @@ class Like(models.Model):
         return self.user.user.username + '_likes_post' + str(self.post.id)
 
 
-class Comment(models.Model):
+class Comment(BaseModel):
     text = models.TextField(max_length=100, blank=False)
     user = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='user_comments')
     post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='post_comments')
