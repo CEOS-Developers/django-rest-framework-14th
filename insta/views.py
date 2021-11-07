@@ -8,7 +8,7 @@ from .serializers import UserSerializer, PostListSerializer, PostCreateSerialize
 from .models import Profile, Post, Follow
 from django.contrib.auth.models import User
 
-# 추가
+## 추가
 from rest_framework.views import APIView
 from rest_framework import status
 from django.shortcuts import get_object_or_404
