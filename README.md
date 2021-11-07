@@ -129,7 +129,6 @@ volumes:
 
 참고자료: [https://www.44bits.io/ko/post/almost-perfect-development-environment-with-docker-and-docker-compose#docker-compose.yml-%ED%8C%8C%EC%9D%BC](https://www.44bits.io/ko/post/almost-perfect-development-environment-with-docker-and-docker-compose#docker-compose.yml-%ED%8C%8C%EC%9D%BC)
 
----
 
 ### **3\. 서버가 실행되는 과정**
 
@@ -493,5 +492,387 @@ runserver는 STATIC\_URL 에 지정된 URL을 통해 정적 파일 요청을 받
 
 3\. 간단한 회고
 
->django의 user 모델 확장 방법을 찾아보면 4가지가 나오는데, 아는 게 없으니 이것저것 다 사용해보자!는 마음으로 섞어서 사용했다. AbstractBaseUser을 이용한 custom user도 만들고 추가적인 내용인 Profile 모델에 넣어 onetoone으로 연결해줬는데 두개를 섞어쓴 것에 대해서는 딱히 별 의미 없다... custom user에 대해서는 계속 찾아봤는데도 아직 감이 잘 안온다. 그래서 프로젝트 중간에 >custom을 하려고 하면 migration 충돌 때문에 골치아프다고 하니 혹시 몰라서 처음부터 custom user를 쓰기로 했다.(django에서도 권장하는 방법이라고...?) User 제공 필드도 써보려고 다 넣다보니 >filed가 너무 많아져서 Profile로 세부 사항은 분리를 해야지 정도로 생각한 것 같다. 나중에 데이터베이스를 드롭하거나 모델을 뒤집어 엎어야 하는 일만 안생겼으면 좋겠다..
+>django의 user 모델 확장 방법을 찾아보면 4가지가 나오는데, 아는 게 없으니 이것저것 다 사용해보자!는 마음으로 섞어서 사용했다. AbstractBaseUser을 이용한 custom user도 만들고 추가적인 내용인 Profile 모델에 넣어 onetoone으로 연결해줬는데 두개를 섞어쓴 것에 대해서는 딱히 별 의미 없다... custom user에 대해서는 계속 찾아봤는데도 아직 감이 잘 안온다. 그래서 프로젝트 중간에 custom을 하려고 하면 migration 충돌 때문에 골치아프다고 하니 혹시 몰라서 처음부터 custom user를 쓰기로 했다.(django에서도 권장하는 방법이라고...?) User 제공 필드도 써보려고 다 넣다보니 filed가 너무 많아져서 Profile로 세부 사항은 분리를 해야지 정도로 생각한 것 같다. 나중에 데이터베이스를 드롭하거나 모델을 뒤집어 엎어야 하는 일만 안생겼으면 좋겠다..
+
+***
+## DRF1: Serializer
+  
+### **모델 선택 및 데이터 삽입**
+
+선택한 모델: **Post 모델**. (Post 모델과 1:N 관계를 갖는 Comment, Like, File 모델)
+
+```
+class Post(Base):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
+    content = models.TextField(max_length=500, blank=True)
+    comment_available = models.BooleanField(default=True)
+    location = models.CharField(max_length=150, null=True, blank=True)
+
+class Comment(Base):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField(max_length=500)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True)
+
+class File(Base):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_files')
+    file = models.FileField(upload_to='post_files')
+    type = models.BooleanField(default=0)  # 0:image, 1:video
+
+class Like(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_likes')
+```
+
+데이터 삽입 결과
+  
+![image](https://user-images.githubusercontent.com/90975718/136799423-5018e5d4-a01b-4974-975f-94e7961df55b.png)
+
+
+### **Serializer**
+
+-   Nested Serializer로 post와 post\_likes, comments, post\_files 관계 표현.
+-   Serializer method field로 author(User 모델)의 field인 nickname을 가져와 사용.
+
+```
+class PostSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+    post_likes = LikeSerializer(many=True, read_only=True)   # read_only: 요청 파라미터에 포함되지 않음.
+    comments = CommentSerializer(many=True, read_only=True)
+    post_files = FileSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Post
+        fields = ['author_name', 'author', 'content', 'created_date', 'updated_date', 'post_likes', 'comments', 'post_files']
+
+    def get_author_name(self, obj):
+        return obj.author.nickname
+```
+
+
+### **모든 데이터를 가져오는 API 만들기**
+
+-   URL: api/posts/
+-   METHOD: GET
+
+![image](https://user-images.githubusercontent.com/90975718/136799559-61866a1d-b85b-4979-a8c9-11f76fb028b4.png)
+
+**Response**
+
+```
+[
+    {
+        "author_name": "pika_so_hee",
+        "author": 3,
+        "content": "그림 그리는 중~",
+        "created_date": "2021-10-05T19:51:55.927811+09:00",
+        "updated_date": "2021-10-05T19:51:55.927811+09:00",
+        "post_likes": [
+            {
+                "id": 1,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 1,
+                "post": 1
+            },
+            {
+                "id": 2,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 2,
+                "post": 1
+            },
+            {
+                "id": 4,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 3,
+                "post": 1
+            }
+        ],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "heryunzzx",
+        "author": 1,
+        "content": "시험 일주일 전~",
+        "created_date": "2021-10-05T19:52:16.109273+09:00",
+        "updated_date": "2021-10-05T19:52:16.109273+09:00",
+        "post_likes": [
+            {
+                "id": 3,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 1,
+                "post": 2
+            },
+            {
+                "id": 5,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 2,
+                "post": 2
+            }
+        ],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "hyejinnnnyyyy",
+        "author": 2,
+        "content": "노래 듣는 중~",
+        "created_date": "2021-10-05T19:52:33.103979+09:00",
+        "updated_date": "2021-10-05T19:52:33.103979+09:00",
+        "post_likes": [
+            {
+                "id": 6,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 3,
+                "post": 3
+            }
+        ],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "hyejinnnnyyyy",
+        "author": 2,
+        "content": "나는 휴학생~",
+        "created_date": "2021-10-05T19:52:52.716996+09:00",
+        "updated_date": "2021-10-05T19:52:52.716996+09:00",
+        "post_likes": [],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "pika_so_hee",
+        "author": 3,
+        "content": "실습 나가는 길~",
+        "created_date": "2021-10-05T19:53:08.781585+09:00",
+        "updated_date": "2021-10-05T19:53:08.781585+09:00",
+        "post_likes": [],
+        "comments": [
+            {
+                "author_name": "heryunzzx",
+                "author": 1,
+                "post": 5,
+                "content": "헐 벌써?",
+                "created_date": "2021-10-05T19:55:05.360616+09:00"
+            },
+            {
+                "author_name": "hyejinnnnyyyy",
+                "author": 2,
+                "post": 5,
+                "content": "오마이갓",
+                "created_date": "2021-10-05T19:56:16.509982+09:00"
+            },
+            {
+                "author_name": "pika_so_hee",
+                "author": 3,
+                "post": 5,
+                "content": "시간 빠르다~",
+                "created_date": "2021-10-05T19:57:03.714520+09:00"
+            }
+        ],
+        "post_files": []
+    },
+    {
+        "author_name": "heryunzzx",
+        "author": 1,
+        "content": "drfdrfdrf",
+        "created_date": "2021-10-11T16:19:28.760878+09:00",
+        "updated_date": "2021-10-11T16:19:28.760878+09:00",
+        "post_likes": [],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "heryunzzx",
+        "author": 1,
+        "content": "시험기간이야~~",
+        "created_date": "2021-10-11T17:36:09.038490+09:00",
+        "updated_date": "2021-10-11T17:36:09.038490+09:00",
+        "post_likes": [],
+        "comments": [],
+        "post_files": []
+    }
+]
+```
+
+
+### **새로운 데이터를 Create하도록 요청하는 API 만들기**
+
+-   URL: api/posts/
+-   Method: POST
+-   Body:
+
+{
+
+    "author": 2,
+
+    "content": "밖에 비가 와서 짜증나"
+
+}
+
+![image](https://user-images.githubusercontent.com/90975718/136799740-c84a253f-9667-4fee-9dcb-ede45a8b60b5.png)
+
+**Response**
+
+```
+{
+    "author_name": "hyejinnnnyyyy",
+    "author": 2,
+    "content": "밖에 비가 와서 짜증나",
+    "created_date": "2021-10-11T22:30:20.357470+09:00",
+    "updated_date": "2021-10-11T22:30:20.357470+09:00",
+    "post_likes": [],
+    "comments": [],
+    "post_files": []
+}
+```
+
+***
+### User api 추가
+  
+- user 정보와 추가 profile 정보 입력 후 계정이 생성될 수 있도록 create() 함수 추가
+```
+    def create(self, validated_data):
+        profile_data = validated_data.pop('profile')
+        user = User.objects.create(**validated_data)
+        Profile.objects.create(user=user, **profile_data)
+        return user
+```
+  
+-   URL: api/users/
+-   METHOD: Post
+-   Body:  
+  
+```
+{
+    "nickname": "testuser3",
+    "username": "testuser3",
+    "password": "password",
+    "profile":{
+        "info":"hi im a testuser3.",
+        "profile_name":"testuser3"
+    }
+}  
+```
+**Response**
+  
+```
+{
+    "nickname": "testuser3",
+    "username": "testuser3",
+    "password": "password",
+    "email": null,
+    "profile": {
+        "id": 8,
+        "image": null,
+        "info": "hi im a testuser3.",
+        "profile_name": "testuser3"
+    },
+    "followers_count": 0,
+    "followings_count": 0,
+    "posts_count": 0,
+    "posts": [],
+    "followers": [],
+    "followings": []
+}
+```
+  
+-   URL: api/users/
+-   METHOD: GET
+  
+**Response**
+```
+[
+    {
+        "nickname": "heryunzzx",
+        "username": "yoonji",
+        "password": "password",
+        "email": "str@ewhain.net",
+        "profile": {
+            "id": 1,
+            "image": null,
+            "info": "hi i'm yoonji",
+            "profile_name": "yoonji"
+        },
+        "followers_count": 0,
+        "followings_count": 2,
+        "posts_count": 3,
+        "posts": [
+            {
+                "author_name": "heryunzzx",
+                "author": 1,
+                "content": "시험 일주일 전~",
+                "created_date": "2021-10-05T19:52:16.109273+09:00",
+                "updated_date": "2021-10-05T19:52:16.109273+09:00",
+                "comments_count": 0,
+                "likes_count": 2,
+                "post_likes": [
+                    {
+                        "id": 3,
+                        "created_date": "2021-10-11T14:26:53.791390+09:00",
+                        "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                        "user": 1,
+                        "post": 2
+                    },
+                    {
+                        "id": 5,
+                        "created_date": "2021-10-11T14:26:53.791390+09:00",
+                        "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                        "user": 2,
+                        "post": 2
+                    }
+                ],
+                "comments": [],
+                "post_files": []
+            },
+            {
+                "author_name": "heryunzzx",
+                "author": 1,
+                "content": "drfdrfdrf",
+                "created_date": "2021-10-11T16:19:28.760878+09:00",
+                "updated_date": "2021-10-11T16:19:28.760878+09:00",
+                "comments_count": 0,
+                "likes_count": 0,
+                "post_likes": [],
+                "comments": [],
+                "post_files": []
+            },
+            {
+                "author_name": "heryunzzx",
+                "author": 1,
+                "content": "시험기간이야~~",
+                "created_date": "2021-10-11T17:36:09.038490+09:00",
+                "updated_date": "2021-10-11T17:36:09.038490+09:00",
+                "comments_count": 0,
+                "likes_count": 0,
+                "post_likes": [],
+                "comments": [],
+                "post_files": []
+            }
+        ],
+        "followers": [],
+        "followings":[
+            {
+                "follower": "heryunzzx",
+                "following": "hyejinnnnyyyy"
+            },
+            {
+                "follower": "heryunzzx",
+                "following": "pika_so_hee"
+            }
+        ]
+    },
+    
+    ...중략...
+]
+```
+  
+>user의 save() 실행 이후 profile이 db에 저장되지 않는다는 것을 뒤늦게 깨닫고 django가 제공하는 signals의 post_save() 기능을 사용하여 profile이 자동 생성 및 저장되도록 수정하였다. 근데 serializer에서도 create() 함수를 만들어 profile을 저장하다보니 django.db.utils.IntegrityError: (1062, "Duplicate entry '9' for key 'api_profile.user_id'") 오류가 발생했다. db에는 저장이 되긴 하는데, 똑같은 정보를 중복으로 저장하려고 시도하나보다... post_save만 남기면 Write an explicit `.create()` method for serializer `api.serializers.UserSerializer`, or set `read_only=True` on nested serializer fields. 라는 error가 발생한다. post api도 comments count와 likes count를 추가로 제공하도록 수정했다.
+  
   

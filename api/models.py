@@ -1,11 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # Create your models here.
 
+class Base(models.Model):
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
 
 class UserManager(BaseUserManager):
-
     use_in_migrations = True
 
     def create_user(self, nickname, password, **extra_fields): # 일반 user 생성
@@ -36,7 +44,7 @@ class UserManager(BaseUserManager):
         return user
 
 
-class User(AbstractBaseUser):
+class User(AbstractBaseUser, Base):
     objects = UserManager()
 
     nickname = models.CharField(max_length=50, null=False, unique=True)
@@ -53,7 +61,7 @@ class User(AbstractBaseUser):
 
     # 사용자 username field를 nickname으로 설정하겠다.
     USERNAME_FIELD = 'nickname'
-    # 필수로 작성해야하는 field. 항상 표시되기 때문에 USERNAME_FIELD나 비밀번호를 포함하면 안된다고...
+    # 필수로 작성해야하는 field. USERNAME_FIELD나 비밀번호는 항상 물어보기 때문에 포함하지 않음.
     REQUIRED_FIELDS = []
 
     def __str__(self):
@@ -63,14 +71,35 @@ class User(AbstractBaseUser):
         return self.username
 
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profiles')
+class Profile(Base):
+    FEMALE = 'F'
+    MALE = 'M'
+    INTERSEX = 'I'
+    NOT_LISTED = 'N'
+    GENDER_CHOICES = [
+        (FEMALE, 'Female'),
+        (MALE, 'Male'),
+        (INTERSEX, 'Intersex'),
+        (NOT_LISTED, 'Not_listed')
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     image = models.ImageField(upload_to='profile_img', null=True)
     info = models.TextField(max_length=150, blank=True)
     website = models.TextField(max_length=150, blank=True)
     profile_name = models.CharField(max_length=50, blank=True)
-    gender = models.CharField(max_length=15, blank=True)
+    gender = models.CharField(max_length=2, choices=GENDER_CHOICES, blank=True)
     birth_date = models.DateField(null=True, blank=True)
+
+    # serializer의 create() 함수와 중복되어 integrity error 발생하는 듯..
+
+    # @receiver(post_save, sender=User)
+    # def create_profile(sender, instance, created, **kwargs):
+    #     if created:
+    #         Profile.objects.create(user=instance)
+    #
+    # @receiver(post_save, sender=User)
+    # def save_profile(sender, instance, **kwargs):
+    #     instance.profile.save()
 
     def __str__(self):
         return self.user.nickname
@@ -79,11 +108,9 @@ class Profile(models.Model):
         return self.user.username
 
 
-class Post(models.Model):
+class Post(Base):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     content = models.TextField(max_length=500, blank=True)
-    created_time = models.DateTimeField(auto_now_add=True)
-    updated_time = models.DateTimeField(auto_now=True)
     comment_available = models.BooleanField(default=True)
     location = models.CharField(max_length=150, null=True, blank=True)
 
@@ -91,24 +118,23 @@ class Post(models.Model):
         return '{} : {}'.format(self.author.nickname, self.content)
 
 
-class Comment(models.Model):
+class Comment(Base):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField(max_length=500)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True)
-    created_time = models.DateTimeField(auto_now_add=True)
-    updated_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{}이 {}번째 글에 남긴 댓글 : {}'.format(self.author.nickname, self.post_id, self.content)
+        return '{}이(가) {}번째 글에 남긴 댓글 : {}'.format(self.author.nickname, self.post_id, self.content)
 
 
-class File(models.Model):
+class File(Base):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_files')
     file = models.FileField(upload_to='post_files')
+    type = models.BooleanField(default=0)  # 0:image, 1:video
 
 
-class Like(models.Model):
+class Like(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_likes')
 
@@ -116,7 +142,7 @@ class Like(models.Model):
         return '{} likes {}'.format(self.user.nickname, self.post.content)
 
 
-class Follow(models.Model):
+class Follow(Base):
     follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followings')
     following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
 
