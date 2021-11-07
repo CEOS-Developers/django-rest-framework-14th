@@ -318,30 +318,28 @@ ERD 작성할때 mysql에서 테이블 칼럽을 조회하면 더 자세한 정�
 ```python
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    nickname = models.CharField(max_length=40) 
-    introduction = models.TextField(blank=True) 
-    image = models.ImageField(upload_to="image") 
+    nickname = models.CharField(max_length=40, unique=True)
+    introduction = models.TextField(null=True, blank=True)
+    image = models.ImageField(upload_to="image")
 
     def __str__(self):
         return self.nickname
+
 ```
 1. Profile 모델은 User 모델과 1:1관계로 설정    
 2. 사용자의 프로필 이미지는 ImageField()을 이용하여 지정   
 3. null, blank 둘다 기본값이 False이나 introduction은 비어 있어도 되기 때문에 blank=True로 지정하여 필드가 폼(입력 양식)에서 빈 채로 저장되는 것을 허용
 ### Post, File
 ```python
-class Post(models.Model):
+class Post(BaseModel):
     author = models.ForeignKey(Profile, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, null=True)
-    content = models.TextField(null=True)
-    create_at = models.DateTimeField(auto_now_add=True) #생성시간
-    update_at = models.DateTimeField(auto_now=True) # 수정시간
-    like_num = models.IntegerField(null=True)
+    content = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return self.title
+        return '{} : {}'.format(self.author, self.title)
 
-class File(models.Model):
+class File(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     content = models.FileField(upload_to="file") #media/file/ 아래에 저장
 
@@ -359,23 +357,33 @@ class File(models.Model):
    
 ### Comment
 ```python
-class Comment(models.Model):
+class Comment(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    writer = models.ForeignKey(User, on_delete=models.CASCADE)
+    writer = models.ForeignKey(Profile, on_delete=models.CASCADE)
     content = models.TextField(blank=False)
-    create_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return '{} commented {} post'.format(self.writer, self.post.author)
+        return '{} commented {} post'.format(self.writer, self.post.title)
 ```
 ### Follow
 ```python
-class Follow(models.Model):
+class Follow(BaseModel):
     follower = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='follower')
     following = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='following')
 
     def __str__(self):
         return '{} -> {}'.format(self.follower.nickname, self.following.nickname)
+```
+
+### Like
+```python
+class Like(BaseModel):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return '{} liked {}'.format(self.user.nickname, self.post.title)
+
 ```
 
 ## Django ORM 적용해보기
@@ -415,12 +423,256 @@ class Follow(models.Model):
 ```
 ![post](https://user-images.githubusercontent.com/79985974/136398218-5c2a7bc5-4308-447e-b2f0-0703b4533886.PNG)
 
-참고로 table에서 row를 하나 없애고 싶으면 아래와 같이 하면 되고 전체를 지우고 싶으면 where ~를 빼면 된다.
-```mysql
-mysql> delete from tablename where id=1
-```
 
 ## 간단한 회고
 venv 가상환경 진입부터 shell에서 orm까지 거의 대부분의 과정에서 오류가 나서 꽤나 힘들었다.     
 오류를 하나 해결하면 또하나가 생겨나서 굉장히 지쳤지만 해결해나가보면서 DB도 직접 설계해보면서 erd도 만드는 게 굉장히 흥미로웠다.   
 이번에 새로 사용해보는 것들이 너무 많아서 굉장히 익숙치 않았지만 앞으로 과제들을 더 수행하면서 실력이 늘 수 있었으면 좋겠다ㅎㅎ
+
+* * *
+
+# DRF1 - Serializer
+
+## DRF이란?
+
+Django 안에서 RESTful API 서버를 쉽게 구축할 수 있도록 도와주는 오픈소스 라이브러리이다.
+
+![DRF](https://user-images.githubusercontent.com/79985974/140630389-21449dcb-1547-4680-98f5-9734edd863cf.PNG)
+
+* HTTP 요청에 맞는 url patterns가 Views로 전달된다.
+* Serializer의 도움으로 Views는 HTTP 요청을 처리하고 HTTP 응답을 반환한다.
+* Serializer는 모델 객체를 serialize/deserialize 한다. 
+   * serialize : 직렬화, 프로그램의 객체에 담긴 데이터를 외부파일에 문자열 형태로 전송
+   * deserialize : 역직렬화, 외부 파일의 데이터를 프로그램 내의 객체로 읽어오는 것
+* 모델에는 DB와 함께 CRUD 작업을 위한 필수 필드 및 동작이 포함되어 있다.
+
+## Serializer
+
+![serializer](https://user-images.githubusercontent.com/79985974/140630639-67ac46e7-a74a-4d94-a1fd-3ba126f0f7dc.PNG)
+
+Serializer는 우리가 Django 에서 사용하는 파이썬 객체나 queryset 같은 복잡한 객체들을 REST API에서 사용할 json 과 같은 형태로 변환해주는 어댑터 역할을 한다.
+
+Serializer를 만들 때, 각 필드를 하나하나 정의해 주어야 한다. 마치 모델을 다시 한 번 작성하는 것 같은 불편함이 있었다. 이 문제를 해결해 주는 것이 ModelSerializer이다.
+
+## ModelSerializer
+ModelSerializer는 크게 아래와 같은 3가지 기능을 제공한다. 주는 편리함이 워낙 크기에 Base Serializer보다 훨씬 생산성을 높일 수 있다.
+ * 의존하고 있는 모델에 기반해서 Serializer 필드를 자동으로 만들어 준다
+ * Serializer를 위한 validator 제공
+ * .create(), .update() 함수 기본으로 제공하여 다시 만들 필요 없다.
+
+### ModelSerializer 사용 방법
+1. class Meta 작성
+
+    * model = 모델명
+    * fields = __all__, exclude, 직접 명시 ('id', 'name')
+    * read_only_field = ['id']
+2) serializer로 정의해 줘야 되는 필드
+
+    * 추가하고 싶은 필드가 있을 경우, serializer.SerializerMethodField()로 정의해 준다.
+    * ForeginKey로 연결된 필드가 있을 경우, Nested Serializer를 사용하여 ForeignKey로 연결된 필드의 pk를 가져온다.
+
+
+## ORM을 통해 데이터 조회
+```shell
+>>> from api.models import User, Profile,Post, Comment, Like
+>>> Post.objects.all()
+<QuerySet [<Post: chaeri : first>, <Post: chaeri : second>, <Post: choco : 배고파>, <Post: ceos : 세오스>]>
+>>> Comment.objects.all()
+<QuerySet [<Comment: choco commented ceos post>, <Comment: chaeri commented ceos post>, <Comment: choco commented ceos post>]>
+>>> Like.objects.all()
+<QuerySet [<Like: chaeri liked 세오스>, <Like: choco liked 세오스>, <Like: ceos liked 세오스>]>
+```
+
+## Serializers
+```shell
+from rest_framework import serializers
+from .models import *
+
+
+class FileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = File
+        fields = '__all__'
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = '__all__'
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    writer_nickname = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['post', 'writer', 'content', 'created_at', 'updated_at', 'writer_nickname']
+
+
+    def get_writer_nickname(self,obj):
+        return obj.writer.nickname
+
+
+class PostSerializer(serializers.ModelSerializer):
+    author_nickname = serializers.SerializerMethodField()
+    post_like = LikeSerializer(many=True, read_only=True, source="like_set")
+    post_comment = CommentSerializer(many=True, read_only=True, source="comment_set")
+    
+    class Meta:
+        model = Post
+        fields = ['author', 'title', 'content', 'author_nickname',
+                  'created_at', 'updated_at', 'post_like', 'post_comment']
+
+    def get_author_nickname(self, obj):
+        return obj.author.nickname
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['user', 'nickname', 'introduction']
+```
+### 마주한 에러
+처음 api를 테스트 했을 때 몇몇 데이터들이 넘어오지 않았다. 구글링 해보니 source argument를 넣어주지 않아서 그랬다.   
+
+예를 들어 Post객체 하나를 생성해보면
+```shell
+p = Post.objects.get(pk=1)
+```
+이제 이 post와 관련된 댓글들의 queryset은 다음과 같이 될것이다.
+```shell
+Comment.objects.filter(post=p)
+```
+이를 장고는 다음과 같이 단순화 할 수 있다.
+```shell
+p.comment_set
+```
+따라서 drf는 필드 이름에서 모델 속성을 찾기 때문에 source argument를 사용하여 Serializer가 데이터를 가져올 위치를 지정해주어야 한다.
+
+
+## 모든 데이터를 가지고 오는 API
+ * URL: api/posts/
+ * METHOD: GET
+
+```
+
+[
+    {
+        "author": 4,
+        "title": "first",
+        "content": "신기하다",
+        "author_nickname": "chaeri",
+        "created_at": "2021-10-07T21:55:46.046656+09:00",
+        "updated_at": "2021-10-07T21:55:46.047794+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 4,
+        "title": "second",
+        "content": "모델링 어렵다....ㅠ",
+        "author_nickname": "chaeri",
+        "created_at": "2021-10-07T21:56:30.211834+09:00",
+        "updated_at": "2021-10-07T21:56:30.211834+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 5,
+        "title": "배고파",
+        "content": "간식 줘",
+        "author_nickname": "choco",
+        "created_at": "2021-10-07T21:57:34.991820+09:00",
+        "updated_at": "2021-10-07T21:57:34.991820+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 6,
+        "title": "세오스",
+        "content": "ㅎㅎ",
+        "author_nickname": "ceos",
+        "created_at": "2021-10-14T19:48:10.277414+09:00",
+        "updated_at": "2021-10-14T19:48:10.277414+09:00",
+        "post_like": [
+            {
+                "id": 1,
+                "created_at": "2021-10-14T20:01:58.647086+09:00",
+                "updated_at": "2021-10-14T20:01:58.647086+09:00",
+                "post": 5,
+                "user": 4
+            },
+            {
+                "id": 2,
+                "created_at": "2021-10-14T20:02:02.110654+09:00",
+                "updated_at": "2021-10-14T20:02:02.110654+09:00",
+                "post": 5,
+                "user": 5
+            },
+            {
+                "id": 3,
+                "created_at": "2021-10-14T20:02:05.121339+09:00",
+                "updated_at": "2021-10-14T20:02:05.121339+09:00",
+                "post": 5,
+                "user": 6
+            }
+        ],
+        "post_comment": [
+            {
+                "post": 5,
+                "writer": 5,
+                "content": "세오스 짱",
+                "created_at": "2021-10-14T19:59:40.169794+09:00",
+                "updated_at": "2021-10-14T19:59:40.169794+09:00",
+                "writer_nickname": "choco"
+            },
+            {
+                "post": 5,
+                "writer": 4,
+                "content": "세오스 최고",
+                "created_at": "2021-10-14T20:00:14.070063+09:00",
+                "updated_at": "2021-10-14T20:00:14.070063+09:00",
+                "writer_nickname": "chaeri"
+            },
+            {
+                "post": 5,
+                "writer": 5,
+                "content": "백엔드 최고",
+                "created_at": "2021-10-14T20:00:30.106336+09:00",
+                "updated_at": "2021-10-14T20:00:30.106336+09:00",
+                "writer_nickname": "choco"
+            }
+        ]
+    }
+]
+```
+
+## 새로운 데이터를 create하도록 요청하는 API 만들기
+ * URL: api/posts/
+ * Method: POST
+ * Body
+```
+{
+    "author" : 6,
+    "title" : "drf",
+    "content" : "serializer"
+
+}
+```
+
+```
+{
+    "author": 6,
+    "title": "drf",
+    "content": "serializer",
+    "author_nickname": "ceos",
+    "created_at": "2021-10-14T23:49:38.218561+09:00",
+    "updated_at": "2021-10-14T23:49:38.218561+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
+
+### 간단한 회고
+시험 기간이라서 많은 시간을 쏟진 못해서 많이 아쉬웠다.
+이번에 장고를 처음 사용해서 drf와 serializer가 정말 편리한 기능이라 생각했다. 앞으로 스터디를 하면서 또 어떤 기능들이 있을지 기대된다.
