@@ -481,7 +481,302 @@ ERD 를 직접 작성하면서 설계하는 것은 생각보다 고려할 부분
 
 데이터 다루는 건 언제나 어렵고 그나마 인스타그램이라는 서비스를 가지고 공부하니까 좀 나은것 같다
 
+## 3주차 과제 피드백
+
+가능하면 모든 모델에 created_at, updated_at 필드를 부여하는 것이 추후 데이터 관리에 도움이 된다고 한다. 좋은 습관을 들이기 위해 나도 기존의 모델을 조금 수정하기로 했다.
+```python
+# models.py
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+```
+위와 같이 Timestamp 데이터를 담는 `Abstract Model`을 선언해주고 다른 모델에서 이를 상속하여 사용한다.
+
+- `Abstract Model`은 여러 Model에 공통으로 사용되는 필드가 있을 때, 코드의 중복을 최소화하기 위해 사용
+- `Abstract Model`은 가상의 모델이기 때문에, DB에서 테이블이 생성되지 않음
+
+```python
+class Post(BaseModel):
+    text = models.TextField(blank=True)
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='posts')
+
+    def __str__(self):
+        return 'post_' + str(self.id)
+```
+- 기존 `Post` 에서 create_at 필드를 직접 설정해줬던 것과 달리, BaseModel을 상속받는 것을 통해 created_at, updated_at 필드가 자동으로 추가된다.
+
+
+# 4주차 DRF - Serializer
+## django admin 이용해서 모델 관리하기
+지난 과제 때는 생성한 모델에 데이터를 추가하고 관리하는 과정을 ORM 쿼리를 사용했다. 장고에서는 이 외에도 Django admin 페이지를 통해 `GUI` 로 모델을 관리하는 방법을 제공한다.
+```python
+# admin.py
+from django.contrib import admin
+from .models import *
+
+admin.site.register(User)
+admin.site.register(Post)
+admin.site.register(Image)
+admin.site.register(Video)
+admin.site.register(Like)
+admin.site.register(Comment)
+```
+이처럼 admin.py에 내가 생성한 모델을 등록하면 서버를 실행한 후 localhost:8000/admin 주소에서 모델을 관리할 수 있다.
+![](images/django_admin.png)
+
+각각의 모델 목록도 확인할 수 있다. 이때 나오는 이름은 내가 모델에 부여했던 `__str__` 반환값과 같다.
+
+![](images/django_admin_post.png)
+
+그런데 각 객체의 필드값을 확인하려면 하나씩 클릭해서 들어가야 하고, 이 과정이 불편하게 느껴졌다. 역시나 유저친화적인 장고는 이 부분에 대한 해결책을 제공해준다.. 장고짱
+```python
+# admin.py
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_text',
+                    'get_likes_count',
+                    'get_comments_count',
+                    'created_at', 'updated_at']
+    list_display_links = ['id', 'get_text']
+
+    def get_text(self, post):
+        return f'{post.text[:20]} ...'
+    get_text.short_description = '내용'
+
+    def get_likes_count(self, post):
+        return f'{post.post_likes.count()}개'
+    get_likes_count.short_description = '좋아요'
+
+    def get_comments_count(self, post):
+        return f'{post.post_comments.count()}개'
+    get_comments_count.short_description = '댓글'
+```
+- 앞서 `admin.site.register(Post)`로 간단히 등록해주었던 코드를 내 입맛에 맞게 바꿔주었다.
+- `list_display` 에는 리스트에서 보고싶은 필드 또는 멤버 함수 지정 가능
+- 멤버 함수를 만들어서 내가 원하는 정보를 한눈에 보기 쉽도록 만들었다
+  > 게시글 내용을 앞의 20글자만 보여주고, 좋아요 수, 댓글 수를 요약해서 보여줄 수 있도록!!
+
+- 커스텀 이후 django admin 화면
+  
+![](images/django_admin_post_custom.png)
+> 한결 보기 편해졌다..
+
+## Serializer 작성하기
+- 클라이언트의 요청에 Json 형태로 응답하기 위해 Serializer를 사용
+- ModelSerializer 사용하면 나의 모델에 맞게 장고가 기본적인 Serializer를 작성해주고, 필요에 의해 커스텀해서 사용 가능
+
+```python
+class MySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MyModel # 사용 모델
+        fields = ['id', 'field1', 'field2', 'field3'] # 선택된 필드만
+        fields = '__all__' # 모든 필드 사용
+```
+
+과제에서 가장 공을 들인 부분이 PostSerializer 이다. 인스타그램의 핵심 기능이라고도 볼수 있기 때문에 게시글에 관련된 데이터를 어떻게 정리해서 Json 형식으로 넘겨줄까에 대해 고민을 많이 했다.
+```python
+class PostSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    like_username_list = serializers.SerializerMethodField()
+    post_comments = CommentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Post
+        fields = ['id', 'text', 'author', 'like_username_list', 'post_comments', 'created_at', 'updated_at', ]
+
+    def get_author(self, obj):  # 작성자 username 반환
+        return obj.user.username
+
+    def get_like_username_list(self, obj):  # 게시글에 좋아요 누른 사용자의 username만을 받아와서 리스트로 저장
+        return [like.user.username for like in obj.post_likes.all()]
+```
+- 원래 Post에는 user_id가 저장되어 있는데, 나는 username을 보내고 싶어서 author라는 필드를 추가했다. `SerializerMethodField` 를 사용하였다.
+- `like_username_list` 또한 내가 추가한 정보인데, 게시글에 좋아요 누른 사용자의 username을 받아와서 리스트로 저장하였다. 인스타그램에서 좋아요한 사람 목록이 뜨는 느낌으로 생각했다.
+- `post_comments` 는 NestedSerializer 방법을 이용했는데, 이는 댓글에 대한 모든 정보(작성자, 시간, 등등..)가 필요하기 때문이다. CommentSerializer를 이용해서 Comment에 대한 데이터 값을 직렬화하고 이를 PostSerializer 내에 합치는 구조라고 보면 될 것 같다.
+
+## 과제 수행 결과
+### 모델 선택 및 데이터 삽입 - Post 모델
+```python
+class Post(BaseModel):
+    text = models.TextField(blank=True)
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='posts')
+
+    def __str__(self):
+        return 'post_' + str(self.id)
+
+class Like(BaseModel):
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='user_likes')
+    post = models.ForeignKey(
+        'Post', on_delete=models.CASCADE, related_name='post_likes')
+
+    def __str__(self):
+        return self.user.username + '_likes_post' + str(self.post_id)
+
+class Comment(BaseModel):
+    text = models.CharField(max_length=100, blank=False)
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='user_comments')
+    post = models.ForeignKey(
+        'Post', on_delete=models.CASCADE, related_name='post_comments')
+
+    def __str__(self):
+        return self.user.username + '_comments_post' + str(self.post_id)
+```
+> Post와 Like, Comment 객체를 생성한 후 admin 사이트에 들어가 커스텀한 대로 잘 나오는 것을 확인하였다.
+
+![](images/post_list.png)
+
+### 모든 Post 객체를 가져오는 API 만들기
+- URL: api/posts
+- Method: GET
+
+```json
+[
+    {
+        "id": 1,
+        "text": "post1",
+        "author": "user3",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-04T19:38:56.832719+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 2,
+        "text": "post2",
+        "author": "user2",
+        "like_username_list": [
+            "user1",
+            "user2"
+        ],
+        "post_comments": [],
+        "created_at": "2021-10-04T19:47:06.953963+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 3,
+        "text": "post3",
+        "author": "user3",
+        "like_username_list": [
+            "user1"
+        ],
+        "post_comments": [
+            {
+                "id": 1,
+                "created_at": "2021-10-12T18:12:50.703905+09:00",
+                "updated_at": "2021-10-12T18:12:50.704003+09:00",
+                "text": "우린 깐부자나",
+                "user": 1,
+                "post": 3
+            },
+            {
+                "id": 2,
+                "created_at": "2021-10-12T18:13:10.307574+09:00",
+                "updated_at": "2021-10-12T18:13:10.307699+09:00",
+                "text": "그만해 이러다 다죽어",
+                "user": 3,
+                "post": 3
+            }
+        ],
+        "created_at": "2021-10-04T19:47:43.490490+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 4,
+        "text": "첫번째 포스트입니다",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T15:15:36.616461+09:00",
+        "updated_at": "2021-10-12T15:15:36.616534+09:00"
+    },
+    {
+        "id": 5,
+        "text": "post_api test",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T20:43:16.684445+09:00",
+        "updated_at": "2021-10-12T20:43:16.684728+09:00"
+    },
+    {
+        "id": 6,
+        "text": "인스타그램 예시 포스트 데이터",
+        "author": "mongus",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T21:41:59.792145+09:00",
+        "updated_at": "2021-10-12T21:41:59.792247+09:00"
+    }
+]
+```
+
+### 새로운 데이터를 create 요청하는 API
+- URL: api/posts
+- Method: POST
+- Body: {"text": "blahblah"}
+
+```json
+{
+    "id": 7,
+    "text": "blahblah",
+    "author": "user1",
+    "like_username_list": [],
+    "post_comments": [],
+    "created_at": "2021-10-12T21:54:48.448050+09:00",
+    "updated_at": "2021-10-12T21:54:48.448767+09:00"
+}
+```
+
+## N+1 문제 관련
+PR을 올리고 준환님께서 감사하게도 Serializer 내의 코드에서 N+1 문제가 발생할 수도 있다고 지적해주셨다. 다시 검토해보니까 문제가 있는 것 같아서 직접 테스트해보기로 했다.
+
+문제가 되는 부분은 PostSerializer에서 게시글에 좋아요한 사람의 목록을 받아오는 코드였다.
+현재 모델은 아래와 같이 연결되어 있다.
+```
+Post          Like          User
+              user          user_likes
+post_likes    post
+```
+
+> PostSerializer 에서 post_likes로 Like 객체들을 참조하고, 각 Like 객체에 연결된 User를 참조
+
+- 원래 코드
+```python
+class PostSerializer(serializers.ModelSerializer):
+
+    def get_like_username_list(self, obj): # 여기서 obj는 Post 객체
+        return [like.user.username for like in obj.post_likes.all().select_related('user')]
+```
+- 쿼리문 수 테스트
+
+좋아요한 유저가 2명 있는 post2 객체를 대상으로 테스트했다.\
+```
+>>> from django.db import connection, reset_queries
+>>> username_list = [like.user.username for like in post2.post_likes.all()]
+>>> len(connection.queries)
+3
+
+>>> reset_queries()
+>>> username_list = [like.user.username for like in post2.post_likes.all().select_related('user')]
+>>> len(connection.queries)
+1
+```
+> 기존에 2+1개의 query를 발생시키던 코드가 `select_related` 사용 시에는 1개의 query만으로 해결되는 것을 확인하였다.
+>> N개의 객체가 연결되어 있을 때는 N+1개의 query를 발생시키게 되고, 성능 저하에 영향을 줄 수 있다
+## 4주차 과제 회고
+Serializer를 다루면서 프론트와의 협업에 한걸음 다가간 듯 하다. 내가 원하는 형식으로, 내가 원하는 데이터를 담아서 보낼 수 있다는 점에서 Serializer의 편의성에 놀랐다. 한편 설계를 잘못 하면 데이터 쿼리문을 너무 많이 호출하게 되고, 응답시간이 길어질 수도 있다고 한다. 이 부분에 심도 있는 공부가 필요할 것 같다.
+
+
+
 
 # 참고자료
 - [Django Tips #3 Optimize Database Queries](https://simpleisbetterthancomplex.com/tips/2016/05/16/django-tip-3-optimize-database-queries.html)
-
+- [REST API 제대로 알고 사용하기](https://meetup.toast.com/posts/92)
+- [admin 커스터마이징](https://wayhome25.github.io/django/2017/03/22/django-ep8-django-admin/)
