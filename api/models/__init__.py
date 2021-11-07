@@ -4,3 +4,4 @@ from .posts import *
 from .images import *
 from .comments import *
 from .stories import *
+from .likes import *
