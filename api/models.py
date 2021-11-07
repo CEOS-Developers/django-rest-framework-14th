@@ -1,67 +1,76 @@
 from __future__ import unicode_literals
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 
-class Profile(models.Model):
-    author = models.OneToOneField(User,on_delete=models.CASCADE, primary_key=True)
-    website = models.CharField(max_length=40)
-    introduction = models.TextField(blank=True)
-    phone_num = models.IntegerField(blank=False)
-    gender = models.CharField(max_length=6)
+class BasedateModel(models.Model):
+    created_date = models.DateTimeField(auto_now_add=True) # 최초 저장시에만 현재 날짜 적용.
+    updated_date = models.DateTimeField(auto_now=True)  # save될 때마다 현재날짜로 갱신.
+
+    class Meta:
+        abstract = True
+
+class User(AbstractUser):
+    nickname = models.CharField(max_length=20,blank=False)
+    gender_choice = (  # 성별 선택을 위한 필드.
+        ('M', 'Male'),
+        ('F', 'Female')
+    )
+    gender = models.CharField(max_length=2, choices=gender_choice, default='M')
+    phone_num = models.IntegerField(blank=True)
+    introduction = models.TextField(blank=True, default = " ")
+    website = models.URLField(max_length=50, blank=True, default=" ")
+
+    REQUIRED_FIELDS = ['nickname', 'phone_num']
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
+        # managed = False
 
     def __str__(self):
-        return self.user_name
+        return self.username
 
-class Post(models.Model):
+class Post(BasedateModel):
     author = models.ForeignKey(User,on_delete=models.CASCADE)
-    location = models.CharField(max_length=30)
+    location = models.CharField(max_length=30, blank=True)
     title = models.TextField(blank=False)
-    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Post'
+        verbose_name_plural = 'Posts'
 
     def __str__(self):
-        return self.title
+        return self.author.nickname + '_post_' + str(self.id)
 
-class Photos(models.Model):
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+class Photo(BasedateModel):
     photo_url = models.ImageField(upload_to="post/Photos")
-    date = models.DateTimeField(auto_now_add=True)
-
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='images')
     def __str__(self):
-        return self.post_id
+        return 'photo_' + str(self.id)
 
-class Videos(models.Model):
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+class Video(BasedateModel):
     video_url = models.FileField(upload_to="post/Videos")
-    date = models.DateTimeField(auto_now_add=True)
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='videos')
+
 
     def __str__(self):
-        return self.post_id
+        return 'video_' + str(self.id)
 
-class Comment(models.Model):
-    author = models.ForeignKey(User,on_delete=models.CASCADE)
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
+class Comment(BasedateModel):
     comment = models.TextField(blank=False)
-    created_date = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User,on_delete=models.CASCADE, related_name='user_comments')
+    post = models.ForeignKey(Post,on_delete=models.CASCADE, related_name='post_comments')
+
 
     def __str__(self):
-        return self.comment
+        return self.user.username + '_comments_post_' + str(self.post.id)
 
-class Story(models.Model):
-    author = models.ForeignKey(User,on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.story_id
-
-class ViewUser(models.Model):
-    author = models.OneToOneField(User,on_delete=models.CASCADE,primary_key=True)
-    story_id = models.ForeignKey(Story, on_delete=models.CASCADE)
-
-class Likes(models.Model):
-    post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+class Like(BasedateModel):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_likes')
 
     def __str__(self):
-        return self.author
+        return self.user.username + '_likes_post_' + str(self.post.id)
+
