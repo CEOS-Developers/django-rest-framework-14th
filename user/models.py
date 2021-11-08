@@ -5,18 +5,36 @@ from base.models import Base
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, data):
+    def create_user(self, login_id, email, nickname, password, is_superuser=False):
         user = self.model(
-            login_id=data['login_id'],
-            email=data['email'],
-            nickname=data['nickname']
+            login_id=login_id,
+            email=email,
+            nickname=nickname,
+            is_superuser=is_superuser
         )
 
-        password = data.get('password')
         user.set_password(password)
-
         user.save()
         return user
+
+
+    def create_superuser(self, login_id, email=None, nickname=None, password=None, **extra_fields):
+        try:
+            superuser = self.create_user(
+                login_id=login_id,
+                nickname=nickname,
+                password=password,
+                email=email,
+                is_superuser=True
+            )
+            superuser.is_staff = True
+            superuser.is_superuser = True
+            superuser.is_active = True
+            superuser.save()
+            return superuser
+        except Exception as e:
+            print(e)
+
 
     @staticmethod
     def update_user(user, data):
@@ -53,6 +71,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
 
     created_date = models.DateTimeField(auto_now_add=True, editable=False)
 
