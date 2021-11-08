@@ -12,44 +12,23 @@ class UserManager(BaseUserManager):
             nickname=nickname,
             is_superuser=is_superuser
         )
-
         user.set_password(password)
         user.save()
         return user
 
-
     def create_superuser(self, login_id, email=None, nickname=None, password=None, **extra_fields):
-        try:
-            superuser = self.create_user(
-                login_id=login_id,
-                nickname=nickname,
-                password=password,
-                email=email,
-                is_superuser=True
-            )
-            superuser.is_staff = True
-            superuser.is_superuser = True
-            superuser.is_active = True
-            superuser.save()
-            return superuser
-        except Exception as e:
-            print(e)
-
-
-    @staticmethod
-    def update_user(user, data):
-        for key in data.keys():
-            if not hasattr(user, key):
-                raise AttributeError
-            user.__setattr__(key, data[key])
-        user.save()
-
-    @staticmethod
-    def delete_user(pk):
-        user = User.objects.filter(pk=pk)
-        if not user.exists():
-            raise ValueError
-        user.delete()
+        superuser = self.create_user(
+            login_id=login_id,
+            nickname=nickname,
+            password=password,
+            email=email,
+            is_superuser=True
+        )
+        superuser.is_staff = True
+        superuser.is_superuser = True
+        superuser.is_active = True
+        superuser.save()
+        return superuser
 
     @staticmethod
     def follow(from_user, to_user):
