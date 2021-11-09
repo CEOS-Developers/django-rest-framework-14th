@@ -761,5 +761,83 @@ post를 새로 만드는 api의 경우도 마찬가지로 user 객체가 필요�
 ![result](/images/result.png)<br>
 
 
+# 5주차 - DRF2 : API View
 
+## 기본 자료 외에 참고한 사이트
 
+[Django REST Framework-CBV](https://inma.tistory.com/88)
+[Capturing URL parameters in request.GET](https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get)
+[request에 대한 예외 처리하기](https://programmers.co.kr/learn/courses/6/lessons/515)
+[HTTP 상태 코드](https://developer.mozilla.org/ko/docs/Web/HTTP/Status)
+
+## 과제 리뷰
+
+### 전체 데이터를 가져오는 API
+
+#### 모든 유저 리스트를 가져오는 API
+
+![get_all_user](/images/get_all_user.png)<br>
+#### 모든 post 를 가져오는 API
+
+![get_all_post](/images/get_all_post.png)<br>
+
+### 특정 데이터를 가져오는 API
+
+#### 특정 유저의 Profile을 가져오는 API
+
+**올바른 요청일 경우** <br>
+![get_specific_user](/images/get_specific_user.png)<br>
+**존재하지 않는 id로 요청할 경우** <br>
+![get_specific_user_invalid](/images/get_specific_user_invalid.png)<br>
+
+#### 특정 유저의 전체 post를 가져오는 API
+
+**올바른 요청일 경우** <br>
+![get_all_post_specific_user](/images/get_all_post_specific_user.png)<br>
+**존재하지 않는 id로 요청할 경우** <br>
+![get_all_post_specific_user_invalid](/images/get_all_post_specific_user_invalid.png)<br>
+
+### 새로운 데이터를 생성하는 API
+
+#### 새로운 유저를 생성하는 API
+
+**올바른 요청일 경우** <br>
+![post_user](/images/post_new_user.png)<br>
+**이미 존재하는 사용자의 이름으로 요청할 경우** <br>
+![post_user_invalid](/images/post_user_invalid.png)<br>
+
+#### 새로운 POST 를 생성하는 API
+
+**올바른 요청일 경우** <br>
+![post_post](/images/post_post.png)<br>
+**존재하지 않는 사용자로 요청할 경우** <br>
+![post_post_invalid](/images/post_post_invalid.png)<br>
+
+### 특정 데이터를 업데이트하는 API
+
+![put_specific_post](/images/put_specific_post.png)<br>
+
+### 특정 데이터를 삭제하는 API
+![delete_specific_post](/images/delete_specific_post.png)<br>
+
+### 공부한 내용 정리
+
+새로 알게 된 점 : <br>
+ - url pattern 을 잘 설계하는 것이 직관적이고 관리하기 쉬운 API를 만드는 길이다.
+ - 상태 코드를 API의 목적에 맞게 잘 사용하자.
+ - CBV는 FBV를 완벽하게 대체할 수 없다. 상황에 따라 잘 사용하자.
+ - 예외 처리나 오류 핸들링은 필수적이다. 추후에 로그인이나 인증 기능이 포함되면 그에 따른 분기 처리가 필수적일 것이다.
+
+정리 하고 싶은 개념 : <br>
+예외 처리가 특히 중요한 것 같다. object를 찾지 못했을 때, list가 비어 있을 때, 사용자에 대한 인증이 되어 있지 않을 때, <br>
+데이터를 요청한 뒤 비동기적으로 처리해야 하는 로직일 때 등등 그에 따른 예외 처리가 필수적이라고 느꼈고,<br>
+이번에 새로 알게 된 개념이나 중요한 개념을 정리하기보다 어떤 언어를 사용하더라도 근본이 되는 것은 이러한 문제라고 판단하였기 때문에<br>
+이렇게 comment를 남깁니다.
+
+### 간단한 회고
+
+이번 주 수, 목요일에 아예 코드를 건드릴 시간이 없을 것 같아서 미리 제출합니다.<br>
+그에 따라 코드의 퀄리티가 낮을 수도 있고,<br> 
+완벽한 예외 처리를 구현하지는 못했습니다. <br>
+(그러나 당장은 중요하지 않다고 판단하여 제출합니다.)<br>
+평소에 하지 못했던 1등을 처음으로...?
