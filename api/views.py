@@ -1,47 +1,56 @@
 from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
-from .models import *
-from .serializers import *
-
+from .models import Post, User
+from .serializers import PostSerializer, UserSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.generics import get_object_or_404
 
 # Create your views here.
 
-
-@csrf_exempt
-def post_list(request):
+class PostList(APIView):
     """
-      List all posts, or create a new post.
+      View to List all posts, or create a new post.
     """
-    if request.method == 'GET':
+    def get(self, request):
         posts = Post.objects.all()
         serializer = PostSerializer(posts, many=True)
-        return JsonResponse(serializer.data, safe=False)
+        return Response(serializer.data)
 
-    elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = PostSerializer(data=data)
+    def post(self, request):
+        serializer = PostSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-@csrf_exempt
-def user_list(request):
+class PostDetail(APIView):
     """
-      List all users, or create a new user.
+        View to detail post
     """
-    if request.method == 'GET':
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return JsonResponse(serializer.data, safe=False)
+    def get_object(self, pk):
+        post = get_object_or_404(Post, pk=pk)
+        return post
 
-    elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = UserSerializer(data=data)
+    def get(self, request, pk):
+        post = self.get_object(pk=pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        post = self.get_object(pk=pk)
+        serializer = PostSerializer(post, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        post = self.get_object(pk=pk)
+        post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
