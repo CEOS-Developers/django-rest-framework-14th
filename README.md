@@ -568,3 +568,213 @@ def post_view(request):
     }
 ]
 ```
+# 5주차 과제
+## Django Admin 페이지
+
+지난주 스터디 때 다른 분들이 `admin` 페이지를 수정한 것을 보고, 나도 수정을 해보고 싶었다.
+
+구현하고 싶은 것 : `Post`  에서 댓글과 좋아요 개수, 그리고 업로드한 날짜를 확인 하는 것.
+
+먼저 댓글과 좋아요는 `Post` 를 `Foreign Key` 로 참조하고 있기 때문에,  이것을을 `admin` 페이지에서 참조하는 방법이 무엇이 있을까 찾아보았다.
+
+1. `Inline` 을 사용하면 객체 안에서 참조하고 있는 것들을 수정할 수 있다. → 이것을 이용해서 `Comment` 를 안에서 조회 가능.
+2. 좋아요와 댓글 개수는 어떻게 참조할 것인가? `quaryset` 을 이용해서 쿼리를 날리고 `annotate` 를 이용하여 카운트를 하면 되는 것 같다.
+3. 그냥 `obj.count` 를 이용하는 방법이 있는데, `N+1 problem` 을 야기할 수 있기 때문에, 쿼리를 날리는 것이 안전하다.
+
+## Admin Class로 이용하기
+
+```python
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+```
+
+Admin에 등록하는 방법은 여러가지가 있는데, 이 방법을 가장 선호한다고 한다.
+
+## Inline 사용하기
+
+```python
+class CommentInline(admin.TabularInline):
+    model = Comment
+# Comment 객체를 인라인으로 사용하고 싶기 때문에 이렇게 선언하다.
+```
+
+이렇게 인라인을 선언하고, 원래 클래스에서 Inlines 리스트에 이것을 넣으면 된다.
+
+```python
+class PostAdmin(admin.ModelAdmin):
+	inlines = [CommentInline]
+```
+
+이런식으로.
+
+## Count QuarySet 이용하기
+
+```python
+def comment_count(self,obj):
+        return obj.comment_count
+
+    def like_count(self,obj):
+        return obj.like_count
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(comment_count = Count("post_comments"), like_count = Count("post_likes"))
+        return queryset
+
+    comment_count.short_description = "Comments count"
+    comment_count.admin_order_field = 'comment_count'   # make the column sortable.
+    like_count.admin_order_field = 'like_count'
+```
+
+이렇게 선언하면, 카운트 값도 조회가 가능하다.
+
+## 총 코드
+
+```python
+from django.contrib import admin
+from django.db.models import Count
+
+from .models import *
+
+# Register your models here.
+
+class CommentInline(admin.TabularInline):
+    model = Comment
+
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+
+    """
+    이 코드는  N+1 problem을 야기하기 때문에 다른 방식을 사용하는 것이 좋다.
+    def post_comment_count(self,obj):
+        return obj.comment_set.count()
+    """
+    def comment_count(self,obj):
+        return obj.comment_count
+
+    def like_count(self,obj):
+        return obj.like_count
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(comment_count = Count("post_comments"), like_count = Count("post_likes"))
+        return queryset
+
+    comment_count.short_description = "Comments count"
+    comment_count.admin_order_field = 'comment_count'   # make the column sortable.
+    like_count.admin_order_field = 'like_count'
+    inlines = [CommentInline]
+    list_display = ['id', 'title', 'author', 'comment_count', 'like_count','created_date', 'updated_date']
+    list_display_links = ['id','title']
+    list_per_page = 10
+```
+
+## `Post` 조회
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/c6a0f41f-8e75-4145-8f5f-46142d4069aa/Untitled.png)
+
+## Inline
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/4197a461-8bf9-4e9f-9cfe-653abc2ac300/Untitled.png)
+
+`Inline` 선언을 하면 이렇게 이용 가능하다. 신기하다.
+
+# View 수정하기
+
+스터디 시간에도 말했지만 우리는 `FBV` 와 `CBV` 중에 `CBV` 를 이용할 것이다.
+
+[CBV vs FBV](https://www.notion.so/f9f7f594d9404c55a480c6c58d47be5a)
+
+## GET 명령어에 Parameter 받기
+
+1. 일단 처음 찾은 방법은, `url parameter` 을 이용하는 방법이다.
+
+```python
+# urls.py
+from django.urls import path
+from .views import *
+
+urlpatterns = [
+    path('posts/', PostListView.as_view(),name='post-list'),
+    path('posts/<int:post_id>', PostDetailView.as_view())
+]
+```
+
+`<int:post_id>` 라는 것을 추가해, 뒤에 숫자값이오면 `PostDetailView` 에 `post_id` 에 숫자를 넣어 변수를 전달해준다.
+
+```python
+# views.py
+class PostDetailView(APIView):
+    def get(self,request,post_id):
+        post_data = Post.objects.filter(id=post_id)
+        serializer = PostSerializer(post_data, many=True)
+        return JsonResponse(serializer.data, safe=False)
+```
+
+그러면, `post_id` 를 filter를 이용해 쿼리를 날려서 값을 찾고, 리턴하게 되는 구조이다. 잘 작동한다.
+
+1. `query parameter`
+
+```python
+# views.py
+class PostListView(APIView):
+    def get(self,request,format=None):
+        post_id = request.GET.get('post_id', None)
+        if post_id is not None:
+            post_data = Post.objects.filter(id=post_id)
+        else:
+            post_data = Post.objects.all()
+
+        serializer = PostSerializer(post_data, many=True)
+        return JsonResponse(serializer.data, safe=False)
+```
+
+`request.GET.get` 을 이용해 url에 있는 변수들을 쿼리한다. `.get` 을 쓰면 값이 없는 경우를 대비할 수 있고, 값이 없는 경우가 없다면 `request.GET['post_id']` 로 값을 가져올 수 있다.
+
+값이 없을 경우에 나는 `None` 값을 설정해 주었기 때문에, 값이 없다면 전체를 리턴하고, 아니라면 `filter` 를 적용하여 리턴한다.
+
+잘 작동한다.
+
+## PUT
+
+앞에서 원리를 좀 이해하니까 금방금방 작성이 가능하다.
+
+```python
+# views.py
+
+class PostDetailView(APIView):
+    def put(self,request,post_id):
+        if post_id is None:
+            return Response("invalid request", status=status.HTTP_400_BAD_REQUEST)
+        else:
+            post_object = Post.objects.get(id=post_id)
+            update_post_serializer = PostSerializer(post_object,data=JSONParser().parse(request))
+            if update_post_serializer.is_valid():
+                update_post_serializer.save()
+                return JsonResponse(update_post_serializer.data, status=201)
+            else:
+                return JsonResponse(update_post_serializer.errors, status=400)
+```
+
+`post_id` 값이 없으면 오류를 반환하고, 아니면 `post_id` 를 이용해 객체를 조회해서, 업데이트 작업을 한다.
+
+## DELETE
+
+```python
+class PostDetailView(APIView):
+    def delete(self, request, post_id):
+        if post_id is None:
+            return Response("No Content Request", status=status.HTTP_204_NO_CONTENT)
+        else:
+            post_object = Post.objects.get(id=post_id)
+            post_object.delete()
+            return Response("Delete Success",status=status.HTTP_200_OK)
+```
+
+Notion에 적혀있는대로 없으면 status 204를 반환하고,  있으면 지우고 status 200을 반환한다.
+
+## 발생한 이슈들
+
+1. `AttributeError: 'function' object has no attribute 'as_view'`  : 분명히 제대로 했는데 왜 안되는가 했었는데, 저번에 뷰 짤때 넣었던 decorator인 `@csrf_exmept` 가 함수를 반환해서 안되는 것이었다. 지워주니 해결 되었다.
+
+하나를 제대로 구현하니까 나머지들도 쭉쭉 이해가 되기 시작했다. 이거 뷰 꾸미는거 되게 재밌는 것 같다. 부가기능도 더 구현해봐야겠다. `query` 에 관한 이해가 중요할 것 같다.

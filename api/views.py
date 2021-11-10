@@ -48,9 +48,13 @@ class PostDetailView(APIView):
                 return JsonResponse(update_post_serializer.errors, status=400)
 
     def delete(self, request, post_id):
-        if post_id is None:
+        try:
+            post_object = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            post_object = None
+
+        if post_object is None:
             return Response("No Content Request", status=status.HTTP_204_NO_CONTENT)
         else:
-            post_object = Post.objects.get(id=post_id)
             post_object.delete()
             return Response("Delete Success",status=status.HTTP_200_OK)
