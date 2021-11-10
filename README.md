@@ -875,4 +875,159 @@ class PostSerializer(serializers.ModelSerializer):
   
 >user의 save() 실행 이후 profile이 db에 저장되지 않는다는 것을 뒤늦게 깨닫고 django가 제공하는 signals의 post_save() 기능을 사용하여 profile이 자동 생성 및 저장되도록 수정하였다. 근데 serializer에서도 create() 함수를 만들어 profile을 저장하다보니 django.db.utils.IntegrityError: (1062, "Duplicate entry '9' for key 'api_profile.user_id'") 오류가 발생했다. db에는 저장이 되긴 하는데, 똑같은 정보를 중복으로 저장하려고 시도하나보다... post_save만 남기면 Write an explicit `.create()` method for serializer `api.serializers.UserSerializer`, or set `read_only=True` on nested serializer fields. 라는 error가 발생한다. post api도 comments count와 likes count를 추가로 제공하도록 수정했다.
   
+***
+## 5주차 과제 
+### 모든 list를 가져오는 API
+API 요청한 URL과 결과 데이터를 코드로 보여주세요!
+- URL: api/posts/
+- METHOD: GET
   
+![image](https://user-images.githubusercontent.com/90975718/141066779-bfce322c-629f-448c-b9ec-c748019408b4.png)
+  
+### 특정 데이터를 가져오는 API
+API 요청한 URL과 결과 데이터를 코드로 보여주세요!
+- URL: api/posts/<int:pk>/
+- METHOD: GET
+  
+![image](https://user-images.githubusercontent.com/90975718/141066669-549bc508-e7d1-4cff-8a89-d9e5d41420e1.png)
+
+### 새로운 데이터를 생성하는 API
+요청 URL 및 body 데이터의 내용과 create된 결과를 보여주세요!
+- URL: api/posts/
+- METHOD: POST
+- Body: {
+  "author":1,
+  "content":"새로운 post!"
+}
+```
+{
+    "author_name": "heryunzzx",
+    "author": 1,
+    "content": "새로운 post!",
+    "created_date": "2021-11-10T16:11:02.821992+09:00",
+    "updated_date": "2021-11-10T16:11:02.821992+09:00",
+    "comments_count": 0,
+    "likes_count": 0,
+    "post_likes": [],
+    "comments": [],
+    "post_files": []
+}
+```
+  
+### 특정 데이터를 업데이트하는 API
+요청 URL 및 body 데이터의 내용과 update된 결과를 보여주세요!
+- URL: api/posts/<int:pk>/
+- METHOD: PUT
+- Body: {
+    "author" : 3,
+    "content" : "수정된 post!"
+  }
+```
+{
+    "author_name": "pika_so_hee",
+    "author": 3,
+    "content": "수정된 post!",
+    "created_date": "2021-10-05T19:51:55.927811+09:00",
+    "updated_date": "2021-11-10T16:08:15.815098+09:00",
+    "comments_count": 0,
+    "likes_count": 3,
+    "post_likes": [
+        {
+            "id": 1,
+            "created_date": "2021-10-11T14:26:53.791390+09:00",
+            "updated_date": "2021-10-11T14:26:53.972385+09:00",
+            "user": 1,
+            "post": 1
+        },
+        {
+            "id": 2,
+            "created_date": "2021-10-11T14:26:53.791390+09:00",
+            "updated_date": "2021-10-11T14:26:53.972385+09:00",
+            "user": 2,
+            "post": 1
+        },
+        {
+            "id": 4,
+            "created_date": "2021-10-11T14:26:53.791390+09:00",
+            "updated_date": "2021-10-11T14:26:53.972385+09:00",
+            "user": 3,
+            "post": 1
+        }
+    ],
+    "comments": [],
+    "post_files": []
+}
+```
+  
+### 특정 데이터를 삭제하는 API
+요청 URL 및 delete된 결과를 보여주세요!
+- URL: api/posts/<int:pk>/
+- METHOD: DELETE
+  
+  ![image](https://user-images.githubusercontent.com/90975718/141065674-3ce712a2-0f78-4e5a-b9b4-f0b68e1c0664.png)
+  
+### 공부한 내용 정리
+새로 알게된 점, 정리 하고 싶은 개념, 궁금한점 등을 정리해 주세요
+- 기존 views.py 코드
+```
+@csrf_exempt
+def post_list(request):
+    """
+      List all posts, or create a new post.
+    """
+    if request.method == 'GET':
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+```
+- 기존의 views.py 코드와 새롭게 작성한 DRF API View CBV 코드의 큰 차이점은 다음과 같다.
+ 1. JsonResponse, HttpResponse 객체가 Response로 대체.
+ 2. HttpRequest 객체를 Request 객체로 확장하여 더 유연한 request parsing을 제공.
+ 3. 각 Response 객체에 넘기는 status 인자에 숫자 상태 코드를 status 객체의 식별자로 대체. -> 더욱 명시적인 표현 가능.
+ 4. 별도의 컨텐츠 유형을 명시적으로 지정하지 않음. request.data 객체가 json 요청 뿐 아니라 다른 포맷의 요청도 처리 가능하다. 마찬가지로 데이터를 포함한 Response 객체를 반환하지만 DRF가 올바른 컨텐츠 유형으로 렌더링하도록 허용한다.
+
+- url에 format 접미사 추가
+  
+ 공식 문서에 작성된 설명
+>To take advantage of the fact that our responses are no longer hardwired to a single content type let's add support for format suffixes to our API endpoints. Using format suffixes gives us URLs that explicitly refer to a given format, and means our API will be able to handle URLs such as http://example.com/api/items/4.json.
+
+- 더 이상 하나의 컨텐츠 유형에 국한되지 않는다는 이점을 살리기 위해 API endpoint에 format suffixes를 추가할 수 있다. 지정된 format을 명시적으로 참조하는 url이 제공되며 http://example.co/api/items/4.json 와 같은 url handling이 가능하다고... 다음과 같은 format 키워드 인자를 추가하고, 기존 url에 ```format_suffix_patterns```를 추가하면 된다.
+  
+```
+    def get(self, request, pk, format=None):
+        post = self.get_object(pk=pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+```
+  
+```
+urlpatterns = [
+    path('posts/', views.PostList.as_view(), name='posts'),
+    path('posts/<int:pk>', views.PostDetail.as_view(), name='post_detail'),
+    path('users/', views.UserList.as_view(), name='users'),
+    path('users/<int:pk>', views.UserDetail.as_view(), name='user_detail'),
+]
+
+urlpatterns = format_suffix_patterns(urlpatterns)
+```
+- format suffix 추가 이전
+  
+![image](https://user-images.githubusercontent.com/90975718/141072182-e8762c98-c80c-4df5-867e-940c5a9139a8.png)
+
+- format suffix 추가 이후 - 특정 format을 간단하고 명확하고 참조 가능.
+  
+![image](https://user-images.githubusercontent.com/90975718/141072447-58bf8ea5-a77d-4c91-9784-4dd417427b12.png)
+
+![image](https://user-images.githubusercontent.com/90975718/141072882-7c6ef537-1d76-4646-b361-fd87abfea3e0.png)
+  
+
+### 간단한 회고
+과제 시 어려웠던 점이나 느낀 점, 좋았던 점 등을 간단히 적어주세요!
