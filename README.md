@@ -569,6 +569,7 @@ def post_view(request):
 ]
 ```
 # 5주차 과제
+
 ## Django Admin 페이지
 
 지난주 스터디 때 다른 분들이 `admin` 페이지를 수정한 것을 보고, 나도 수정을 해보고 싶었다.
@@ -671,7 +672,8 @@ class PostAdmin(admin.ModelAdmin):
 
 ## `Post` 조회
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/c6a0f41f-8e75-4145-8f5f-46142d4069aa/Untitled.png)
+![post 조회 결과](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/c6a0f41f-8e75-4145-8f5f-46142d4069aa/Untitled.png)
+
 
 ## Inline
 
@@ -735,6 +737,241 @@ class PostListView(APIView):
 
 잘 작동한다.
 
+### 결과
+
+- 모든 데이터 가져오기. GET `api/posts/`
+
+```json
+[
+    {
+        "id": 3,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "Jeonju",
+        "title": "포스트 수정하기",
+        "post_likes": [
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [],
+        "created_date": "2021-11-01T02:03:33.622916+09:00",
+        "updated_date": "2021-11-11T00:04:13.893453+09:00"
+    },
+    {
+        "id": 4,
+        "author": {
+            "id": 2,
+            "username": "test1",
+            "nickname": "test1",
+            "gender": "M",
+            "phone_num": 1039583929,
+            "introduction": "test1111",
+            "website": "http://velog.io/@test"
+        },
+        "location": "Dongdaemungu",
+        "title": "First Post",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "Wow",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-01T02:04:25.779203+09:00"
+            },
+            {
+                "comment": "Fantastic",
+                "nickname": "test1",
+                "created_date": "2021-11-10T19:56:54.860135+09:00"
+            }
+        ],
+        "created_date": "2021-11-01T02:03:49.712405+09:00",
+        "updated_date": "2021-11-10T19:56:54.847623+09:00"
+    },
+    {
+        "id": 5,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "우리집",
+        "title": "Example 3",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            },
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "#좋아요 #맞팔 #반사",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-06T17:07:37.584469+09:00"
+            }
+        ],
+        "created_date": "2021-11-06T17:05:38.455631+09:00",
+        "updated_date": "2021-11-10T19:57:06.011517+09:00"
+    },
+    {
+        "id": 6,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "Paris",
+        "title": "파리 여행",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "파리 가고 싶다,,",
+                "nickname": "test1",
+                "created_date": "2021-11-10T19:57:21.208848+09:00"
+            }
+        ],
+        "created_date": "2021-11-06T23:55:28.433851+09:00",
+        "updated_date": "2021-11-10T19:57:21.207126+09:00"
+    },
+    {
+        "id": 7,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "Paris",
+        "title": "파리 여행",
+        "post_likes": [],
+        "post_comments": [],
+        "created_date": "2021-11-10T23:49:23.973382+09:00",
+        "updated_date": "2021-11-10T23:49:23.973470+09:00"
+    },
+    {
+        "id": 8,
+        "author": {
+            "id": 2,
+            "username": "test1",
+            "nickname": "test1",
+            "gender": "M",
+            "phone_num": 1039583929,
+            "introduction": "test1111",
+            "website": "http://velog.io/@test"
+        },
+        "location": "Paris",
+        "title": "파리 여행3",
+        "post_likes": [],
+        "post_comments": [],
+        "created_date": "2021-11-10T23:49:52.674786+09:00",
+        "updated_date": "2021-11-10T23:49:52.674823+09:00"
+    }
+]
+```
+
+- URL : `api/posts/5` or `api/posts/?post_id=5`
+- Method : `GET`
+
+```json
+[
+    {
+        "id": 5,
+        "author": {
+            "id": 1,
+            "username": "sossont",
+            "nickname": "0o_hwan",
+            "gender": "M",
+            "phone_num": 1047426160,
+            "introduction": "안녕하세요 정환우 입니다.",
+            "website": "http://velog.io/@sossont"
+        },
+        "location": "우리집",
+        "title": "Example 3",
+        "post_likes": [
+            {
+                "nickname": "0o_hwan"
+            },
+            {
+                "nickname": "test1"
+            }
+        ],
+        "post_comments": [
+            {
+                "comment": "#좋아요 #맞팔 #반사",
+                "nickname": "0o_hwan",
+                "created_date": "2021-11-06T17:07:37.584469+09:00"
+            }
+        ],
+        "created_date": "2021-11-06T17:05:38.455631+09:00",
+        "updated_date": "2021-11-10T19:57:06.011517+09:00"
+    }
+]
+```
+
+## CREATE
+
+- URL : `api/posts/`
+- Method : `POST`
+- Body :
+
+```json
+{
+"author" : 1,
+"location" : "Jeonju",
+"title" : "포스트 수정하기"
+}
+```
+
+### 결과
+
+```json
+{
+    "id": 10,
+    "author": {
+        "id": 1,
+        "username": "sossont",
+        "nickname": "0o_hwan",
+        "gender": "M",
+        "phone_num": 1047426160,
+        "introduction": "안녕하세요 정환우 입니다.",
+        "website": "http://velog.io/@sossont"
+    },
+    "location": "Jeonju",
+    "title": "포스트 수정하기",
+    "post_likes": [],
+    "post_comments": [],
+    "created_date": "2021-11-11T00:23:59.492435+09:00",
+    "updated_date": "2021-11-11T00:23:59.492472+09:00"
+}
+```
+
 ## PUT
 
 앞에서 원리를 좀 이해하니까 금방금방 작성이 가능하다.
@@ -758,20 +995,75 @@ class PostDetailView(APIView):
 
 `post_id` 값이 없으면 오류를 반환하고, 아니면 `post_id` 를 이용해 객체를 조회해서, 업데이트 작업을 한다.
 
+위에서 방금 만든거 수정해보자.
+
+- URL : `api/posts/<int:pk>`
+- Method : `PUT`
+- Body :
+
+```json
+{
+    "author" : 2,
+    "location" : "London",
+    "title" : "풋풋"
+}
+```
+
+### 결과
+
+```json
+{
+    "id": 10,
+    "author": {
+        "id": 2,
+        "username": "test1",
+        "nickname": "test1",
+        "gender": "M",
+        "phone_num": 1039583929,
+        "introduction": "test1111",
+        "website": "http://velog.io/@test"
+    },
+    "location": "London",
+    "title": "풋풋",
+    "post_likes": [],
+    "post_comments": [],
+    "created_date": "2021-11-11T00:23:59.492435+09:00",
+    "updated_date": "2021-11-11T00:25:31.720960+09:00"
+}
+```
+
 ## DELETE
 
 ```python
 class PostDetailView(APIView):
     def delete(self, request, post_id):
-        if post_id is None:
+        try:
+            post_object = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            post_object = None
+
+        if post_object is None:
             return Response("No Content Request", status=status.HTTP_204_NO_CONTENT)
         else:
-            post_object = Post.objects.get(id=post_id)
             post_object.delete()
             return Response("Delete Success",status=status.HTTP_200_OK)
 ```
 
 Notion에 적혀있는대로 없으면 status 204를 반환하고,  있으면 지우고 status 200을 반환한다.
+
+- URL : `api/posts/<int:pk>`
+- Method : `DELETE`
+- ex : `api/posts/4`
+
+### 결과
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/006c67da-7c9f-4845-b90e-701e31e44835/Untitled.png)
+
+지워졌으니 한번 더 해보자.
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/2bf4f18f-1d26-4ea2-9347-4056534e80a8/Untitled.png)
+
+204 에러 발생. 제대로 작동한다.
 
 ## 발생한 이슈들
 
