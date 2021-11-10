@@ -672,12 +672,11 @@ class PostAdmin(admin.ModelAdmin):
 
 ## `Post` 조회
 
-![post 조회 결과](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/c6a0f41f-8e75-4145-8f5f-46142d4069aa/Untitled.png)
-
+![스크린샷 2021-11-10 오후 10 31 56](https://user-images.githubusercontent.com/69099144/141143839-6540defc-e289-42e4-8be2-739ba40856c6.png)
 
 ## Inline
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/4197a461-8bf9-4e9f-9cfe-653abc2ac300/Untitled.png)
+![inline](https://user-images.githubusercontent.com/69099144/141143982-1eb909dc-beb5-420b-9673-6d29ba98f864.png)
 
 `Inline` 선언을 하면 이렇게 이용 가능하다. 신기하다.
 
@@ -1057,11 +1056,11 @@ Notion에 적혀있는대로 없으면 status 204를 반환하고,  있으면 �
 
 ### 결과
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/006c67da-7c9f-4845-b90e-701e31e44835/Untitled.png)
+<img width="927" alt="스크린샷 2021-11-11 오전 12 27 24" src="https://user-images.githubusercontent.com/69099144/141143715-8a6542a3-f112-4923-a119-4167a08510e1.png">
 
 지워졌으니 한번 더 해보자.
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/2bf4f18f-1d26-4ea2-9347-4056534e80a8/Untitled.png)
+![204](https://user-images.githubusercontent.com/69099144/141144065-41f27aeb-4778-4e74-87d5-75697be28a63.png)
 
 204 에러 발생. 제대로 작동한다.
 
