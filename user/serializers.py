@@ -1,4 +1,5 @@
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework import serializers as sz
 from user.models import User, Follow
 
 
@@ -13,16 +14,27 @@ class DynamicFieldsModelSerializer(ModelSerializer):
                 self.fields.pop(field_name)
 
 
-class FollowingSerializer(ModelSerializer):
-    class Meta:
-        model = Follow
-        fields = ['id', 'to_user']
-
-
 class FollowerSerializer(ModelSerializer):
+    follow_id = sz.UUIDField(source='id')
+    user_id = sz.UUIDField(source='from_user_id')
+    
     class Meta:
         model = Follow
-        fields = ['id', 'from_user']
+        fields = [
+            'follow_id', 'user_id', 'created_date', 'updated_date'
+        ]
+
+
+class FollowingSerializer(ModelSerializer):
+    follow_id = sz.UUIDField(source='id')
+    user_id = sz.UUIDField(source='to_user_id')
+
+    class Meta:
+        model = Follow
+        fields = [
+            'follow_id', 'user_id', 'created_date', 'updated_date'
+        ]
+
 
 
 class UserSerializer(DynamicFieldsModelSerializer):
