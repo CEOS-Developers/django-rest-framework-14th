@@ -1,8 +1,8 @@
 from django.http.response import Http404
-from rest_framework.utils import serializer_helpers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.generics import get_object_or_404
 
 from .models import *
 from .serializers import PostSerializer
@@ -32,11 +32,16 @@ class PostList(APIView):
 
 # /post/<pk>
 class PostDetail(APIView):
+
     def get_object(self, pk):
-        try:
-            return Post.objects.get(pk=pk)
-        except Post.DoesNotExist:
-            raise Http404
+        post = get_object_or_404(Post, pk=pk)
+        return post
+
+        # 위 코드와 같은 역할
+        # try:
+        #     return Post.objects.get(pk=pk)
+        # except Post.DoesNotExist:
+        #     raise Http404
 
     def get(self, request, pk, format="json"):
         post = self.get_object(pk)
