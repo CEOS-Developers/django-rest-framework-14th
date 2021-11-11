@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Profile, Post, Media, Comment, Like
+from .models import Post
+
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
@@ -13,7 +14,7 @@ class PostSerializer(serializers.ModelSerializer):
         return obj.author.username
 
     def get_comments(self, obj):
-        queries = obj.post_comments.all()
+        queries = obj.post_comments.all().select_related('author')
         comments = []
         for query in queries:
             comment = {'author': query.author.username, 'content': query.content, 'created_at': query.created_at}
