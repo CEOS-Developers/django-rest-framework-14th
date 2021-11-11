@@ -917,6 +917,7 @@ Serializer를 다루면서 프론트와의 협업에 한걸음 다가간 듯 하
 - URL: api/post
 - Method: POST
 - Body: {"text": "test post no.33"}
+
 ![](images/api_created.png)
 
 
@@ -924,11 +925,13 @@ Serializer를 다루면서 프론트와의 협업에 한걸음 다가간 듯 하
 - URL: api/post/9
 - Method: PUT
 - Body: {"text": "update post no.33"}
+
 ![](images/api_updated.png)
 
 ## 특정 데이터를 삭제하는 API
 - URL: api/post/9
 - Method: DELETE
+
 ![](images/api_deleted.png)
 
 ## 공부한 내용 정리
