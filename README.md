@@ -2252,3 +2252,562 @@ https://www.django-rest-framework.org/api-guide/serializers/
 https://developer.twitter.com/en/docs/twitter-api
 https://docs.github.com/en/rest/reference/users
 
+
+## 5주차 과제
+### 모든 list를 가져오는 API
+<!-- API 요청한 URL과 결과 데이터를 코드로 보여주세요! -->
+
+* Method : `GET`
+* URL : `/api/user`
+
+```python
+# Model: USER
+def get(self, request, pk=None, **kwargs):
+    fields = request.GET.getlist('fields') or None
+    if pk is None:
+        users = User.objects.all()
+
+        try:
+            serializer = UserSerializer(users, fields=fields, many=True)
+            return JsonResponse(serializer.data, status=200, safe=False)
+        except ValueError:
+            return JsonResponse({'message': 'Wrong url parameter'})
+
+```
+
+* 모든 유저들을 가져오는 API 결과: `/api/user` `GET`
+
+```yaml
+[
+    {
+        "id": 4,
+        "login_id": "nkjljl",
+        "email": "son@naver.com",
+        "nickname": "asdf",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "nasungcity"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T16:51:26.938795"
+    },
+    {
+        "id": 5,
+        "login_id": "151515asf315",
+        "email": "so3n@naver.com",
+        "nickname": "asfxzcvxcv",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "nasungcity"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T17:23:34.467783"
+    },
+    {
+        "id": 6,
+        "login_id": "15151515135sf315",
+        "email": "so3n3253@naver.com",
+        "nickname": "31412axcvsd",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "nasungcity"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T17:43:36.578081"
+    },
+    {
+        "id": 7,
+        "login_id": "vivalavida",
+        "email": "130310930911309@jaojfaiow.cz",
+        "nickname": "junha",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "nasungcity"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T20:52:55.205288"
+    },
+    {
+        "id": 8,
+        "login_id": "CCCCCC",
+        "email": "asdf@jaojfaiow.cz",
+        "nickname": "leela",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [
+            "unofficialboy",
+            "nasungcity",
+            "asdf",
+            "asfxzcvxcv",
+            "31412axcvsd",
+            "junha"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T21:52:29.768396"
+    },
+    {
+        "id": 10,
+        "login_id": "unofficialboy",
+        "email": "unofficialboy@unofficialboy.cz",
+        "nickname": "unofficialboy",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela",
+            "nasungcity"
+        ],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T22:45:00.207283"
+    },
+    {
+        "id": 11,
+        "login_id": "nafla",
+        "email": "nafla@naver.cz",
+        "nickname": "nasungcity",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela",
+            "asdf",
+            "asfxzcvxcv",
+            "31412axcvsd",
+            "junha"
+        ],
+        "following_nickname": [
+            "unofficialboy"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T23:15:46.907769"
+    }
+]
+
+```
+
+* Method : `GET`
+* URL : `api/user/<int:pk>/following`
+
+```python
+# MODEL : FOLLOW
+class FollowingList(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(User, pk=pk)
+
+    def get(self, request, pk=None):
+        user = self.get_object(pk)
+        followings = User.objects.filter(follower__from_user=user)
+        serializer = UserSerializer(followings, many=True)
+        return JsonResponse(serializer.data, safe=False, status=200)
+```
+
+* 특정 유저가 팔로우하는 유저들의 목록을 전체 가져오는 API 요청 결과: `api/user/8/following` `GET`
+
+앞선 전체 조회에서 나온 결과
+```yaml
+    "following_nickname": [
+            "unofficialboy",
+            "nasungcity",
+            "asdf",
+            "asfxzcvxcv",
+            "31412axcvsd",
+            "junha"
+        ],
+```
+
+실제 결과
+```yaml
+[
+    {
+        "follow_id": "1",
+        "user_id": "10",
+        "created_date": "2021-11-08T23:04:24.057603",
+        "updated_date": "2021-11-08T23:04:24.057670"
+    },
+    {
+        "follow_id": "2",
+        "user_id": "11",
+        "created_date": "2021-11-08T23:16:44.822583",
+        "updated_date": "2021-11-08T23:16:44.822683"
+    },
+    {
+        "follow_id": "12",
+        "user_id": "4",
+        "created_date": "2021-11-11T14:54:12.241147",
+        "updated_date": "2021-11-11T14:54:12.241201"
+    },
+    {
+        "follow_id": "13",
+        "user_id": "5",
+        "created_date": "2021-11-11T14:54:13.166913",
+        "updated_date": "2021-11-11T14:54:13.167002"
+    },
+    {
+        "follow_id": "14",
+        "user_id": "6",
+        "created_date": "2021-11-11T14:54:13.905949",
+        "updated_date": "2021-11-11T14:54:13.906003"
+    },
+    {
+        "follow_id": "15",
+        "user_id": "7",
+        "created_date": "2021-11-11T14:54:15.745367",
+        "updated_date": "2021-11-11T14:54:15.745401"
+    }
+]
+```
+
+결과가 잘 나온것을 확인할 수 있다.
+
+
+### 특정 데이터를 가져오는 API
+<!-- API 요청한 URL과 결과 데이터를 코드로 보여주세요! -->
+
+* Method : `GET`
+* URL : `/api/user/<int:pk>`
+
+```python
+try:
+    user = User.objects.get(pk=pk)
+    serializer = UserSerializer(user, fields=fields)
+    return JsonResponse(serializer.data, status=200, safe=False)
+
+except User.DoesNotExist:
+    return JsonResponse({'message': "Id " + str(pk) + ' doesn\'t exist in database'}, status=404)
+```
+
+* id = 8인 user를 가져오는 API 요청 결과: api/user/8 GET
+
+```yaml
+{
+    "id": 8,
+    "login_id": "CCCCCC",
+    "email": "asdf@jaojfaiow.cz",
+    "nickname": "leela",
+    "bio": "",
+    "profile_picture": null,
+    "follower_nickname": [],
+    "following_nickname": [
+        "unofficialboy",
+        "nasungcity",
+        "asdf",
+        "asfxzcvxcv",
+        "31412axcvsd",
+        "junha"
+    ],
+    "is_private": false,
+    "is_active": true,
+    "is_superuser": false,
+    "created_date": "2021-11-08T21:52:29.768396"
+}
+
+```
+
+* Method : `GET`
+* URL : `/api/user/<int:from_user_id>/following/<int:to_user_id>`
+
+```python
+ def get(self, request, from_user_id, to_user_id):
+        if self.is_following(from_user_id, to_user_id):
+            return JsonResponse({"message": "True"}, status=200)
+        return JsonResponse({"message": "False"}, status=200)
+```
+
+특정 유저들이 서로 팔로우하는지 조회하는 API 요청 결과 1: `api/user/8/following/11`
+```yaml
+{
+    "message": "True"
+}
+```
+
+특정 유저들이 서로 팔로우하는지 조회하는 API 요청 결과 2: `api/user/8/following/3149`
+```yaml
+{
+    "message": "False"
+}
+```
+
+
+### 새로운 데이터를 생성하는 API
+<!-- 요청 URL 및 body 데이터의 내용과 create된 결과를 보여주세요! -->
+
+* Method : `POST`
+* URL : `/api/user`
+* Body : {
+    "login_id": "ceos14",
+    "nickname":"ceos",
+    "email":"ceos14@ceos.ceo",
+    "password":"ceos14dsf"
+}
+
+```python
+def post(self, request, pk=None):
+    if pk is None:
+        data = JSONParser().parse(request)
+        fields = ['id', 'nickname', 'login_id', 'email']
+        serializer = UserSerializer(data=data, fields=fields)
+        if not serializer.is_valid():
+            return JsonResponse(serializer.errors, status=400, safe=False)
+        serializer.save()
+        return JsonResponse(serializer.data, status=201, safe=False)
+
+    else:
+        return JsonResponse({'message': 'Wrong url'}, status=400)
+```
+
+* 새로운 유저를 생성하는 API 요청 결과: `api/user` `POST`
+```yaml
+{
+    "id": 12,
+    "login_id": "ceos14",
+    "email": "ceos14@ceos.ceo",
+    "nickname": "ceos",
+    "bio": "",
+    "profile_picture": null,
+    "follower_nickname": [],
+    "following_nickname": [],
+    "is_private": false,
+    "is_active": true,
+    "is_superuser": false,
+    "created_date": "2021-11-11T17:02:08.948357"
+}
+```
+
+* Method : `PUT`
+* URL : `/api/user/{from_user_id}/following/{to_user_id}`
+
+```python
+def put(self, request, from_user_id, to_user_id):
+    try:
+        if from_user_id == to_user_id:
+            return JsonResponse({'message': 'You can\'t follow yourself'}, status=400)
+
+        if self.is_following(from_user_id, to_user_id):
+            raise ValueError
+
+        Follow(from_user_id=from_user_id, to_user_id=to_user_id).save()
+
+        return JsonResponse({"message": 'followed ' + str(to_user_id) + ' successfully'}, status=200)
+
+    # FK constraint catch
+    except IntegrityError:
+        return JsonResponse({"message": 'requested ID doesn\'t exist'}, status=400)
+
+    except ValueError:
+        return JsonResponse({"message": str(from_user_id) + ' already followed ' + str(to_user_id)}, status=304)
+```
+
+* 새로운 팔로잉을 생성하는 API 요청 결과: `api/user/8/following/12` `PUT`
+```yaml
+{
+    "message": "followed 12 successfully"
+}
+```
+
+`following_nickname` 부분에 "ceos"가 추가된 것을 볼 수 있다.
+
+```yaml
+{
+    "id": 8,
+    "login_id": "CCCCCC",
+    "email": "asdf@jaojfaiow.cz",
+    "nickname": "leela",
+    "bio": "",
+    "profile_picture": null,
+    "follower_nickname": [],
+    "following_nickname": [
+        "unofficialboy",
+        "nasungcity",
+        "asdf",
+        "asfxzcvxcv",
+        "31412axcvsd",
+        "junha",
+        "ceos"
+    ],
+    "is_private": false,
+    "is_active": true,
+    "is_superuser": false,
+    "created_date": "2021-11-08T21:52:29.768396"
+}
+```
+
+### 특정 데이터를 업데이트하는 API
+<!-- 요청 URL 및 body 데이터의 내용과 update된 결과를 보여주세요! -->
+
+* Method : `PUT` 
+* URL : `/api/user/{user_id}`
+* Body : {
+    "nickname" : "ceos14"
+}
+
+```python
+def put(self, request, pk=None):
+    try:
+        user = self.get_object(pk)
+        data = JSONParser().parse(request)
+        serializer = UserSerializer(instance=user, data=data, partial=True)
+
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+
+        return JsonResponse({"message": "Id " + str(pk) + ' is updated successfully'}, status=200)
+
+    except IntegrityError:
+        return JsonResponse({"message": str(data) + " is already exist"}, status=304)
+    except AttributeError:
+        return JsonResponse({"message": str(data) + " have wrong attribute"}, status=304)
+```
+
+* 닉네임을 업데이트하는 API요청 결과: `/api/user/12` `PUT`
+```yaml
+{
+    "message": "Id 12 is updated successfully"
+}
+```
+
+"nickname" 부분이 ceos -> ceos14 로 바뀐 것을 볼 수 있다.
+```yaml
+{
+    "id": 12,
+    "login_id": "ceos14",
+    "email": "ceos14@ceos.ceo",
+    "nickname": "ceos14",
+    "bio": "",
+    "profile_picture": null,
+    "follower_nickname": [
+        "leela"
+    ],
+    "following_nickname": [],
+    "is_private": false,
+    "is_active": true,
+    "is_superuser": false,
+    "created_date": "2021-11-11T17:02:08.948357"
+}
+```
+
+### 특정 데이터를 삭제하는 API
+<!-- 요청 URL 및 delete된 결과를 보여주세요! -->
+
+* Method : `DELETE`
+* URL : `/api/user/{user_id}`
+
+```python
+def delete(self, request, pk=None):
+    user = self.get_object(pk)
+    user.delete()
+    return JsonResponse({"message": "Id=%s is deleted successfully" % str(pk)}, status=200)
+```
+
+* 특정 데이터를 삭제하는 API요청 결과: `/api/user/12` `DELETE`
+```yaml
+{
+    "message": "Id=12 is deleted successfully"
+}
+```
+
+`/api/user/12` `GET`
+
+```yaml
+{
+    "message": "Id 12 doesn't exist in database"
+}
+```
+
+id=8인 유저가 id=12인 ceos를 팔로우했던 것을 위의 결과에서 볼 수 있는데,  
+cascade하게 `DELETE` 되어 팔로우 목록에서도 삭제된 것을 아래의 조회결과에서 확인할 수 있다.
+
+`/api/user/8` `GET`  
+```yaml
+{
+    "id": 8,
+    "login_id": "CCCCCC",
+    "email": "asdf@jaojfaiow.cz",
+    "nickname": "leela",
+    "bio": "",
+    "profile_picture": null,
+    "follower_nickname": [],
+    "following_nickname": [
+        "unofficialboy",
+        "nasungcity",
+        "asdf",
+        "asfxzcvxcv",
+        "31412axcvsd",
+        "junha"
+    ],
+    "is_private": false,
+    "is_active": true,
+    "is_superuser": false,
+    "created_date": "2021-11-08T21:52:29.768396"
+}
+```
+
+
+
+### 공부한 내용 정리
+<!-- 새로 알게된 점, 정리 하고 싶은 개념, 궁금한점 등을 정리해 주세요 -->
+
+* User 수정  
+
+    이 부분이 굉장히 시간이 많이 걸렸다. 분명히 저번 푸쉬했을 땐 잘 동작했는데, 귀신이 씌인건지 갑자기 안돼서 당황했다.  
+    serializer에 `partial=True` 를 넣어주어야 전체 필드를 넣지않아도 부분적으로만 수정이 된다. 
+
+* User 생성  
+
+    이 부분을 원랜 `UserManager` 에서 만든 메서드를 활용하였다. 그런데 이걸 직접적으로 사용하는 경우는 잘 없고 이 부분을 정의해놓으면 `Serializer` 에서 알아서 갖고가서 생성해주는 것을 새로 알게되었다.. 놀라운 장고
+
+    또한 `data=data` 로 하지않고, `validated_data=data` 로 인수를 넣었더니, 오류가 났다. 알 수 없는 argument 머시기 나와서 직접 `serializer.py`의 `__init__` method를 까보니, 
+    ```python
+    def __init__(self, instance=None, data=empty, **kwargs):
+    ```
+    이렇게 있는것을 보고 받아들이기로 하였다.
+
+* Follow 생성  
+
+    원래 새로운 팔로우를 만들때, 파라미터로 주어진 `user_id`들이 실제로 유효한지 확인하는 과정을 거쳤었는데, `Foreign Key constraint` 가 동작하는지 궁금해서 빼보았다. 로그에도 잘 남고 잘 검증하는 것 같아서 앞으로 장고를 이용할 땐 이 부분은 고려하지 않아도 될 것이라 생각한다.
+
+* Following, Follower 출력  
+
+    팔로잉, 팔로워 목록을 불러올 때 `User` 모델의 `nickname` 필드도 출력하고 싶었다. 여러 `Follow` 튜플들을 갖고온 뒤, 매 번 `nickname`을 찾는 쿼리를 날리는 것을 보고, 좋은 방법이 아닌 것 같아 제거하였다. 이전에는 `UserSerializer` 에서 처리하였는데 이것도 좋은 설계는 아닌 것 같아서 그냥 `nickname`은 빼고 `id`만 출력하는 것으로 바꾸었다. 이 부분은 잘 모르겠따.
+
+
+### 간단한 회고
+<!-- 과제 시 어려웠던 점이나 느낀 점, 좋았던 점 등을 간단히 적어주세요! -->
+
+`Serializer`가 정말 신기하면서 어렵다. serialize도 해주고 deserialize도 해주는데, 데이터를 넣으면 알아서 `create`, `update`를 해주는 점이 참.. 새롭다..
+
+
+User 필드를 바꿀 때와 생성할 때, 처음엔 serializer의 파라미터로 user=user 넣었더니 무수한 오류가 나왔다. 좀 더 침착하고 난 뒤, 그냥 `user`를 넣었는데 되길래 무시하였다.
+
+좀 지난 뒤, 어쩌다가 `validated_data=data` 이렇게 썼는데 또 무수한 오류가 나를 반겼다. 그래서 `serializer.py` 를 까보니, 데이터 인자는 `data`, `user`같은 모델들은 `instance`로 받는다는 것을 알게 되었다.
+
+새로운걸 알게되어 기분이 좋다.
