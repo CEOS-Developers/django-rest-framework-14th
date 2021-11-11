@@ -681,7 +681,108 @@ p.comment_set
 
 # 5주차 과제 (기한: 11/11 목요일까지)
 ## 모든 list를 가져오는 API
-API 요청한 URL과 결과 데이터를 코드로 보여주세요!
+* URL: api/posts
+* Method: GET
+```json
+[
+    {
+        "author": 1,
+        "title": "first",
+        "content": "신기하다",
+        "author_nickname": "chaeri",
+        "created_at": "2021-11-11T10:43:09.051113+09:00",
+        "updated_at": "2021-11-11T10:43:09.051113+09:00",
+        "post_like": [],
+        "post_comment": [
+            {
+                "post": 1,
+                "writer": 4,
+                "content": "너무 신기하다",
+                "created_at": "2021-11-11T10:59:43.817108+09:00",
+                "updated_at": "2021-11-11T10:59:43.817108+09:00",
+                "writer_nickname": "ceos"
+            },
+            {
+                "post": 1,
+                "writer": 3,
+                "content": "와우우우",
+                "created_at": "2021-11-11T11:00:12.168062+09:00",
+                "updated_at": "2021-11-11T11:00:12.168062+09:00",
+                "writer_nickname": "choco"
+            }
+        ]
+    },
+    {
+        "author": 1,
+        "title": "second",
+        "content": "모델링 어렵다....ㅠ",
+        "author_nickname": "chaeri",
+        "created_at": "2021-11-11T10:43:19.266647+09:00",
+        "updated_at": "2021-11-11T10:43:19.266647+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 3,
+        "title": "배고파",
+        "content": "간식 줘",
+        "author_nickname": "choco",
+        "created_at": "2021-11-11T10:43:38.681635+09:00",
+        "updated_at": "2021-11-11T10:43:38.681635+09:00",
+        "post_like": [],
+        "post_comment": [
+            {
+                "post": 3,
+                "writer": 1,
+                "content": "1111",
+                "created_at": "2021-11-11T11:01:39.024705+09:00",
+                "updated_at": "2021-11-11T11:01:39.024955+09:00",
+                "writer_nickname": "chaeri"
+            },
+            {
+                "post": 3,
+                "writer": 4,
+                "content": "2222",
+                "created_at": "2021-11-11T11:02:09.112316+09:00",
+                "updated_at": "2021-11-11T11:02:09.112316+09:00",
+                "writer_nickname": "ceos"
+            }
+        ]
+    },
+    {
+        "author": 4,
+        "title": "세오스 최고",
+        "content": "백엔드 최고",
+        "author_nickname": "ceos",
+        "created_at": "2021-11-11T10:45:02.634218+09:00",
+        "updated_at": "2021-11-11T10:45:02.634218+09:00",
+        "post_like": [
+            {
+                "id": 1,
+                "created_at": "2021-11-11T11:03:25.206561+09:00",
+                "updated_at": "2021-11-11T11:03:25.206561+09:00",
+                "post": 4,
+                "user": 3
+            },
+            {
+                "id": 2,
+                "created_at": "2021-11-11T11:03:28.479015+09:00",
+                "updated_at": "2021-11-11T11:03:28.479015+09:00",
+                "post": 4,
+                "user": 4
+            },
+            {
+                "id": 3,
+                "created_at": "2021-11-11T11:03:32.296073+09:00",
+                "updated_at": "2021-11-11T11:03:32.296073+09:00",
+                "post": 4,
+                "user": 1
+            }
+        ],
+        "post_comment": []
+    }
+]
+```
 
 ## 특정 데이터를 가져오는 API
 API 요청한 URL과 결과 데이터를 코드로 보여주세요!
@@ -747,7 +848,50 @@ def post_detail(request, pk):
 
 ### CBV로 작성
 ```python
+from django.http import Http404
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from api.models import Post
+from api.serializers import PostSerializer
 
+
+class PostList(APIView):
+    def get(self, request, format=None): # Post 전체 가지고 오기
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data, safe=False)
+
+    def post(self, request, format=None): # Post 작성하기
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+class PostDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Post.objects.get(pk=pk)
+        except Post.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk, format=None): # 특정 Post 삭제
+        post = self.get_object(pk)
+        post.delete()
+        return Response(status=204)
 
 ```
 
