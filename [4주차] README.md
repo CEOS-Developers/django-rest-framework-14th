@@ -203,6 +203,37 @@ class PostSerializer(serializers.ModelSerializer):
         return comments
 ``` 
 
+Post 모델의 Serializer를 정의하였다. 
+
+그런데 현재 `get_comments()` 에서 **N+1 problem**이 발생하기 때문에 쿼리를 줄이는 것이 필요하다.
+
+> 💡 **N+1 Problem이란??**
+> <br>쿼리 1번으로 N건을 가져왔는데, 또다시 각 column을 얻기 위해 N번의 쿼리를 추가 수행하게 되는 문제를 N+1 (query) problem이라고 한다.
+
+`obj.post_comments.all()`에서 1번 쿼리가 수행되고, `queries`(가져온 comments)의 `query.author.username`을 가져올 때 N번의 쿼리가 추가 수행된다.
+
+### 쿼리 줄이기
+
+1. `select_related` 사용하기
+
+select하려는 모델이 single object인 경우, 즉 forward/backward OneToOne, forward ForeignKey일 때 사용한다. 1번의 쿼리로 관계된 모델들까지 가져올 수 있다.
+
+1. `prefetch_related` 사용하기
+
+select하려는 모델이 multiple object인 경우, 즉 forward/backward ManyToMany, backward ForeignKey일 때 사용한다. `prefetch_related` 는 각 모델에 대해 1번씩 쿼리를 수행한다.
+
+```python
+def get_comments(self, obj):
+		queries = obj.post_comments.all().select_related('author')
+    comments = []
+    for query in queries:
+        comment = {'author': query.author.username, 'content': query.content, 'created_at': query.created_at}
+        comments.append(comment)
+    return comments
+```
+
+Comment 모델이 User(author)를 정참조하기 때문에 `select_related` 를 사용해 seriealizer를 수정하였다.
+
 ## View와 URL
 
 ```python
