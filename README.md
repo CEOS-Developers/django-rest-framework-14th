@@ -776,7 +776,198 @@ Serializer를 다루면서 프론트와의 협업에 한걸음 다가간 듯 하
 
 
 
+# 5주차 DRF2 - API View
+## 모든 list를 가져오는 API
+- URL: api/post
+- Method: GET
+```json
+[
+    {
+        "id": 1,
+        "text": "post1",
+        "author": "user3",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-04T19:38:56.832719+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 2,
+        "text": "post2",
+        "author": "user2",
+        "like_username_list": [
+            "user1",
+            "user2"
+        ],
+        "post_comments": [],
+        "created_at": "2021-10-04T19:47:06.953963+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 3,
+        "text": "post3",
+        "author": "user3",
+        "like_username_list": [
+            "user1"
+        ],
+        "post_comments": [
+            {
+                "id": 1,
+                "created_at": "2021-10-12T18:12:50.703905+09:00",
+                "updated_at": "2021-10-12T18:12:50.704003+09:00",
+                "text": "우린 깐부자나",
+                "user": 1,
+                "post": 3
+            },
+            {
+                "id": 2,
+                "created_at": "2021-10-12T18:13:10.307574+09:00",
+                "updated_at": "2021-10-12T18:13:10.307699+09:00",
+                "text": "그만해 이러다 다죽어",
+                "user": 3,
+                "post": 3
+            }
+        ],
+        "created_at": "2021-10-04T19:47:43.490490+09:00",
+        "updated_at": "2021-10-12T14:58:58.218076+09:00"
+    },
+    {
+        "id": 4,
+        "text": "첫번째 포스트입니다",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T15:15:36.616461+09:00",
+        "updated_at": "2021-10-12T15:15:36.616534+09:00"
+    },
+    {
+        "id": 5,
+        "text": "post_api test",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T20:43:16.684445+09:00",
+        "updated_at": "2021-10-12T20:43:16.684728+09:00"
+    },
+    {
+        "id": 6,
+        "text": "인스타그램 예시 포스트 데이터",
+        "author": "mongus",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T21:41:59.792145+09:00",
+        "updated_at": "2021-10-12T21:41:59.792247+09:00"
+    },
+    {
+        "id": 7,
+        "text": "blahblah",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-10-12T21:54:48.448050+09:00",
+        "updated_at": "2021-10-12T21:54:48.448767+09:00"
+    },
+    {
+        "id": 8,
+        "text": "test post 345",
+        "author": "user1",
+        "like_username_list": [],
+        "post_comments": [],
+        "created_at": "2021-11-11T02:50:57.140388+09:00",
+        "updated_at": "2021-11-11T02:50:57.141211+09:00"
+    }
+]
+```
+
+## 특정 데이터를 가져오는 API
+- URL: api/post/3
+- Method: GET
+```json
+{
+    "id": 3,
+    "text": "post3",
+    "author": "user3",
+    "like_username_list": [
+        "user1"
+    ],
+    "post_comments": [
+        {
+            "id": 1,
+            "created_at": "2021-10-12T18:12:50.703905+09:00",
+            "updated_at": "2021-10-12T18:12:50.704003+09:00",
+            "text": "우린 깐부자나",
+            "user": 1,
+            "post": 3
+        },
+        {
+            "id": 2,
+            "created_at": "2021-10-12T18:13:10.307574+09:00",
+            "updated_at": "2021-10-12T18:13:10.307699+09:00",
+            "text": "그만해 이러다 다죽어",
+            "user": 3,
+            "post": 3
+        }
+    ],
+    "created_at": "2021-10-04T19:47:43.490490+09:00",
+    "updated_at": "2021-10-12T14:58:58.218076+09:00"
+}
+  ```
+
+## 새로운 데이터를 생성하는 API
+- URL: api/post
+- Method: POST
+- Body: {"text": "test post no.33"}
+![](images/api_created.png)
+
+
+## 특정 데이터를 업데이트하는 API
+- URL: api/post/9
+- Method: PUT
+- Body: {"text": "update post no.33"}
+![](images/api_updated.png)
+
+## 특정 데이터를 삭제하는 API
+- URL: api/post/9
+- Method: DELETE
+![](images/api_deleted.png)
+
+## 공부한 내용 정리
+### API View (CBV)
+- Django의 View 클래스의 하위 클래스
+- CBV 중 하나. 이에 대응되는 FBV로는 `@api_view` decorator 사용
+- 하나의 class -> 하나의 url에 대한 여러 Method 처리
+  - `PostList`: /post 에 대한 class 
+    - GET: 전체 게시글 목록 조회
+    - POST: 새로운 게시글 추가
+  - `PostDetail`: /post/<int:pk> 에 대한 class 
+    - GET: (pk=pk)인 게시글 조회
+    - PUT: (pk=pk)인 게시글 수정
+    - DELETE: (pk=pk)인 게시글 삭제
+
+- `as_view()`
+```python
+# urls.py
+urlpatterns = [
+    path('post', PostList.as_view()),
+    path('post/<int:pk>', PostDetail.as_view()),
+]
+```
+`as_view()` 호출로 CBV 인스턴스를 생성.\
+인스턴스는 내부에서 `dispatch()` 메서드를 통해 Request Method를 확인하여 CBV에 정의한 Method에 연결한다.
+> 만약 PUT 메서드 요청이 들어왔는데, 클래스에 PUT 메서드가 정의되지 않았다면 `HttpResponseNotAllowed` 에러 발생시킴.
+
+## 간단한 회고
+Django Rest Framework에 대해
+- Serializer
+- View (FBV)
+- API View (CBV)
+
+순서로 배우고 있는데, 아직 확실하게 감이 잡히진 않는다.\
+이것만 가지고 API 서버를 개발할 수 있을까 하는 의문이 생긴다..\
+추후 스터디에서 ViewSet이나 Authentication, Permission 등을 배우고 나면 감이 잡히지 않을까 싶다. 적어도 내가 만들고 싶은 사이트 정도는 개발할 수 있을 정도..?
+
 # 참고자료
 - [Django Tips #3 Optimize Database Queries](https://simpleisbetterthancomplex.com/tips/2016/05/16/django-tip-3-optimize-database-queries.html)
 - [REST API 제대로 알고 사용하기](https://meetup.toast.com/posts/92)
 - [admin 커스터마이징](https://wayhome25.github.io/django/2017/03/22/django-ep8-django-admin/)
+- [Classy Django REST Framework](https://www.cdrf.co)
