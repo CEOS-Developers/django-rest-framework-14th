@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from phonenumber_field.modelfields import PhoneNumberField
 
 # Create your models here.
@@ -14,29 +14,20 @@ class Base(models.Model):
         abstract = True
 
 
-# 프로필 모델 구현
-class Profile(Base):
-    user = models.OneToOneField(User, on_delete=models.CASCADE) # user model의 username(이름), password(비밀번호) 이용 # auth user과 1대 1 연결
-    photo = models.ImageField(upload_to = "profile", blank=True) # 프로필 사진
-    # 이용할 것-> username(이름), password(비밀번호)
-    nickname = models.CharField(max_length=20, unique=True) # 사용자 이름(인스타 아이디명) ex) ssssujini99 # unique=True 중복허용x
-    website = models.URLField(blank=True) # 웹사이트
-    intro = models.CharField(max_length=100, blank=True) # 소개
-    email = models.EmailField(max_length=30, blank=True) # 이메일
-    phone_num = PhoneNumberField(blank=True)
-    GENDER_C = (
-        ('여성', '여성'),
-        ('남성', '남성'),
-    )
-    gender = models.CharField(max_length=10, choices=GENDER_C, blank=True) # 성별
+# 프로필 모델 구현 -> AbstractUser이용
+class User(AbstractUser, Base):
+    photo = models.ImageField(upload_to = "profile", blank=True, null=True) # 프로필 사진
+    website = models.URLField(blank=True, null=True) # 웹사이트
+    intro = models.CharField(max_length=100, blank=True, null=True) # 소개
+    phone_num = PhoneNumberField(blank=True, null=True)
 
     def __str__(self):
-        return self.nickname  # 사용자 이름(인스타 아이디명)을 대표로 함
+        return self.username  # 사용자 이름(인스타 아이디명)을 대표로 함
 
 
 # 게시글 모델 구현
 class Post(Base):
-    author = models.ForeignKey(Profile, on_delete=models.CASCADE) # 글쓴이 ## Profile - Post : One to Many 관계
+    author = models.ForeignKey(User, on_delete=models.CASCADE) # 글쓴이 ## User - Post : One to Many 관계
     content = models.CharField(max_length=300, help_text="최대 길이 300자 입력이 가능합니다.", blank=True) # 내용
 
     def __str__(self):
@@ -52,13 +43,13 @@ class File(Base):
 # 좋아요 모델 구현
 class Like(Base):
     post = models.ForeignKey(Post, on_delete=models.CASCADE) # 해당 게시글 ## Post - Like : One to Many 관계
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE) # 좋아요를 누른 사용자 ## Profile - Like : One to Many 관계
+    user = models.ForeignKey(User, on_delete=models.CASCADE) # 좋아요를 누른 사용자 ## User - Like : One to Many 관계
 
 
 # 댓글 모델 구현
 class Comment(Base):
     post = models.ForeignKey(Post, on_delete=models.CASCADE) # 해당 게시글 ## Post - Comment : One to Many 관계
-    author = models.ForeignKey(Profile, on_delete=models.CASCADE) # 댓글을 쓴 사용자 ## Profile - Comment : One to Many 관계
+    author = models.ForeignKey(User, on_delete=models.CASCADE) # 댓글을 쓴 사용자 ## User - Comment : One to Many 관계
     content = models.CharField(max_length=50) # 댓글 내용
 
     def __str__(self):
@@ -68,22 +59,22 @@ class Comment(Base):
 # 북마크 모델 구현
 class Bookmark(Base):
     post = models.ForeignKey(Post, on_delete=models.CASCADE) # 해당 게시글
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE) # 북마크 한 사용자
+    user = models.ForeignKey(User, on_delete=models.CASCADE) # 북마크 한 사용자
 
 
 # 팔로우 모델 구현
-class Follow(Base):
-    follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower', primary_key=True)
-    followee = models.ManyToManyField(Profile, related_name='followee', through='FollowRelation') # follower가 팔로잉하는 사람들 # 역참조할때도 똑같이 followee
-
-    def __str__(self):
-        return self.follower.nickname
+# class Follow(Base):
+#     follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower', primary_key=True)
+#     followee = models.ManyToManyField(Profile, related_name='followee', through='FollowRelation') # follower가 팔로잉하는 사람들 # 역참조할때도 똑같이 followee
+#
+#     def __str__(self):
+#         return self.follower.nickname
 
 
 # 팔로우-팔로잉 중개 모델 설정
-class FollowRelation(Base):
-    user = models.ForeignKey(Follow, on_delete=models.CASCADE)
-    following = models.ForeignKey(Profile, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.user.follower.nickname
+# class FollowRelation(Base):
+#     user = models.ForeignKey(Follow, on_delete=models.CASCADE)
+#     following = models.ForeignKey(Profile, on_delete=models.CASCADE)
+#
+#     def __str__(self):
+#         return self.user.follower.nickname
