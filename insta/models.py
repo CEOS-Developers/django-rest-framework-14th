@@ -14,7 +14,7 @@ class Base(models.Model):
         abstract = True
 
 
-# 프로필 모델 구현 -> AbstractUser이용
+# 유저 모델 구현 -> AbstractUser이용
 class User(AbstractUser, Base):
     photo = models.ImageField(upload_to = "profile", blank=True, null=True) # 프로필 사진
     website = models.URLField(blank=True, null=True) # 웹사이트
