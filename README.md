@@ -785,18 +785,78 @@ p.comment_set
 ```
 
 ## 특정 데이터를 가져오는 API
-API 요청한 URL과 결과 데이터를 코드로 보여주세요!
-
+* URL: api/posts/2
+* Method: GET
+```json
+{
+    "author": 1,
+    "title": "second",
+    "content": "모델링 어렵다....ㅠ",
+    "author_nickname": "chaeri",
+    "created_at": "2021-11-11T10:43:19.266647+09:00",
+    "updated_at": "2021-11-11T10:43:19.266647+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
 ## 새로운 데이터를 생성하는 API
-요청 URL 및 body 데이터의 내용과 create된 결과를 보여주세요!
+* URL: api/posts/
+* Method: Post
+* Body
+```json
+{
+    "author" : 3,
+    "title" : "view 작성",
+    "content" : "view 작성하기 과제"
+}
+```
+```json
+{
+    "author": 3,
+    "title": "view 작성",
+    "content": "view 작성하기 과제",
+    "author_nickname": "choco",
+    "created_at": "2021-11-12T01:01:58.749741+09:00",
+    "updated_at": "2021-11-12T01:01:58.749741+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
 
 ## 특정 데이터를 업데이트하는 API
-요청 URL 및 body 데이터의 내용과 update된 결과를 보여주세요!
+* URL: api/posts/7
+* Method: PUT
+* Body
+```json
+{
+    "author" : 3,
+    "title" : "view update",
+    "content" : "update, update"
+}
+```
+
+```json
+{
+    "author": 3,
+    "title": "view update",
+    "content": "update, update",
+    "author_nickname": "choco",
+    "created_at": "2021-11-12T01:01:58.749741+09:00",
+    "updated_at": "2021-11-12T01:14:05.158968+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
 
 ## 특정 데이터를 삭제하는 API
-요청 URL 및 delete된 결과를 보여주세요!
+* URL: api/posts/6
+* Method: DELETE
+
+![delete](https://user-images.githubusercontent.com/79985974/141332502-2e1233b2-c096-4b40-a3b6-4c3c408e90dc.PNG)
+  
 
 ## 공부한 내용 정리
+
 
 ### FBV로 작성
 ```python
@@ -896,4 +956,5 @@ class PostDetail(APIView):
 ```
 
 ### 간단한 회고
-과제 시 어려웠던 점이나 느낀 점, 좋았던 점 등을 간단히 적어주세요!
+중간에 DB에 문제가 생겨서 mysql을 지웠다가 다시 깔았더니 그 다음은 다른 에러들이 자꾸 생겨서
+힘들었다.ㅠㅠ 분명 view는 빨리 작성했는데 에러때문에 시간을 많이 잡아먹었다ㅜ
