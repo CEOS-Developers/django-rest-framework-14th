@@ -1,4 +1,6 @@
 from .base import *  # noqa
+import pymysql
+pymysql.install_as_MySQLdb()
 
 DEBUG = True
 

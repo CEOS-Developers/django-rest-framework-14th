@@ -676,3 +676,80 @@ p.comment_set
 ### 간단한 회고
 시험 기간이라서 많은 시간을 쏟진 못해서 많이 아쉬웠다.
 이번에 장고를 처음 사용해서 drf와 serializer가 정말 편리한 기능이라 생각했다. 앞으로 스터디를 하면서 또 어떤 기능들이 있을지 기대된다.
+
+* * *
+
+# 5주차 과제 (기한: 11/11 목요일까지)
+## 모든 list를 가져오는 API
+API 요청한 URL과 결과 데이터를 코드로 보여주세요!
+
+## 특정 데이터를 가져오는 API
+API 요청한 URL과 결과 데이터를 코드로 보여주세요!
+
+## 새로운 데이터를 생성하는 API
+요청 URL 및 body 데이터의 내용과 create된 결과를 보여주세요!
+
+## 특정 데이터를 업데이트하는 API
+요청 URL 및 body 데이터의 내용과 update된 결과를 보여주세요!
+
+## 특정 데이터를 삭제하는 API
+요청 URL 및 delete된 결과를 보여주세요!
+
+## 공부한 내용 정리
+
+### FBV로 작성
+```python
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import JSONParser
+from api.models import Post
+from api.serializers import PostSerializer
+
+@csrf_exempt
+def post_list(request):
+    if request.method == 'GET':
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+    
+def post_detail(request, pk):
+    try:
+        post=Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return JsonResponse(status=404)
+    
+    if request.method == 'GET':
+        serializer = PostSerializer(post)
+        return JsonResponse(serializer.data)
+    
+    elif request.method == 'PUT':
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
+    
+    elif request.method == 'DELETE':
+        post.delete()
+        return JsonResponse(status=204)
+
+```
+
+### CBV로 작성
+```python
+
+
+```
+
+### 간단한 회고
+과제 시 어려웠던 점이나 느낀 점, 좋았던 점 등을 간단히 적어주세요!
