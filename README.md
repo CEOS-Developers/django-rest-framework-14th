@@ -1,31 +1,8 @@
-# 4주차 DRF1 : Serializer
-## 과제
-### 데이터 삽입
-```python
-# api/models.py
-
-class Post(models.Model):
-    profile = models.ForeignKey('Profile', on_delete=models.CASCADE, related_name='posts')
-    caption = models.TextField(max_length=2200, blank=True)
-    date_posted = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.profile.account_name}'s post: {self.caption}"
-
-
-class Photo(models.Model):
-    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='photos')
-    image_file = models.ImageField(upload_to='posts/photos')
-
-    def __str__(self):
-        return f"Photo from {self.post.profile.account_name} 's post: {self.post.caption}"
-```
-![Screen Shot 2021-10-15 at 1 55 46 PM](https://user-images.githubusercontent.com/53527600/137434974-446db017-0136-4df5-8554-97ee62abe6ef.png)
-
-### 모든 데이터를 가져오는 API
+## 5주차 과제
+### 모든 list를 가져오는 API
 - URI: `/api/posts/`
 - Method: `GET`
-![Screen Shot 2021-10-15 at 2 31 30 PM](https://user-images.githubusercontent.com/53527600/137437162-944c1032-8927-4bc1-a870-de817689797b.png)
+![Screen Shot 2021-11-13 at 1 12 06 AM](https://user-images.githubusercontent.com/53527600/141498714-28855fdc-279e-446e-88ab-e4c062fa2511.png)
 ```JSON
 [
     {
@@ -109,7 +86,7 @@ class Photo(models.Model):
         ],
         "caption": "포스트 테스트",
         "likes_count": 0,
-        "comments_count": 0,
+        "comments_count": 1,
         "date_posted": "2021-10-15T13:06:01.576258+09:00"
     },
     {
@@ -126,33 +103,23 @@ class Photo(models.Model):
                 "image_file": "/media/posts/photos/02_oH3Xsw9.png"
             }
         ],
-        "caption": "포스틱포스트",
-        "likes_count": 1,
-        "comments_count": 1,
+        "caption": "포스틱 포스트 포스트",
+        "likes_count": 4,
+        "comments_count": 2,
         "date_posted": "2021-10-15T13:08:49.525477+09:00"
     }
 ]
 ```
 
-### 새로운 데이터를 create하도록 요청하는 API 
-- URI: `api/posts/`
-- Method: `POST`
-- 요청 시 body에 들어가야 하는 필드
-  - profile_id: int
-  - image_files: file(image)
-  - caption: string
-![Screen Shot 2021-10-15 at 1 10 07 PM](https://user-images.githubusercontent.com/53527600/137435262-6acc088c-d4fd-4281-b82f-b8a660e73094.png)
-
-실제 반환되는 JSON은 아래와 같다. (comment에 profile_photo 가 추가되었다)
+### 특정 데이터를 가져오는 API
+- URI: `/api/post/5/`
+- Method: `GET`
+![Screen Shot 2021-11-13 at 1 16 27 AM](https://user-images.githubusercontent.com/53527600/141498913-1994607c-6146-4db1-ba22-9a4c531bc4d3.png)
 ```JSON
 {
     "id": 5,
     "account_name": "test1",
     "profile_photo": "profiles/01_3EM0f2k.png",
-    "caption": "포스틱포스트",
-    "likes_count": 1,
-    "comments_count": 1,
-    "date_posted": "2021-10-15T13:08:49.525477+09:00",
     "photos": [
         {
             "id": 11,
@@ -163,6 +130,10 @@ class Photo(models.Model):
             "image_file": "/media/posts/photos/02_oH3Xsw9.png"
         }
     ],
+    "caption": "포스틱 포스트 포스트",
+    "likes_count": 4,
+    "comments_count": 2,
+    "date_posted": "2021-10-15T13:08:49.525477+09:00",
     "comments": [
         {
             "id": 1,
@@ -170,110 +141,218 @@ class Photo(models.Model):
             "account_name": "admin_profile",
             "profile_photo": "profiles/tmp4et5jeut.jpg",
             "content": "포스틱 맛있겠네요ㅎ"
+        },
+        {
+            "id": 2,
+            "post_id": 5,
+            "account_name": "test0",
+            "profile_photo": "profiles/tmp4et5jeut.jpg",
+            "content": "감자튀김이 더 맛있음ㅋ"
         }
     ]
 }
 ```
 
-### 반환되는 JSON의 차이
-URI는 같더라도 각 요청에 따라 반환되는 JSON이 조금씩 다르도록 설계했다. 인스타그램 클론이기 때문에 실제 인스타그램 서비스를 생각해 봤을 때 클라이언트에서 각 화면을 구성할 때 실제로 필요할 것 같은 정보를 반환하는 형식으로 구현했다.
-
-#### GET api/posts/
-실제 인스타그램의 경우 해당 사용자가 팔로우 하는 계정의 포스트만 보이도록 쿼리를 하겠지만, 일단 지금은 모든 포스트를 가져올 것이라고 가정했다. 인스타그램의 피드에 들어가면 보이는 포스트는 `해당 포스트를 올린 사용자(계정 username), 해당 계정의 프로필 사진, 포스트 내용, 해당 포스트에 포함된 모든 미디어, 좋아요 수, 댓글 수, 일부 댓글, 좋아요를 누른 사용자 일부, 포스트를 올린 시각(...ago 형식)` 이렇게 구성된다. 
-
-실제 인스타그램의 구성에서 내가 기술적으로 구현하기 힘든 부분은 제외하고 재구성 해 보았다. 내가 만든 인스타그램 클론은 아래와 같은 형식의 JSON을 반환한다.
+### 새로운 데이터를 생성하는 API
+- URI: `/api/posts/`
+- Method: `POST`
+- 요청 시 body에 들어가야 하는 필드
+  - profile_id: int
+  - image_files: file(image)
+  - caption: string 
+![Screen Shot 2021-11-13 at 1 24 23 AM](https://user-images.githubusercontent.com/53527600/141500071-8d34c91c-992d-4807-b711-79271bedcd88.png)
 ```JSON
 {
-    "id": <Post id>,
-    "account_name": <Profile의 account_name>,
-    "profile_photo": <Profile의 profile_photo>,
+    "id": 6,
+    "account_name": "test0",
+    "profile_photo": "profiles/tmp4et5jeut.jpg",
     "photos": [
         {
-            "id": <Photo id>,
-            "image_file": <Photo의 image_file>
-        },
-        ...
+            "id": 13,
+            "image_file": "/media/posts/photos/Screen_Shot_2021-11-11_at_3.55.30_PM.png"
+        }
     ],
-    "caption": <게시글 내용>,
-    "likes_count": <좋아요 수>,
-    "comments_count": <댓글 수>,
-    "date_posted": <게시글을 올린 시각>
+    "caption": "샤인머스캣",
+    "likes_count": 0,
+    "comments_count": 0,
+    "date_posted": "2021-11-13T01:24:18.939847+09:00",
+    "comments": []
 }
 ```
 
-#### POST api/posts/
-댓글 목록이 추가되었다. `POST` 시 반환되는 JSON은 `GET api/post/<int:post_id>/`를 했을 때 반환되는 것과 같다. 
+### 특정 데이터를 업데이트하는 API
+- URI: `/api/post/5/`
+- Method: `PATCH`
+![Screen Shot 2021-11-13 at 1 19 04 AM](https://user-images.githubusercontent.com/53527600/141499300-2cc04601-e0c0-42a1-93fb-167115684b46.png)
 ```JSON
 {
-    "id": <Post id>,
-    "account_name": <Profile의 account_name>,
-    "profile_photo": <Profile의 profile_photo>,
-    "caption": <게시글 내용>,
-    "likes_count": <좋아요 수>,
-    "comments_count": <댓글 수>,
-    "date_posted": <게시글을 올린 시각>,
+    "id": 5,
+    "account_name": "test1",
+    "profile_photo": "profiles/01_3EM0f2k.png",
     "photos": [
         {
-            "id": <Photo id>,
-            "image_file": <Photo의 image_file>
+            "id": 11,
+            "image_file": "/media/posts/photos/01_xPKDAkw.png"
         },
-        ...
+        {
+            "id": 12,
+            "image_file": "/media/posts/photos/02_oH3Xsw9.png"
+        }
     ],
+    "caption": "포스틱 포스트를 PATCH로 수정했어요~!",
+    "likes_count": 4,
+    "comments_count": 2,
+    "date_posted": "2021-10-15T13:08:49.525477+09:00",
     "comments": [
         {
-            "id": <Comment id>,
-            "post_id": <Post id>,
-            "account_name": <Profile의 account_name>,
-            "profile_photo": <Profile의 profile_photo>,
-            "content": <댓글 내용>
+            "id": 1,
+            "post_id": 5,
+            "account_name": "admin_profile",
+            "profile_photo": "profiles/tmp4et5jeut.jpg",
+            "content": "포스틱 맛있겠네요ㅎ"
+        },
+        {
+            "id": 2,
+            "post_id": 5,
+            "account_name": "test0",
+            "profile_photo": "profiles/tmp4et5jeut.jpg",
+            "content": "감자튀김이 더 맛있음ㅋ"
         }
     ]
 }
 ```
 
-## 이외 구현한 기능
-현재 구현되어 있는 기능은 `GET api/posts/`, `POST api/posts/` 이외에 몇가지가 더 있다. 
+### 특정 데이터를 삭제하는 API
+- URI: `/api/post/3/`
+- Method: `DELETE`
+![Screen Shot 2021-11-13 at 1 28 10 AM](https://user-images.githubusercontent.com/53527600/141500644-cde515a5-5d8f-41e7-bbc0-093fe35688c0.png)
+아래와 같이 status code 값이 204라서 반환값은 딱히 없다.
+```Python
+def delete(self, request, pk, format=None):
+    post = Post.objects.get(pk=pk)
+    post.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+```
 
-- `GET api/posts/<int:post_id>/`: 1개의 게시글 정보를 불러오기
-- `POST api/comments/`: 댓글 작성하기
-- `GET api/comment/<int:comment_id>/`: 1개의 댓글 정보를 불러오기
-- `POST api/likes/`: 좋아요 표시하기
+`DELETE /api/post/3/` 요청 후 전체 Post list를 조회한 결과는 다음과 같다. id가 3인 post가 사라졌음을 알 수 있다. 
+```JSON
+[
+    {
+        "id": 1,
+        "account_name": "admin_profile",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 1,
+                "image_file": "/media/posts/photos/01_3oDQNH2.png"
+            },
+            {
+                "id": 2,
+                "image_file": "/media/posts/photos/02_JI81FE0.png"
+            },
+            {
+                "id": 3,
+                "image_file": "/media/posts/photos/03_aNTXhFi.png"
+            }
+        ],
+        "caption": "첫번째 포스트 ",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-10-15T12:53:03.748582+09:00"
+    },
+    {
+        "id": 2,
+        "account_name": "admin_profile",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 4,
+                "image_file": "/media/posts/photos/01_kQBNcRx.png"
+            },
+            {
+                "id": 5,
+                "image_file": "/media/posts/photos/02_C82apOq.png"
+            },
+            {
+                "id": 6,
+                "image_file": "/media/posts/photos/03_eOshgZ8.png"
+            }
+        ],
+        "caption": "first post",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-10-15T12:53:24.608748+09:00"
+    },
+    {
+        "id": 4,
+        "account_name": "test0",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 9,
+                "image_file": "/media/posts/photos/02_wxXsBO1.png"
+            },
+            {
+                "id": 10,
+                "image_file": "/media/posts/photos/03_jydBElM.png"
+            }
+        ],
+        "caption": "포스트 테스트",
+        "likes_count": 0,
+        "comments_count": 1,
+        "date_posted": "2021-10-15T13:06:01.576258+09:00"
+    },
+    {
+        "id": 5,
+        "account_name": "test1",
+        "profile_photo": "profiles/01_3EM0f2k.png",
+        "photos": [
+            {
+                "id": 11,
+                "image_file": "/media/posts/photos/01_xPKDAkw.png"
+            },
+            {
+                "id": 12,
+                "image_file": "/media/posts/photos/02_oH3Xsw9.png"
+            }
+        ],
+        "caption": "포스틱 포스트를 PATCH로 수정했어요~!",
+        "likes_count": 4,
+        "comments_count": 2,
+        "date_posted": "2021-10-15T13:08:49.525477+09:00"
+    },
+    {
+        "id": 6,
+        "account_name": "test0",
+        "profile_photo": "profiles/tmp4et5jeut.jpg",
+        "photos": [
+            {
+                "id": 13,
+                "image_file": "/media/posts/photos/Screen_Shot_2021-11-11_at_3.55.30_PM.png"
+            }
+        ],
+        "caption": "샤인머스캣",
+        "likes_count": 0,
+        "comments_count": 0,
+        "date_posted": "2021-11-13T01:24:18.939847+09:00"
+    }
+]
+```
 
-### GET api/posts/<int:post_id>/
-![Screen Shot 2021-10-15 at 3 25 41 PM](https://user-images.githubusercontent.com/53527600/137441850-2a927c92-76c8-48a6-9309-ea3b37ce5490.png)
+### 공부한 내용 정리
+HTTP Method 중 `PUT, PATCH` 는 모두 업데이트, 즉 데이터의 수정을 위해 쓰인다.
+데이터를 업데이트 하는 API를 구현할 때 어떤 메서드를 사용해야 하나 고민을 하다가, 두 메서드의 차이점을 검색해보게 되었다. 
 
-### POST api/comments/
-- 요청 시 body에 들어가야 하는 필드
-    - post_id
-    - account_name
-    - content
-![Screen Shot 2021-10-15 at 3 19 59 PM](https://user-images.githubusercontent.com/53527600/137441420-b1136173-b3ed-4627-af72-edb2eae6c85e.png)
+두 메서드의 정의를 간단히 각각 정리하면 다음과 같다. 
 
-### GET api/comment/<int:comment_id>/
-![Screen Shot 2021-10-15 at 3 20 28 PM](https://user-images.githubusercontent.com/53527600/137441429-494be860-18d3-469e-812d-b99916c8a1a9.png)
+- `PUT`: 리소스를 대체한다. 
+- `PATCH`: 리소스의 일부분을 수정한다.
 
-### POST api/likes/
-![Screen Shot 2021-10-15 at 3 16 35 PM](https://user-images.githubusercontent.com/53527600/137441027-9600f0d7-63f1-4f92-b9a0-b8aa52d6bfc2.png)
+`PUT` 요청 시 요청을 일부분만 보낼 경우 나머지는 디폴트 값으로 수정 되는 것이 원칙이다. 따라서 변경되는 점이 없는 속성까지도 모두 값을 담아 요청을 보내야 한다. 여기서 중요한 것은 만약 **일부분만 보낼 경우 전달한 필드 외의 나머지 필드는 모두 null 또는 default 값이 들어가 버린다** 는 것이다. 수정을 원치 않았던 부분이 수정되어 버릴 수도 있다는 의미이므로, `PUT` 요청을 보낼 시에는 반드시 수정을 원하는 필드 외에 다른 필드 또한 원래의 값을 채워 보내야 한다.
 
-## 회고
-### 처음에 ViewSet을 쓰게 된 경위
-예전에 DRF를 한 번 써본적이 있었는데, 그때 browsable API가 상당히 신기하고 편했던 기억이 있었다. 그래서 이번에도 DRF를 사용하면 browsable API를 볼 수 있겠지 생각하고 작업했는데 못생기고 밋밋한 화면만 나왔다. 
+반면 `PATCH` 는 태생부터 데이터의 일부만 수정하기 위한 것으로, 수정하고 싶은 필드의 데이터만 담아 요청을 보내도 수정되지 않는 나머지 필드는 기존의 데이터가 유지된다. 
 
-|기대했던 화면|코드 작성 후 보이는 화면|
-|----------|-------------------|
-|![robotgetbrwapi-660x452](https://user-images.githubusercontent.com/53527600/137432589-3affc283-0bee-430b-9ab4-08982a30afff.png)|![Screen Shot 2021-10-15 at 1 46 02 PM](https://user-images.githubusercontent.com/53527600/137433650-3bfae81b-69e8-44a3-aae8-c0be434234da.png)|
+인스타그램 특성 상 `PATCH`를 사용하는 것이 더 적합할 것이라고 판단하여 `PATCH` 메서드를 사용하게 되었다.
 
-검색 해 보니 `ViewSet`을 사용하면 browsable API를 사용할 수 있다고 하였다. 심지어 지정된 액션으로 맵핑만 해 주면 정말 간단하고 짧은 뷰 작성만으로도 CRUD를 해 낼 수 있었다! 그래서 열심히 적용을 했으나...
-
-### ViewSet을 다시 적용 해제 한 이유
-모델링 해 놓은 것에 맞추다 보니 생각보다 커스텀 해야 할 것이 많았다. 심지어 아직 Django와 DRF에 대한 이해가 부족한 상태인데, 무지성으로 ViewSet을 따라하려 하다 보니 조금 힘들었다. 심지어 `ViewSet`을 적용하게 된 이유인 browsable API로는 `POST` 액션을 테스트 할 수 없어서 `api/tests.py`에 테스트 코드를 작성하며 API의 작동을 확인해야 했다 T_T
-
-완성하고 나서 수행해야할 과제를 다시 확인해 보는데, 다다음주차 커리큘럼에 `ViewSet`이 있었다...!
-
-![Screen Shot 2021-10-15 at 1 46 51 PM](https://user-images.githubusercontent.com/53527600/137433779-55cdc33b-0061-404f-aa3d-c74ca5b95576.png)
-
-다다음주차에 배울 내용이기도 하고, 지금 까지의 이해도로는 `ViewSet` 적용이 큰 의미가 없는 것 같아서 다시 노션에 공유해 주셨던 view 함수 템플릿을 가져다 쓰는 식으로 리팩토링을 하기로 결정했다.
-
-### 아쉬운 점
-1. 이미지 처리 관련하여서 오류를 **상당히** 많이 겪어서 비디오 파일은 손도 못 댔는데, 다음에는 비디오 파일도 처리할 수 있으면 좋을 것 같다. 
-2. 처음에는 Postman 작동이 생각하는 것 처럼 잘 안 돼서 별로라고 생각했는데, 내가 바보였을 뿐 Postman은 완전 짱이다! 이미지 파일 업로드 테스트 하는 부분에서 Postman 없었으면 큰일 날 뻔 했다. 사용법을 잘 읽어보고 했으면 삽질을 조금 덜 했을텐데... 다음 부터는 새로 접하는 툴은 무작정 해 보려고 하지 말고 **꼭** 사용법을 먼저 읽어봐야 겠다. 
+### 간단한 회고
+학교 기말고사 전 마지막 과제 기간과 겹쳐서 시간 안에 과제를 제출하지 못했다. 정신줄 놓고 과제를 까맣게 잊고 살다가 오늘까지 였던 학교 과제를 제출한 뒤에 긴장이 풀어진 채 쉬고 있었는데 코드 리뷰어인 민아님께 연락을 받았다... 민아님 아니었으면 제출이 더 늦어질 뻔했다. 일정을 관리하는 습관을 진짜 제발 제대로 들여야겠다는 생각을 했다. 정말 감사합니다 민아님ㅠㅠ🥺🥰
