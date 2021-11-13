@@ -7,6 +7,6 @@ from .views import PostList, PostDetail
 
 urlpatterns = [
     # path('', include(router.urls))
-    path('posts/', PostList.as_view()),
-    path('posts/<int:pk>/', PostDetail.as_view())
+    path('posts', PostList.as_view()),
+    path('posts/<int:pk>', PostDetail.as_view())
 ]
