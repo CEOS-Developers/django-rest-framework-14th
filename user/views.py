@@ -1,194 +1,127 @@
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.db import IntegrityError
-from rest_framework.decorators import api_view
-from rest_framework.parsers import JSONParser
+from django.db.utils import IntegrityError
 
-from .serializers import UserSerializer
+from rest_framework.generics import get_object_or_404
+from rest_framework.parsers import JSONParser
+from rest_framework.views import APIView
+
+from .serializers import FollowerSerializer, FollowingSerializer, UserSerializer
 from user.models import User, Follow
 
 
-@csrf_exempt
-@api_view(['GET', 'POST'])
-# /api/user
-def user_list(request):
-    # display all user list
-    if request.method == 'GET':
-        users = User.objects.all()
+class UserView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(User, pk=pk)
+
+    def get(self, request, pk=None, **kwargs):
         fields = request.GET.getlist('fields') or None
-        excludes = request.GET.getlist('excludes') or None
+        if pk is None:
+            users = User.objects.all()
 
+            try:
+                serializer = UserSerializer(users, fields=fields, many=True)
+                return JsonResponse(serializer.data, status=200, safe=False)
+            except ValueError:
+                return JsonResponse({'message': 'Wrong url parameter'})
+
+        else:
+            try:
+                user = User.objects.get(pk=pk)
+                serializer = UserSerializer(user, fields=fields)
+                return JsonResponse(serializer.data, status=200, safe=False)
+
+            except User.DoesNotExist:
+                return JsonResponse({'message': "Id " + str(pk) + ' doesn\'t exist in database'}, status=404)
+
+    def post(self, request, pk=None):
+        if pk is None:
+            data = JSONParser().parse(request)
+            fields = ['id', 'nickname', 'login_id', 'email']
+            serializer = UserSerializer(data=data, fields=fields)
+            if not serializer.is_valid():
+                return JsonResponse(serializer.errors, status=400, safe=False)
+            serializer.save()
+            return JsonResponse(serializer.data, status=201, safe=False)
+
+        else:
+            return JsonResponse({'message': 'Wrong url'}, status=400)
+
+    def put(self, request, pk=None):
         try:
-            serializer = UserSerializer(users, fields=fields, excludes=excludes, many=True)
-        except ValueError:
-            return JsonResponse({'message': 'Wrong url parameter : '
-                                            'Fields and Excludes cannot exist at the same time'}, status=400)
+            user = self.get_object(pk)
+            data = JSONParser().parse(request)
+            serializer = UserSerializer(instance=user, data=data, partial=True)
 
-        response = serializer.data
-        return JsonResponse(response, status=200, safe=False)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
 
-    # create user
-    if request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = UserSerializer(data=data)
+            return JsonResponse({"message": "Id " + str(pk) + ' is updated successfully'}, status=200)
 
-        if not serializer.is_valid():
-            return JsonResponse(serializer.errors, status=400, safe=False)
-
-        User.objects.create_user(serializer.data)
-
-        response = serializer.data
-        return JsonResponse(response, status=201, safe=False)
-
-
-@csrf_exempt
-@api_view(['GET', 'PUT', 'DELETE'])
-# /api/user/{user_id}
-def user_detail(request, pk):
-    # display a user
-    if request.method == 'GET':
-        try:
-            user = User.objects.get(pk=pk)
-
-        except User.DoesNotExist:
-            return JsonResponse({'message': "Id " + str(pk) + ' doesn\'t exist in database'}, status=404)
-
-        fields = request.GET.getlist('fields') or None
-
-        serializer = UserSerializer(user, fields=fields)
-
-        response = serializer.data
-        return JsonResponse(response, status=200, safe=False)
-
-    # modify a user information
-    elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-
-        try:
-            user = User.objects.get(pk=pk)
-            User.objects.update_user(user, data)
-
-        except User.DoesNotExist:
-            return JsonResponse({"message": "Id " + str(pk) + " is not exist"}, status=304)
         except IntegrityError:
             return JsonResponse({"message": str(data) + " is already exist"}, status=304)
         except AttributeError:
             return JsonResponse({"message": str(data) + " have wrong attribute"}, status=304)
 
-        return JsonResponse({"message": "Id " + str(pk) + ' is updated successfully'}, status=200)
-
-    # delete a user
-    if request.method == 'DELETE':
-        try:
-            User.objects.delete_user(pk=pk)
-
-        except ValueError:
-            return JsonResponse({'message': 'Id ' + str(pk) + ' doesn\'t exist in database'}, status=304)
-
-        return JsonResponse({'message': 'Id ' + str(pk) + ' is deleted successfully'}, status=200)
+    def delete(self, request, pk=None):
+        user = self.get_object(pk)
+        user.delete()
+        return JsonResponse({"message": "Id=%s is deleted successfully" % str(pk)}, status=200)
 
 
-@csrf_exempt
-@api_view(['GET', 'PUT', 'DELETE'])
-# /api/user/{from_user_id}/following/{to_user_id}
-def follow_user(request, from_user_id, to_user_id):
-    # check if a user follows target user
-    if request.method == 'GET':
-        try:
-            from_user = User.objects.get(pk=from_user_id)
-            to_user = User.objects.get(pk=to_user_id)
+class FollowView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(User, pk=pk)
 
-        except User.DoesNotExist:
-            return JsonResponse({'message': 'id=%s user or id=%s user '
-                                            'does not exist in the database' % (from_user_id, to_user_id)}, status=404)
+    def is_following(self, from_user_id, to_user_id):
+        return Follow.objects.filter(from_user_id=from_user_id, to_user_id=to_user_id).exists()
 
-        if from_user.is_following(to_user):
+    def get(self, request, from_user_id, to_user_id):
+        if self.is_following(from_user_id, to_user_id):
             return JsonResponse({"message": "True"}, status=200)
         return JsonResponse({"message": "False"}, status=200)
 
-    # follow from -> to
-    elif request.method == 'PUT':
-
+    def put(self, request, from_user_id, to_user_id):
         try:
-            from_user = User.objects.get(pk=from_user_id)
-            to_user = User.objects.get(pk=to_user_id)
+            if from_user_id == to_user_id:
+                return JsonResponse({'message': 'You can\'t follow yourself'}, status=400)
 
-        except User.DoesNotExist:
-            return JsonResponse({'message': 'id=%s user or id=%s user '
-                                            'does not exist in the database' % (from_user_id, to_user_id)}, status=404)
+            if self.is_following(from_user_id, to_user_id):
+                raise ValueError
 
-        if from_user == to_user:
-            return JsonResponse({'message': 'You can\'t follow yourself'}, status=400)
+            Follow(from_user_id=from_user_id, to_user_id=to_user_id).save()
 
-        try:
-            User.objects.follow(from_user, to_user)
+            return JsonResponse({"message": 'followed ' + str(to_user_id) + ' successfully'}, status=200)
+
+        # FK constraint catch
+        except IntegrityError:
+            return JsonResponse({"message": 'requested ID doesn\'t exist'}, status=400)
 
         except ValueError:
             return JsonResponse({"message": str(from_user_id) + ' already followed ' + str(to_user_id)}, status=304)
+        
 
-        return JsonResponse({"message": 'followed ' + str(to_user_id) + ' successfully'}, status=200)
-
-    # a user unfollows target user
-    elif request.method == 'DELETE':
-        try:
-            relation = Follow.objects.get(from_user__id=from_user_id, to_user__id=to_user_id)
-
-        except Follow.DoesNotExist:
-            return JsonResponse({"message": str(from_user_id) + ' is not following ' + str(to_user_id)}, status=404)
-
-        relation.delete()
-        return JsonResponse({"message": 'unfollowed ' + str(to_user_id) + ' successfully'}, status=200)
+    def delete(self, request, from_user_id, to_user_id):
+        if self.is_following(from_user_id, to_user_id):
+            Follow.objects.get(from_user_id=from_user_id, to_user_id=to_user_id).delete()
+            return JsonResponse({"message": "successfully unfollowed %s" % (str(to_user_id))}, status=200)
+        return JsonResponse({"message": "already unfollowed %s" % (str(to_user_id))}, status=200)
 
 
-@api_view(['GET'])
-# /api/user/{user_id}/follower
-def follower_list(request, pk):
-    # display a user follower list
-    if request.method == 'GET':
-        try:
-            user = User.objects.get(pk=pk)
+class FollowerList(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(User, pk=pk)
 
-        except User.DoesNotExist:
-            return JsonResponse({'message': '%s does not exist' % (str(pk))}, status=404)
-
-        user_followers = User.objects.filter(following__to_user=user)
-
-        try:
-            serializer = UserSerializer(
-                user_followers,
-                fields=('id', 'login_id', 'email', 'nickname', 'bio', 'profile_picture'),
-                many=True
-            )
-
-        except ValueError:
-            return JsonResponse({'message': 'Wrong url parameter : '
-                                            'Fields and Excludes cannot exist at the same time'}, status=404)
-
+    def get(self, request, pk=None):
+        followers = Follow.objects.filter(to_user_id=pk)
+        serializer = FollowerSerializer(followers, many=True)
         return JsonResponse(serializer.data, safe=False, status=200)
+        
 
+class FollowingList(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(User, pk=pk)
 
-@api_view(['GET'])
-# /api/user/{user_id}/following
-def following_list(request, pk):
-    # display a user following list
-    if request.method == 'GET':
-        try:
-            user = User.objects.get(pk=pk)
-
-        except User.DoesNotExist:
-            return JsonResponse({'message': '%s does not exist' % (str(pk))}, status=404)
-
-        user_followings = User.objects.filter(follower__from_user=user)
-
-        try:
-            serializer = UserSerializer(
-                user_followings,
-                fields=('id', 'login_id', 'email', 'nickname', 'bio', 'profile_picture'),
-                many=True
-            )
-
-        except ValueError:
-            return JsonResponse({'message': 'Wrong url parameter : '
-                                            'Fields and Excludes cannot exist at the same time'}, status=404)
-
+    def get(self, request, pk=None):
+        followings = Follow.objects.filter(from_user_id=pk)
+        serializer = FollowingSerializer(followings, many=True)
         return JsonResponse(serializer.data, safe=False, status=200)

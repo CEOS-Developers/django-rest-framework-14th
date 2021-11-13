@@ -5,33 +5,30 @@ from base.models import Base
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, data):
+    def create_user(self, login_id, email, nickname, password, is_superuser=False):
         user = self.model(
-            login_id=data['login_id'],
-            email=data['email'],
-            nickname=data['nickname']
+            login_id=login_id,
+            email=email,
+            nickname=nickname,
+            is_superuser=is_superuser
         )
-
-        password = data.get('password')
         user.set_password(password)
-
         user.save()
         return user
 
-    @staticmethod
-    def update_user(user, data):
-        for key in data.keys():
-            if not hasattr(user, key):
-                raise AttributeError
-            user.__setattr__(key, data[key])
-        user.save()
-
-    @staticmethod
-    def delete_user(pk):
-        user = User.objects.filter(pk=pk)
-        if not user.exists():
-            raise ValueError
-        user.delete()
+    def create_superuser(self, login_id, email=None, nickname=None, password=None, **extra_fields):
+        superuser = self.create_user(
+            login_id=login_id,
+            nickname=nickname,
+            password=password,
+            email=email,
+            is_superuser=True
+        )
+        superuser.is_staff = True
+        superuser.is_superuser = True
+        superuser.is_active = True
+        superuser.save()
+        return superuser
 
     @staticmethod
     def follow(from_user, to_user):
@@ -53,6 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
 
     created_date = models.DateTimeField(auto_now_add=True, editable=False)
 
