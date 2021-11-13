@@ -150,7 +150,8 @@ REST API URI를 디자인할 때는 보통 다음 관습을 따른다.
 1. collection은 1개의 segment를 사용한다. (ex. `/api/posts`)
 2. collection의 members는 2개의 segment를 사용한다. (ex. `/api/posts/20`)
 
-참고: [7 Rules for REST API URI Design]([https://blog.restcase.com/7-rules-for-rest-api-uri-design/](https://blog.restcase.com/7-rules-for-rest-api-uri-design/)) / [RESTful URI trailing slash or no trailing slash](https://stackoverflow.com/questions/61547014/restful-uri-trailing-slash-or-no-trailing-slash)
+[7 Rules for REST API URI Design](https://blog.restcase.com/7-rules-for-rest-api-uri-design/) / 
+[RESTful URI trailing slash or no trailing slash](https://stackoverflow.com/questions/61547014/restful-uri-trailing-slash-or-no-trailing-slash)
 
 ### 회고
 
