@@ -554,7 +554,7 @@ p.comment_set
  * URL: api/posts/
  * METHOD: GET
 
-```
+```json
 
 [
     {
@@ -651,7 +651,7 @@ p.comment_set
  * URL: api/posts/
  * Method: POST
  * Body
-```
+```json
 {
     "author" : 6,
     "title" : "drf",
@@ -660,7 +660,7 @@ p.comment_set
 }
 ```
 
-```
+```json
 {
     "author": 6,
     "title": "drf",
@@ -857,7 +857,6 @@ p.comment_set
 
 ## 공부한 내용 정리
 
-
 ### FBV로 작성
 ```python
 
@@ -954,6 +953,17 @@ class PostDetail(APIView):
         return Response(status=204)
 
 ```
+
+            
+1. get_object 함수    
+>    pk값을 인자로 받아서 객체를 찾아서 존재하면 반환해주고 pk값에 해당하는 객체가 없으면 에러가 뜨게 해주는 함수이다.
+> 반복되는 코드들을 줄여줘서 코드가 간결해지고 가독성이 높아지게 해주는 함수이다.
+    
+2. format=None
+> 장고 공식 튜토리얼에 보면 CBV에서 필드로 항상 format=None을 작성해주는데 이게 하는 역할이 무엇인지 궁금했다
+> 그래서 검색해 보니까 127.0.0.1:8000/api/posts/6.json과 같은 URL을 API에서 처리할 수 있게 해주며 또한 urls.py에
+> urlpatterns = format_suffix_patterns(urlpatterns)를 추가해 주어야 적용이 된다.
+
 
 ### 간단한 회고
 중간에 DB에 문제가 생겨서 mysql을 지웠다가 다시 깔았더니 그 다음은 다른 에러들이 자꾸 생겨서
