@@ -1233,3 +1233,454 @@ class UserSerializer(serializers.ModelSerializer):
 시험기간이라 100프로 임하지 못한 아쉬움이 있다ㅠㅠ 시험이후까지 꼼꼼하게 다시 리팩토링을 진행해야 할 것 같다.
 장고가 확실히 자유도가 높고 유저 친화적이라는 생각이 든다. 아직은 익숙하진 않은데, 계속 보다보니 점점 체화되는
 것 같아 기분이 좋다.
+
+# 5주차 과제
+## View.py
+```python
+class PostList(APIView):
+    def get(self, request, format=None):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    def post(self, request, format=None):
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            #serializer.save()
+            print(serializer.data)
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+
+
+class PostDetail(APIView):
+    def get(self, request, id, format=None):
+        post = Post.objects.filter(id=id)
+        serializer = PostSerializer(post, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    def put(self, request, id, format=None):
+        data = JSONParser().parse(request)
+        post = Post.objects.get(id=id)
+        serializer = PostSerializer(post, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+
+    def delete(self, request, id, format=None):
+        post = Post.objects.get(id=id)
+        post.delete()
+        return Response({"message: delete success"})
+
+```
+우선 view.py는 스터디자료를 참고하여 DRF를 이용하여 CBV로 구현하였다. 특정 id의 Post를 불러오기 위해서는,
+posts/{id} 와 같은 형태로 url을 설정하거나, get의 parameter를 설정할 수 있다. 두가지 방법 중 전자가
+더욱 직관적이고 기능이 분리될 수 있다고 생각했기에 전자의 방법대로 구현했다.
+ 그래서 PostDetail과 같은 경우는 posts/<int:id>의 형태로 url 패턴을 매핑시켜주었다.
+
+## 모든 list를 가져오는 API
+```text
+URL : api/posts
+Method : GET
+```
+
+```json
+[
+    {
+        "id": 1,
+        "caption": "Hello world!",
+        "location": "Anyang",
+        "like_count": 1,
+        "comment_count": 2,
+        "comments": [
+            {
+                "id": 1,
+                "text": "hi",
+                "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 2,
+                "text": "hello",
+                "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "files": [],
+        "likes": [
+            {
+                "id": 1,
+                "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "createdAt": "2021-10-07T19:52:35.737260+09:00",
+        "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    },
+    {
+        "id": 2,
+        "caption": "2nd Post",
+        "location": "Busan",
+        "like_count": 0,
+        "comment_count": 0,
+        "comments": [],
+        "files": [],
+        "likes": [],
+        "createdAt": "2021-10-14T01:29:29.262631+09:00",
+        "updatedAt": "2021-11-11T15:01:15.473192+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    }
+]
+```
+## 특정 데이터를 가져오는 API
+```text
+URL : api/posts/<int:id>
+(ex. api/poists/2)
+Method : GET
+```
+
+실제 존재하는 데이터를 가져온 경우
+```json
+[
+    {
+        "id": 1,
+        "caption": "Hello world!",
+        "location": "Anyang",
+        "like_count": 1,
+        "comment_count": 2,
+        "comments": [
+            {
+                "id": 1,
+                "text": "hi",
+                "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 2,
+                "text": "hello",
+                "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "files": [],
+        "likes": [
+            {
+                "id": 1,
+                "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "createdAt": "2021-10-07T19:52:35.737260+09:00",
+        "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    }
+]
+```
+
+DB에 없는 id를 통해 데이터를 가져오려고 시도한 경우
+```json
+// ex. api/posts/9999
+// 빈 array가 response에 담기게 된다
+[]
+```
+
+## 새로운 데이터를 생성하는 API
+에러가 발생하여 아직 구현중입니다ㅠㅠ
+
+## 특정 데이터를 업데이트하는 API
+```text
+URL : api/posts/<int:id>
+(ex. api/poists/2)
+Method : PUT
+```
+
+이전 데이터의 모습
+```json
+[
+    {
+        "id": 2,
+        "caption": "2nd Post",
+        "location": "Busan",
+        "like_count": 0,
+        "comment_count": 0,
+        "comments": [],
+        "files": [],
+        "likes": [],
+        "createdAt": "2021-10-14T01:29:29.262631+09:00",
+        "updatedAt": "2021-11-11T15:01:15.473192+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    }
+]
+```
+
+데이터의 내용을 바꿔보자
+```json
+//body에 넣을 값
+{
+	"caption": "ceos",
+	"location": "신촌"
+}
+```
+updatedAt 필드도 현재 시각으로 업데이트 된 것을 확인할 수 있었다.
+```json
+//response
+{
+    "id": 2,
+    "caption": "ceos",
+    "location": "신촌",
+    "like_count": 0,
+    "comment_count": 0,
+    "comments": [],
+    "files": [],
+    "likes": [],
+    "createdAt": "2021-10-14T01:29:29.262631+09:00",
+    "updatedAt": "2021-11-11T15:13:49.571003+09:00",
+    "deletedAt": null,
+    "isDeleted": false
+}
+```
+
+## 특정 데이터를 삭제하는 API
+```text
+URL : api/posts/<int:id>
+(ex. api/poists/2)
+Method : DELETE
+```
+2번째 데이터를 삭제해보자
+```json
+//response
+[
+    "message: delete success"
+]
+```
+성공적으로 삭제되었다는 메세지가 호출되었다.
+실제로 삭제되었는지 전체 조회를 통해 확인해보자.
+```json
+//GET api/posts 호출시 response
+[
+    {
+        "id": 1,
+        "caption": "Hello world!",
+        "location": "Anyang",
+        "like_count": 1,
+        "comment_count": 2,
+        "comments": [
+            {
+                "id": 1,
+                "text": "hi",
+                "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 2,
+                "text": "hello",
+                "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "files": [],
+        "likes": [
+            {
+                "id": 1,
+                "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "createdAt": "2021-10-07T19:52:35.737260+09:00",
+        "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    }
+]
+```
+하나의 post밖에 없는 것을 통해 두번째 post가 성공적으로 삭제되었다는 것을 확인했다.
+
+## 공부한 내용 정리
+이전에 FBV방식으로 코딩했을 때에 비해 CBV로 작성하니 View를 깔끔하게 리팩토링한 것 같다.
+다만 Post 메소드를 구현하는 과정에서 Serializer 관련 에러가 떠서 여전히 해결하지 못했다.
+바로 다음과 같은 에러가 나타났다.
+```text
+django.db.utils.IntegrityError: (1048, "Column 'user_id' cannot be null")
+```
+view.py의 post 메소드 안에서 serializer.is_valid() 까지는 True를 return 하지만, 그 직후에
+serializer.save()를 하면서 생긴 에러다. 이 부분을 주석 처리하고, serializer.data를 통해 serializer
+에 값이 제대로 담겼는지 확인하려고 해봤다. 그랬더니 다음과 같은 에러가 나타났다.
+```python
+    def post(self, request, format=None):
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            #serializer.save()   <- 요렇게 주석처리하고 Post 호출
+            print(serializer.data) <- 확인해보려했다
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+```
+```text
+# 에러로그
+AttributeError: 'collections.OrderedDict' object has no attribute 'like_set'
+```
+저게 도대체 무슨소리지 하고 model, serializer를 다시 뜯어보고, 필드를 삭제해가면서 정확히 무슨
+에러인지 파악해보고자 했다. 에러가 나는 위치는 다음과 같이 추정된다.
+```python
+# serializers/py
+#...
+class PostSerializer(serializers.ModelSerializer):
+    files = FileSerializer(source='file_set', many=True, read_only=True)
+    comments = CommentSerializer(source='comment_set', many=True, read_only=True)
+    likes = LikeSerializer(source='like_set', many=True, read_only=True)
+
+    # Serializer Method Field
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    class Meta:
+        model = Post
+        fields = [
+            'id',
+            'caption',
+            'location',
+            'like_count',
+            'comment_count',
+            'comments',
+            'files',
+            'likes',
+            'createdAt',
+            'updatedAt',
+            'deletedAt',
+            'isDeleted',
+        ]
+
+    def get_like_count(self, obj):    # <- 여기 의심
+        return obj.like_set.count()
+
+    def get_comment_count(self, obj):     # <- 여기 의심
+        return obj.comment_set.count()
+#...
+```
+serializer 내부에 SerializerMethodField로 정의한 부분들이 있다. 좋아요와 댓글의 개수를
+리턴해주는 필드라고 볼 수 있는데, 새로 만든 post에는 연결되어있는 like나 comment 인스턴스들이 없어서
+에러가 발생하는 것 같다. 저 필드들을 없애고 serializer.data를 조회하면 정상적이게 조회가 된다ㅠ
+무한 구글링 중이지만 여전히 해결중이다,,,
+
+## 간단한 회고
+아직 해결하지 못한 문제가 있어 후다닥 해결해야 할 것 같다ㅠ view를 작성할 수 있는 방식,
+선택지가 많기도 하고, 장고가 제공하는 기능들이 워낙 많아서 살짝은 혼란이 오기도 했다. 그런데
+익숙하고 편리한 기능들 위주로 체화시키면 금새 편해질 것 같았다.
+
+## 추가 내용
+4주차 때 궁금했던 내용
+```text
+지금은 views.py에 모든 모델에 대응되는 메소드를 정의했다. 하지만 **코드의 가독성을 높이기 위해** 이를 모델별로 파일을 분리하여 메소드 정의에 최적화를 
+할 수 있지 않을까? 또한, 지금은 `if requeste.method == 'GET'` 하단에 비즈니스 로직(어떤 작업을 할 지)가 정의되어 있는 형태이다.
+이 비즈니스 로직을 다른 디렉토리에서 여러개의 파일 형태로 관리하고, views.py의 `if requeste.method == 'GET'` 하단에 호출하는 형태로
+분리할 수 있진 않을까? API route와 비즈니스 로직을 분리하는 시도가 될 수 있을 것 같다. 이후 스터디를 통해 view를 깊게 공부할 기회가 있을 것
+같으니 그 때 배우고 해결되지 않으면 더 알아보도록 해야겠다.
+```
+위의 말은 3 Layer로 설계를 하겠다는 뜻이었다.
+
+1. API Route Controller : views.py에서 정의한 API view를 urls.py에 매핑
+2. Service Layer : GET/POST/PUT/DELETE에 해당하는 **비즈니스 로직**
+3. Data Access Layer : ORM을 통해 DB에 접근
+
+이대로 적용을 해보았다.
+### Ref
+[견고한 node.js 프로젝트 설계하기](https://velog.io/@hopsprings2/%EA%B2%AC%EA%B3%A0%ED%95%9C-node.js-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EC%95%84%ED%82%A4%ED%85%8D%EC%B3%90-%EC%84%A4%EA%B3%84%ED%95%98%EA%B8%B0)
+
+
+api/views.py 에서 api/services/PostService.py 에서 정의한 여러 비즈니스 로직을 불러온다.
+```python
+#api/views.py
+#...
+from .services.PostService import PostService
+
+class PostList(APIView):
+    def get(self, request, format=None):
+        return PostService().getAllPost()
+
+    def post(self, request, format=None):
+        data = JSONParser().parse(request)
+        return PostService().createPost(data)
+
+
+class PostDetail(APIView):
+    def get(self, request, id, format=None):
+        return PostService().getOnePostById(id)
+
+    def put(self, request, id, format=None):
+        data = JSONParser().parse(request)
+        return PostService().updatePost(data, id)
+
+    def delete(self, request, id, format=None):
+        return PostService().deletePost(id)
+```
+위의 views.py에서 볼 수 있듯이 각 api의 return 단에 PostService 클래스 에서 
+정의한 메소드들을 호출하고 있다. 아래는 PostService의 모습이다.
+```python
+# api/services/PostService.py
+from django.http import Http404
+from rest_framework import status
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
+from api.serializers import PostSerializer
+from api.models import Post
+from django.contrib.auth.models import User
+
+
+class PostService():
+    def getAllPost(self):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
+
+    def getOnePostById(self, id):
+        post = get_object_or_404(Post, pk=id)
+        serializer = PostSerializer(post, many=False)
+        return Response(serializer.data)
+
+    def createPost(self, data):
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            temp_user = User.objects.get(id=data["user"])
+            serializer.save(user=temp_user)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def updatePost(self, data, id):
+        post = get_object_or_404(Post, pk=id)
+        serializer = PostSerializer(post, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def deletePost(self, id):
+        post = get_object_or_404(Post, pk=id)
+        post.delete()
+        return Response({"message: delete success"}, )
+```
+Post에 관련된 비즈니스 로직들을 하나의 클래스 안에 메소드로 정의하였다. 지금은 Post에
+대해서만 작성했는데, 다른 모델들도 클래스로 만들어서 사용할 수 있다. 장고에서 더 나은 방식이
+있는지, 이게 더 효율적인 방식인지 아직은 정확히 모르겠다. 더 공부해봐야겠다.

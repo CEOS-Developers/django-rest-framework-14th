@@ -61,6 +61,7 @@ class PostSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'caption',
+            'location',
             'like_count',
             'comment_count',
             'comments',
