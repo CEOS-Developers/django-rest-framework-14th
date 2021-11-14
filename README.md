@@ -554,7 +554,7 @@ p.comment_set
  * URL: api/posts/
  * METHOD: GET
 
-```
+```json
 
 [
     {
@@ -651,7 +651,7 @@ p.comment_set
  * URL: api/posts/
  * Method: POST
  * Body
-```
+```json
 {
     "author" : 6,
     "title" : "drf",
@@ -660,7 +660,7 @@ p.comment_set
 }
 ```
 
-```
+```json
 {
     "author": 6,
     "title": "drf",
@@ -676,3 +676,295 @@ p.comment_set
 ### 간단한 회고
 시험 기간이라서 많은 시간을 쏟진 못해서 많이 아쉬웠다.
 이번에 장고를 처음 사용해서 drf와 serializer가 정말 편리한 기능이라 생각했다. 앞으로 스터디를 하면서 또 어떤 기능들이 있을지 기대된다.
+
+* * *
+
+# 5주차 과제 (기한: 11/11 목요일까지)
+## 모든 list를 가져오는 API
+* URL: api/posts
+* Method: GET
+```json
+[
+    {
+        "author": 1,
+        "title": "first",
+        "content": "신기하다",
+        "author_nickname": "chaeri",
+        "created_at": "2021-11-11T10:43:09.051113+09:00",
+        "updated_at": "2021-11-11T10:43:09.051113+09:00",
+        "post_like": [],
+        "post_comment": [
+            {
+                "post": 1,
+                "writer": 4,
+                "content": "너무 신기하다",
+                "created_at": "2021-11-11T10:59:43.817108+09:00",
+                "updated_at": "2021-11-11T10:59:43.817108+09:00",
+                "writer_nickname": "ceos"
+            },
+            {
+                "post": 1,
+                "writer": 3,
+                "content": "와우우우",
+                "created_at": "2021-11-11T11:00:12.168062+09:00",
+                "updated_at": "2021-11-11T11:00:12.168062+09:00",
+                "writer_nickname": "choco"
+            }
+        ]
+    },
+    {
+        "author": 1,
+        "title": "second",
+        "content": "모델링 어렵다....ㅠ",
+        "author_nickname": "chaeri",
+        "created_at": "2021-11-11T10:43:19.266647+09:00",
+        "updated_at": "2021-11-11T10:43:19.266647+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 3,
+        "title": "배고파",
+        "content": "간식 줘",
+        "author_nickname": "choco",
+        "created_at": "2021-11-11T10:43:38.681635+09:00",
+        "updated_at": "2021-11-11T10:43:38.681635+09:00",
+        "post_like": [],
+        "post_comment": [
+            {
+                "post": 3,
+                "writer": 1,
+                "content": "1111",
+                "created_at": "2021-11-11T11:01:39.024705+09:00",
+                "updated_at": "2021-11-11T11:01:39.024955+09:00",
+                "writer_nickname": "chaeri"
+            },
+            {
+                "post": 3,
+                "writer": 4,
+                "content": "2222",
+                "created_at": "2021-11-11T11:02:09.112316+09:00",
+                "updated_at": "2021-11-11T11:02:09.112316+09:00",
+                "writer_nickname": "ceos"
+            }
+        ]
+    },
+    {
+        "author": 4,
+        "title": "세오스 최고",
+        "content": "백엔드 최고",
+        "author_nickname": "ceos",
+        "created_at": "2021-11-11T10:45:02.634218+09:00",
+        "updated_at": "2021-11-11T10:45:02.634218+09:00",
+        "post_like": [
+            {
+                "id": 1,
+                "created_at": "2021-11-11T11:03:25.206561+09:00",
+                "updated_at": "2021-11-11T11:03:25.206561+09:00",
+                "post": 4,
+                "user": 3
+            },
+            {
+                "id": 2,
+                "created_at": "2021-11-11T11:03:28.479015+09:00",
+                "updated_at": "2021-11-11T11:03:28.479015+09:00",
+                "post": 4,
+                "user": 4
+            },
+            {
+                "id": 3,
+                "created_at": "2021-11-11T11:03:32.296073+09:00",
+                "updated_at": "2021-11-11T11:03:32.296073+09:00",
+                "post": 4,
+                "user": 1
+            }
+        ],
+        "post_comment": []
+    }
+]
+```
+
+## 특정 데이터를 가져오는 API
+* URL: api/posts/2
+* Method: GET
+```json
+{
+    "author": 1,
+    "title": "second",
+    "content": "모델링 어렵다....ㅠ",
+    "author_nickname": "chaeri",
+    "created_at": "2021-11-11T10:43:19.266647+09:00",
+    "updated_at": "2021-11-11T10:43:19.266647+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
+## 새로운 데이터를 생성하는 API
+* URL: api/posts/
+* Method: Post
+* Body
+```json
+{
+    "author" : 3,
+    "title" : "view 작성",
+    "content" : "view 작성하기 과제"
+}
+```
+```json
+{
+    "author": 3,
+    "title": "view 작성",
+    "content": "view 작성하기 과제",
+    "author_nickname": "choco",
+    "created_at": "2021-11-12T01:01:58.749741+09:00",
+    "updated_at": "2021-11-12T01:01:58.749741+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
+
+## 특정 데이터를 업데이트하는 API
+* URL: api/posts/7
+* Method: PUT
+* Body
+```json
+{
+    "author" : 3,
+    "title" : "view update",
+    "content" : "update, update"
+}
+```
+
+```json
+{
+    "author": 3,
+    "title": "view update",
+    "content": "update, update",
+    "author_nickname": "choco",
+    "created_at": "2021-11-12T01:01:58.749741+09:00",
+    "updated_at": "2021-11-12T01:14:05.158968+09:00",
+    "post_like": [],
+    "post_comment": []
+}
+```
+
+## 특정 데이터를 삭제하는 API
+* URL: api/posts/6
+* Method: DELETE
+
+![delete](https://user-images.githubusercontent.com/79985974/141332502-2e1233b2-c096-4b40-a3b6-4c3c408e90dc.PNG)
+  
+
+## 공부한 내용 정리
+
+### FBV로 작성
+```python
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import JSONParser
+from api.models import Post
+from api.serializers import PostSerializer
+
+@csrf_exempt
+def post_list(request):
+    if request.method == 'GET':
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+    
+def post_detail(request, pk):
+    try:
+        post=Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return JsonResponse(status=404)
+    
+    if request.method == 'GET':
+        serializer = PostSerializer(post)
+        return JsonResponse(serializer.data)
+    
+    elif request.method == 'PUT':
+        data = JSONParser().parse(request)
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
+    
+    elif request.method == 'DELETE':
+        post.delete()
+        return JsonResponse(status=204)
+
+```
+
+### CBV로 작성
+```python
+from django.http import Http404
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from api.models import Post
+from api.serializers import PostSerializer
+
+
+class PostList(APIView):
+    def get(self, request, format=None): # Post 전체 가지고 오기
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data, safe=False)
+
+    def post(self, request, format=None): # Post 작성하기
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+class PostDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Post.objects.get(pk=pk)
+        except Post.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk, format=None): # 특정 Post 삭제
+        post = self.get_object(pk)
+        post.delete()
+        return Response(status=204)
+
+```
+
+            
+1. get_object 함수    
+>    pk값을 인자로 받아서 객체를 찾아서 존재하면 반환해주고 pk값에 해당하는 객체가 없으면 에러가 뜨게 해주는 함수이다.
+> 반복되는 코드들을 줄여줘서 코드가 간결해지고 가독성이 높아지게 해주는 함수이다.
+    
+2. format=None
+> 장고 공식 튜토리얼에 보면 CBV에서 필드로 항상 format=None을 작성해주는데 이게 하는 역할이 무엇인지 궁금했다
+> 그래서 검색해 보니까 127.0.0.1:8000/api/posts/6.json과 같은 URL을 API에서 처리할 수 있게 해주며 또한 urls.py에
+> urlpatterns = format_suffix_patterns(urlpatterns)를 추가해 주어야 적용이 된다.
+
+
+### 간단한 회고
+중간에 DB에 문제가 생겨서 mysql을 지웠다가 다시 깔았더니 그 다음은 다른 에러들이 자꾸 생겨서
+힘들었다.ㅠㅠ 분명 view는 빨리 작성했는데 에러때문에 시간을 많이 잡아먹었다ㅜ
