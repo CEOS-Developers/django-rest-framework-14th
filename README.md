@@ -988,6 +988,24 @@ def post_list(request):
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
 ```
+- 새로 작성한 views.py 코드
+```
+class PostList(APIView):
+    """
+      View to List all posts, or create a new post.
+    """
+    def get(self, request, format=None):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
 - 기존의 views.py 코드와 새롭게 작성한 DRF API View CBV 코드의 큰 차이점은 다음과 같다.
  1. JsonResponse, HttpResponse 객체가 Response로 대체.
  2. HttpRequest 객체를 Request 객체로 확장하여 더 유연한 request parsing을 제공.
