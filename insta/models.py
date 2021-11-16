@@ -63,18 +63,6 @@ class Bookmark(Base):
 
 
 # 팔로우 모델 구현
-# class Follow(Base):
-#     follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower', primary_key=True)
-#     followee = models.ManyToManyField(Profile, related_name='followee', through='FollowRelation') # follower가 팔로잉하는 사람들 # 역참조할때도 똑같이 followee
-#
-#     def __str__(self):
-#         return self.follower.nickname
-
-
-# 팔로우-팔로잉 중개 모델 설정
-# class FollowRelation(Base):
-#     user = models.ForeignKey(Follow, on_delete=models.CASCADE)
-#     following = models.ForeignKey(Profile, on_delete=models.CASCADE)
-#
-#     def __str__(self):
-#         return self.user.follower.nickname
+class Follow(Base):
+    userFrom = models.ForeignKey(User, related_name='follower', on_delete=models.CASCADE)
+    userTo = models.ForeignKey(User, related_name='followee', on_delete=models.CASCADE)
