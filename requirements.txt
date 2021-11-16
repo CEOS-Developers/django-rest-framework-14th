@@ -7,3 +7,5 @@ sqlparse==0.3.1
 mysql
 pillow==8.3.2
 djangorestframework==3.12.4
+django_filter==2.4.0
+djangorestframework-jwt==1.11.0
