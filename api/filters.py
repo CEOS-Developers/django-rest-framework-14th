@@ -5,7 +5,7 @@ from .models import *
 
 
 class PostFilter(FilterSet):
-    following = filters.CharFilter(method='filter_following_posts', label='user_id')
+    following = filters.NumberFilter(method='filter_following_posts', label='user_id')
 
     class Meta:
         model = Post

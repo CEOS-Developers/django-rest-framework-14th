@@ -7,6 +7,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework import viewsets
 from .filters import PostFilter, UserFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from .permissions import IsAuthorOrReadOnly
 
 # Create your views here.
 
@@ -17,6 +18,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend]
     filterset_class = PostFilter
+    permission_classes = [IsAuthorOrReadOnly]
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -25,6 +27,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend]
     filterset_class = UserFilter
+    permission_classes = [IsAuthorOrReadOnly]
 
 
 # class PostList(APIView):
