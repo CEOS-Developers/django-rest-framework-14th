@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Post, File, Like, Bookmark, Comment
+from .models import User, Post, File, Like, Bookmark, Comment, Follow
 
 # Register your models here.
 
@@ -35,11 +35,6 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ['author', 'content', 'post']
 
 
-# @admin.register(Follow)
-# class FollowAdmin(admin.ModelAdmin):
-#     list_display = ['follower']
-#
-#
-# @admin.register(FollowRelation)
-# class FollowRelationAdmin(admin.ModelAdmin):
-#     list_display = ['user', 'following']
+@admin.register(Follow)
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ['userFrom', 'userTo']
