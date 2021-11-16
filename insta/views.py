@@ -4,8 +4,9 @@ from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from .serializers import UserSerializer, UserCreateSerializer, PostListSerializer, PostCreateSerializer
+from .serializers import FollowSerializer, FollowingSerializer, FolloweeSerializer
 
-from .models import User, Post
+from .models import User, Post, Follow
 
 ## 추가
 from rest_framework.views import APIView
@@ -62,7 +63,10 @@ class userList(APIView):
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, format=None):
+        #print(request.data["username"])
+        #print(request.data["email"])
+        # username / email에 대한 예외 처리 추가할 것
         serializer = UserCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -96,18 +100,28 @@ class userDetail(APIView):
         return Response(status=204)
 
 
-# # # Follow 모델
-# # # 1. 전체 팔로우 관계 조회하기
-# class followList(APIView):
-#     def get(self, request, format=None):
-#         follows = Follow.objects.all()
-#         serializer = FollowSerializer(follows, many=True)
-#         return Response(serializer.data)
-#
-#
-# # # 2. 특정 유저의 팔로우 관계 조회하기
-# class followDetail(APIView):
-#     def get(self, request, pk, format=None):
-#         follow = Follow.objects.get(follower=pk)
-#         serializer = FollowSerializer(follow)
-#         return Response(serializer.data)
+# Follow 모델
+# 1. 전체 팔로우 관계 조회하기
+class followList(APIView):
+    def get(self, request, format=None):
+        follows = Follow.objects.all()
+        serializer = FollowSerializer(follows, many=True)
+        return Response(serializer.data)
+
+
+# 2. 특정 유저가 팔로잉하는 유저(들) 조회하기
+class following(APIView):
+    def get(self, request, pk, format=None):
+        userFrom = User.objects.get(id=pk)
+        queryset = Follow.objects.filter(userFrom=userFrom)
+        serializer = FollowingSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+# 3. 특정 유저를 팔로우하는 유저(들) 조회하기
+class followee(APIView):
+    def get(self, request, pk, format=None):
+        userTo = User.objects.get(id=pk)
+        queryset = Follow.objects.filter(userTo=userTo)
+        serializer = FolloweeSerializer(queryset, many=True)
+        return Response(serializer.data)
