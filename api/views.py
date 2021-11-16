@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework import viewsets
+from .filters import PostFilter, UserFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 # Create your views here.
 
@@ -13,10 +15,16 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PostFilter
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
 
 
 # class PostList(APIView):
