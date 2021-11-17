@@ -19,21 +19,21 @@ class PostListView(APIView):
             post_data = Post.objects.all()
 
         serializer = PostSerializer(post_data, many=True)
-        return JsonResponse(serializer.data, safe=False)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self,request):
         data = JSONParser().parse(request)
         serializer = PostSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
 
 class PostDetailView(APIView):
     def get(self,request,post_id):
         post_data = Post.objects.filter(id=post_id)
         serializer = PostSerializer(post_data, many=True)
-        return JsonResponse(serializer.data, safe=False)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self,request,post_id):
         if post_id is None:
@@ -43,9 +43,9 @@ class PostDetailView(APIView):
             update_post_serializer = PostSerializer(post_object,data=JSONParser().parse(request))
             if update_post_serializer.is_valid():
                 update_post_serializer.save()
-                return JsonResponse(update_post_serializer.data, status=201)
+                return Response(update_post_serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)
             else:
-                return JsonResponse(update_post_serializer.errors, status=400)
+                return Response(update_post_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, post_id):
         try:
@@ -54,7 +54,7 @@ class PostDetailView(APIView):
             post_object = None
 
         if post_object is None:
-            return Response("No Content Request", status=status.HTTP_204_NO_CONTENT)
+            return Response("No Content Request", status=status.HTTP_404_NOT_FOUND)
         else:
             post_object.delete()
-            return Response("Delete Success",status=status.HTTP_200_OK)
+            return Response("Delete Success",status=status.HTTP_204_NO_CONTENT)
