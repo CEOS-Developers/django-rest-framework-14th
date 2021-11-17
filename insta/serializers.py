@@ -2,6 +2,15 @@ from rest_framework import serializers
 from .models import User, Post, Comment, Follow
 
 
+# Viewset을 위해 새로 추가
+class PostSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'content']
+##
+
+
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField() # serializer method field 이용
 
@@ -29,6 +38,9 @@ class PostCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'author', 'content']
+
+
+
 
 
 ## User 모델
