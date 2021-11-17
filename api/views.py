@@ -4,6 +4,7 @@ from django.shortcuts import render
 
 from django.http import JsonResponse
 from rest_framework import status
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
@@ -11,6 +12,9 @@ from .models import *
 from .serializers import *
 
 class PostListView(APIView):
+    def get_object(self,pk):
+        return get_object_or_404(User,pk=pk)
+
     def get(self,request):
         post_id = request.GET.get('post_id', None)
         if post_id is not None:
