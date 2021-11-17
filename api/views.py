@@ -1,16 +1,27 @@
+from django.db.models import fields
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
+from django_filters.rest_framework import FilterSet, DjangoFilterBackend, filters
 from .models import *
 from .serializers import PostSerializer
+
+
+class PostFilter(FilterSet):
+    class Meta:
+        model = Post
+        fields = ['id', 'user_id']
 
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
 
-    # /api/posts/reversed_id
+    # filter 정의
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = PostFilter
+
     @action(detail=False)
     def reversedid(self, request):
         reversed_posts = Post.objects.all().order_by("-id")
