@@ -8,9 +8,27 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
-from .models import *
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from .serializers import *
+from .models import *
 
+class PostViewSet(ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+post_list = PostViewSet.as_view({
+    'get' : 'list',
+    'post' : 'create',
+})
+
+post_detail : PostViewSet.as_view({
+    'get' : 'retrieve',
+    'put' : 'update',
+    'patch' : 'partial_update',
+    'delete' : 'destroy',
+})
+
+'''
 class PostListView(APIView):
     def get_object(self,pk):
         return get_object_or_404(User,pk=pk)
@@ -62,3 +80,4 @@ class PostDetailView(APIView):
         else:
             post_object.delete()
             return Response("Delete Success",status=status.HTTP_204_NO_CONTENT)
+'''
