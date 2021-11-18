@@ -988,6 +988,24 @@ def post_list(request):
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
 ```
+- 새로 작성한 views.py 코드
+```
+class PostList(APIView):
+    """
+      View to List all posts, or create a new post.
+    """
+    def get(self, request, format=None):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
 - 기존의 views.py 코드와 새롭게 작성한 DRF API View CBV 코드의 큰 차이점은 다음과 같다.
  1. JsonResponse, HttpResponse 객체가 Response로 대체.
  2. HttpRequest 객체를 Request 객체로 확장하여 더 유연한 request parsing을 제공.
@@ -1032,3 +1050,217 @@ urlpatterns = format_suffix_patterns(urlpatterns)
 ### 간단한 회고
 과제 시 어려웠던 점이나 느낀 점, 좋았던 점 등을 간단히 적어주세요
 >공식문서가 진짜 친절하다...근데 format suffix 관련해서 특정 format을 간단하고 명확하게 참조 가능하다는 점이 어떻게 좋은 건지는 감이 잘 안온다. 상태코드를 더 명시적으로 표현할 수 있다거나, 별도의 컨텐츠 유형을 명시하지 않고 처리할 수 있게 하는 등의 형태로 리팩토링한 코드의 이점은 분명해보인다. drf 똑똑하다... 
+  
+  
+***
+## 6주차 과제
+- 기존의 APIView의 경우 각 request 마다 직접 serializer를 지정해 처리. list, detail view를 따로 구현해 중복되는 로직이 많았다. 이를 해결하기 위해 drf가 제공해준 것이 mixins 기능. 
+
+### 1.  APIView -> Mixins -> generics APIView -> Viewset
+-   CreateModelMixin
+-   ListModelMixin
+-   RetrieveModelMixin
+-   UpdateModelMixin
+-   DestroyModelMixin
+
+필요에 따른 mixin을 상속받으면 queryset과 serializer\_class만 지정하여 중복되는 serializer 처리를 줄일 수 있게 된다. 하지만 여전히 여러 상속으로 인해 가독성이 좋지 않다. 이를 해결하기 위해 mixin을 상속한 클래스를 정의해놓은 것이 generics APIView이다.
+
+ex) RetrieveUpdateView
+
+```
+class RetrieveUpdateAPIView(mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin,
+                            GenericAPIView):
+    """
+    Concrete view for retrieving, updating a model instance.
+    """
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+```
+
+이를 이용하면 코드가 단순해지지만, 여전히 List와 Detail view에 대해 중복되는 queryset과 seriailizer\_class를 사용한다. 이러한 중복을 없앨 수 있는게 ViewSet이다. 
+
+- viewset을 이용해 리팩토링한 코드
+
+```
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+```
+
+- urls.py
+
+```
+router = routers.DefaultRouter()
+router.register(r'posts', PostViewSet)
+
+urlpatterns = router.urls
+```
+
+router를 통해 하나의 url로 처리가능하다.  router가 알아서 http method를 장고의 path가 처리할 수 있는 함수목록으로 라우팅해주지만, 이를 일일이 설정해주면 viewset과 함께 as\_view()도 사용가능하긴 하다.
+
+```
+snippet_list = SnippetViewSet.as_view({
+    'get': 'list',
+    'post': 'create'
+})
+
+path('snippets/', snippet_list, name='snippet-list'),
+```
+물론 사용하진 않겠지만...([route 참고자료](https://gist.github.com/awbacker/4b78b91a423177bcc1db4ec3e12e25fa))
+
+---
+
+### 2\. Filtering
+
+- method를 정의해 구현.
+
+필드 값에 한정되지 않은 필터링 구현 가능.
+
+- user가 follow하는 사용자의 게시글만 보여주도록 필터링. 
+
+```
+    def filter_following_posts(self, queryset, name, value):
+        user = get_object_or_404(User, pk=value)
+        filtered_posts = queryset.filter(author__followers__follower=user)
+        return filtered_posts
+```
+
+post author의 followers 역참조를 이용. &following=1로 입력이 들어가면 1번 사용자가 follow하는 사용자의 posts만 보여줌. (following=1이라는 표현이 매우 명시적이지 않은 표현이지만 일단은 그냥 사용함...)
+
+(1번 user가 2,3 번 user를 follow 할 때의 &following=1의 response)
+
+```
+HTTP 200 OK
+Allow: GET, POST, HEAD, OPTIONS
+Content-Type: application/json
+Vary: Accept
+
+[
+    {
+        "author_name": "hyejinnnnyyyy",
+        "author": 2,
+        "content": "나는 휴학생~",
+        "created_date": "2021-10-05T19:52:52.716996+09:00",
+        "updated_date": "2021-10-05T19:52:52.716996+09:00",
+        "comments_count": 0,
+        "likes_count": 0,
+        "post_likes": [],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "hyejinnnnyyyy",
+        "author": 2,
+        "content": "밖에 비가 와서 짜증나",
+        "created_date": "2021-10-11T22:30:20.357470+09:00",
+        "updated_date": "2021-10-11T22:30:20.357470+09:00",
+        "comments_count": 0,
+        "likes_count": 0,
+        "post_likes": [],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "pika_so_hee",
+        "author": 3,
+        "content": "수정된 post!",
+        "created_date": "2021-10-05T19:51:55.927811+09:00",
+        "updated_date": "2021-11-10T16:08:15.815098+09:00",
+        "comments_count": 0,
+        "likes_count": 3,
+        "post_likes": [
+            {
+                "id": 1,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 1,
+                "post": 1
+            },
+            {
+                "id": 2,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 2,
+                "post": 1
+            },
+            {
+                "id": 4,
+                "created_date": "2021-10-11T14:26:53.791390+09:00",
+                "updated_date": "2021-10-11T14:26:53.972385+09:00",
+                "user": 3,
+                "post": 1
+            }
+        ],
+        "comments": [],
+        "post_files": []
+    },
+    {
+        "author_name": "pika_so_hee",
+        "author": 3,
+        "content": "실습 나가는 길~",
+        "created_date": "2021-10-05T19:53:08.781585+09:00",
+        "updated_date": "2021-10-05T19:53:08.781585+09:00",
+        "comments_count": 3,
+        "likes_count": 0,
+        "post_likes": [],
+        "comments": [
+            {
+                "author_name": "heryunzzx",
+                "author": 1,
+                "post": 5,
+                "content": "헐 벌써?",
+                "created_date": "2021-10-05T19:55:05.360616+09:00"
+            },
+            {
+                "author_name": "hyejinnnnyyyy",
+                "author": 2,
+                "post": 5,
+                "content": "오마이갓",
+                "created_date": "2021-10-05T19:56:16.509982+09:00"
+            },
+            {
+                "author_name": "pika_so_hee",
+                "author": 3,
+                "post": 5,
+                "content": "시간 빠르다~",
+                "created_date": "2021-10-05T19:57:03.714520+09:00"
+            }
+        ],
+        "post_files": []
+    }
+]
+```
+
+- info에 email이 포함된 user만 필터링
+
+```
+    def filter_has_email(self, queryset, name, value):
+        pattern = r"([\w\.-]+)@([\w\.-]+)(\.[\w\.]+)"
+        user_with_email = []
+        user_without_email = []
+        for user in queryset:
+            match = re.search(pattern, user.profile.info)
+            if match:
+                user_with_email.append(user.profile)
+            else:
+                user_without_email.append(user.profile)
+
+        return queryset.filter(profile__in=user_with_email)
+```
+
+- Meta class 사용. meta fields에 대해 기존 필드 값과의 일치여부를 파악해주는 필터 구현 가능. default는 exact지만 dictionary 형식으로 다른 필터 적용 가능함.
+
+```
+    class Meta:
+        model = Post
+        fields = {
+            'created_date': ['lt', 'gt']
+        }
+```
