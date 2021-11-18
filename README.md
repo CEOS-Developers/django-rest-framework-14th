@@ -968,3 +968,153 @@ class PostDetail(APIView):
 ### 간단한 회고
 중간에 DB에 문제가 생겨서 mysql을 지웠다가 다시 깔았더니 그 다음은 다른 에러들이 자꾸 생겨서
 힘들었다.ㅠㅠ 분명 view는 빨리 작성했는데 에러때문에 시간을 많이 잡아먹었다ㅜ
+
+* * *
+
+# 6주차 과제
+
+## viewset으로 리팩토링하기
+
+```python
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = PostFilter
+
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    serializer_class = ProfileSerializer
+    queryset = Profile.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = ProfileFilter
+```
+
+## Filtering
+```python
+class PostFilter(FilterSet):
+    title = filters.CharFilter(field_name='title', lookup_expr="icontains")#해당 문자열을 포함하는 queryset
+    content_null = filters.BooleanFilter(field_name='content', method='is_content_null')#true 시에 content가 null인것만 출력
+
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
+
+    def is_content_null(self, queryset, content, value):
+        if value:
+            return queryset.filter(content__isnull=True)
+        else:
+            return queryset.filter(content__isnull=False)
+
+
+class ProfileFilter(FilterSet):
+    nickname = filters.CharFilter(field_name='nickname')
+
+    class Meta:
+        model = Profile
+        fields = ['nickname']
+```
+
+
+### Postman 결과
+
+[GET] http://127.0.0.1:8000/api/profiles
+```json
+[
+    {
+        "user": 1,
+        "nickname": "chaeri",
+        "introduction": "heyyyyyyy"
+    },
+    {
+        "user": 2,
+        "nickname": "choco",
+        "introduction": "멍멍"
+    },
+    {
+        "user": 3,
+        "nickname": "ceos",
+        "introduction": "후후"
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/profiles/?nickname=chaeri
+
+```json
+[
+    {
+        "user": 1,
+        "nickname": "chaeri",
+        "introduction": "heyyyyyyy"
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/posts/?title=choco
+```json
+[
+    {
+        "author": 3,
+        "title": "chocolate",
+        "content": "",
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:24:00.405420+09:00",
+        "updated_at": "2021-11-19T01:43:41.202731+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 3,
+        "title": "chococo",
+        "content": null,
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:26:15.250002+09:00",
+        "updated_at": "2021-11-19T01:26:15.250002+09:00",
+        "post_like": [],
+        "post_comment": []
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/posts/?content_null=true
+```json
+[
+    {
+        "author": 3,
+        "title": "chococo",
+        "content": null,
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:26:15.250002+09:00",
+        "updated_at": "2021-11-19T01:26:15.250002+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 1,
+        "title": "hungry",
+        "content": null,
+        "author_nickname": "chaeri",
+        "created_at": "2021-11-19T01:52:46.304923+09:00",
+        "updated_at": "2021-11-19T01:52:46.304923+09:00",
+        "post_like": [],
+        "post_comment": []
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/posts/?content_null=true&title=choco
+```json
+[
+    {
+        "author": 3,
+        "title": "chococo",
+        "content": null,
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:26:15.250002+09:00",
+        "updated_at": "2021-11-19T01:26:15.250002+09:00",
+        "post_like": [],
+        "post_comment": []
+    }
+]
+```

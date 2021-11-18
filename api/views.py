@@ -6,14 +6,14 @@ from django_filters.rest_framework import FilterSet, filters
 
 
 class PostFilter(FilterSet):
-    content = filters.CharFilter(field_name='content')
+    title = filters.CharFilter(field_name='title', lookup_expr="icontains")#해당 문자열을 포함하는 queryset
     content_null = filters.BooleanFilter(field_name='content', method='is_content_null')
 
     class Meta:
         model = Post
-        fields = '__all__'
+        fields = ['content', 'title']
 
-    def is_content_null(self,queryset,content,value):
+    def is_content_null(self, queryset,content, value):
         if value:
             return queryset.filter(content__isnull=True)
         else:
@@ -25,7 +25,7 @@ class ProfileFilter(FilterSet):
 
     class Meta:
         model = Profile
-        fields =['nickname']
+        fields = ['nickname']
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -38,3 +38,5 @@ class PostViewSet(viewsets.ModelViewSet):
 class ProfileViewSet(viewsets.ModelViewSet):
     serializer_class = ProfileSerializer
     queryset = Profile.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = ProfileFilter
