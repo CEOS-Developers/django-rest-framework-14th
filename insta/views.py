@@ -13,6 +13,10 @@ from rest_framework.views import APIView
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
+import django_filters.rest_framework
+from django_filters.rest_framework import FilterSet, filters
+from django_filters.rest_framework import DjangoFilterBackend
+
 
 
 # Post 모델
@@ -21,10 +25,12 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
 
 
-# Profile 모델
+# User 모델
 class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     queryset = User.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = UserFilter
 
 
 # Follow 모델
