@@ -1069,3 +1069,118 @@ Notion에 적혀있는대로 없으면 status 204를 반환하고,  있으면 �
 1. `AttributeError: 'function' object has no attribute 'as_view'`  : 분명히 제대로 했는데 왜 안되는가 했었는데, 저번에 뷰 짤때 넣었던 decorator인 `@csrf_exmept` 가 함수를 반환해서 안되는 것이었다. 지워주니 해결 되었다.
 
 하나를 제대로 구현하니까 나머지들도 쭉쭉 이해가 되기 시작했다. 이거 뷰 꾸미는거 되게 재밌는 것 같다. 부가기능도 더 구현해봐야겠다. `query` 에 관한 이해가 중요할 것 같다.
+
+# 6주차 과제
+
+## ViewSet
+django에서는 view를 통해 `HTTP 요청`을 처리한다.
+
+`APIView` 는 `CBV` 에서 사용되는 것으로 각 `request method` 마다 직접 `Serializer` 처리를 해준다. 하지만 이러한 부분들은 많이 사용되므로 중복이 발생할 수 있다. → 좀  더 간편하게 사용하는 방법이 없을까?
+
+**참고자료** : [APIView - mixin 참고자료](https://ssungkang.tistory.com/entry/Django-APIView-Mixins-generics-APIView-ViewSet%EC%9D%84-%EC%95%8C%EC%95%84%EB%B3%B4%EC%9E%90)
+
+## Mixin 상속
+
+`rest_framework.mixins` 에 구현되어 있는 기능들은 다음과 같다.
+
+- CreatedModelMixin
+- ListModelMixin
+- RetrieveModelMixin
+- UpdateModelMixin
+- DestroyModelMixin
+
+이것을 사용하는 방법은 `queryset` 과 `serializer_class` 를 지정해주기만 하면 나머지는 상속받은 `Mixin` 과 연결해주기만 하면 된다고 한다.
+
+## Generics APIView
+
+`Mixin` 을 상속받으면 중복을 많이 줄일 수 있었으나, 여러 개를 상속해야 하다보니 가독성이 떨어진다. `rest_framework` 에서는 저들을 상속한 새로운 클래스를 정의해 놓았는데, 바로  `generics APIView` 이다.
+
+총 9개의 클래스로 다음과 같다.
+
+- `generics.CreateAPIView` : 생성
+- `generics.ListAPIView` : 목록
+- `generics.RetrieveAPIView` : 조회
+- `generics.DestroyAPIView` : 삭제
+- `generics.UpdateAPIView` : 수정
+- `generics.RetrieveUpdateAPIView` : 조회/수정
+- `generics.RetrieveDestroyAPIView` : 조회/삭제
+- `generics.ListCreateAPIView` : 목록/생성
+- `generics.RetrieveUpdateDestroyAPIView` : 조회/수정/삭제
+
+## ViewSet
+
+이정도만 해도 많이 간소화 시킬 수 있는데, `queryset` 과 `serializer` 가 공통적으로 사용됨에도 불구하고 따로 기재를 해주어야 하는데, 이를 ViewSet을 이용해서 한번에 처리해 줄 수 있다.
+
+CBV가 아닌 헬퍼 클래스로 두 가지 종류가 있다.
+
+- `viewsets.ReadOnlyModelViewSet` : 목록 조회, 특정 레코드 조회
+- `viewsets.ModelViewSet` : 목록 조회, 특정 레코드 생성/조회/수정/삭제
+
+**참고자료**  : [ViewSet과 Router](https://ssungkang.tistory.com/entry/Django-ViewSet-%EA%B3%BC-Router)
+
+## Router
+
+기존에는 `as_view` 를 통해 각 `request method` 마다 대응되는 함수를 연결시켜주었다면 `router` 는 이를 알아서 연결시켜준다.
+
+- list route
+    - `url` : `/prefix/`
+    - `name` :  `{model name}-list` , 단 model name 은 소문자입니다.
+    `'get': 'list'` `'post': 'create'`
+    
+- detail route
+    - `url` : `/prefix/pk/`
+    - `name` : `{model name} - detail` 
+    `'get' : 'retrieve'`, `'put' : 'update'`, `'patch' : 'partial_update'`, `'delete' : 'destroy'`
+
+### Router 이용해서 URL 수정
+
+```python
+from django.urls import path, include
+from . import views
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'posts', views.PostViewSet)
+
+urlpatterns = [
+    path('',include(router.urls)),
+]
+```
+
+## FilterSet
+
+ViewSet에서 Request parameter로 받은 값이랑 일치하는 데이터를 조회할 때, 원래는 하나하나 filter 조건에 추가해서 받아야 한다.
+
+하지만 Filterset을 세팅해놓으면 그럴 필요가 없다.
+
+### 세팅 방법
+
+```python
+# settings.py 
+REST_FRAMEWORK = { 
+............. 
+'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',), 
+............. 
+}
+```
+
+```python
+# views.py
+
+class PostViewSet(ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['author', 'location']
+```
+
+이렇게 세팅하면 내가 `author` 이나 `location` 값을 세팅해주면 나오게 된다.
+
+### 결과
+
+
+
+## 미완성한 점
+
+아직 filterset이용하지 말고 queryset 이용한 것을 구현을 못했다. 그리고 나머지 선택 과제들 구현을 못했다.
