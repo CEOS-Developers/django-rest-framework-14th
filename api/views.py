@@ -8,6 +8,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
+
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from .serializers import *
 from .models import *
@@ -16,17 +18,21 @@ class PostViewSet(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
+'''
+## 기본 view_set 사용한 부분.
 post_list = PostViewSet.as_view({
     'get' : 'list',
-    'post' : 'create',
+    'post' : 'create'
 })
 
-post_detail : PostViewSet.as_view({
-    'get' : 'retrieve',
-    'put' : 'update',
-    'patch' : 'partial_update',
-    'delete' : 'destroy',
+post_detail = PostViewSet.as_view({
+    'get': 'retrieve',
+    'put': 'update',
+    'patch': 'partial_update',
+    'delete': 'destroy'
 })
+
+'''
 
 '''
 class PostListView(APIView):
