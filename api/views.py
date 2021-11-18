@@ -18,6 +18,9 @@ class PostViewSet(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['author', 'location']
+
 '''
 ## 기본 view_set 사용한 부분.
 post_list = PostViewSet.as_view({
