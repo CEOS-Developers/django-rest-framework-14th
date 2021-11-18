@@ -1,19 +1,6 @@
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
-from rest_framework.views import APIView
 from .models import *
 from .serializers import UserSerializer, PostSerializer
-from django.core.exceptions import ObjectDoesNotExist
-from django.http import Http404
-
-from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
-from rest_framework import mixins
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
-from django_filters.rest_framework import FilterSet, filters
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -28,7 +15,7 @@ class PostViewSet(viewsets.ModelViewSet):
     # 특정 유저의 모든 post 조회
     def list(self, request, *args, **kwargs):
         query_params = request.query_params
-        self.queryset = self.get_queryset().filter(user__id__icontains=query_params.get('user_id'))
+        self.queryset = self.get_queryset().filter(user__id__icontains=query_params.get('user_id')).order_by('-updated_at')
         return super().list(request, *args, **kwargs)
 
 
