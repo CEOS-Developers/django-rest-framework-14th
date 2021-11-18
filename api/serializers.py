@@ -30,3 +30,8 @@ class PostSerializer(serializers.ModelSerializer):
     # 게시글에 좋아요 누른 사용자의 username만을 받아와서 리스트로 저장
     def get_like_username_list(self, obj):
         return [like.user.username for like in obj.post_likes.all().select_related('user')]
+
+    def validate(self, data):
+        if len(data['text']) < 10:
+            raise serializers.ValidationError("Enter at least 10 characters")
+        return data
