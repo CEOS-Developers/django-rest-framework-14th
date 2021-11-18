@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
     'api',
     'insta',
 ]
@@ -122,3 +123,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # AbstractUser 이용
 
 AUTH_USER_MODEL = 'insta.User'
+
+# Setting filter backends
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
