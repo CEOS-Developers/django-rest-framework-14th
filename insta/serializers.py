@@ -40,11 +40,9 @@ class PostCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'content']
 
 
-
-
-
 ## User 모델
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'created_at', 'updated_at']
