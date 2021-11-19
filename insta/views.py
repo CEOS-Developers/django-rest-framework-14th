@@ -18,11 +18,17 @@ from django_filters.rest_framework import FilterSet, filters
 from django_filters.rest_framework import DjangoFilterBackend
 
 
+# User Filter 추가 -> 성별을 기준으로 필터링하기
+class UserFilter(FilterSet):
+    gender = filters.CharFilter(method='filter_gender')
 
-# Post 모델
-class PostViewSet(viewsets.ModelViewSet):
-    serializer_class = PostSerializer
-    queryset = Post.objects.all()
+    def filter_gender(self, queryset, name, value):
+        filtered_queryset = queryset.filter(gender=value)
+        return filtered_queryset
+
+    class Meta:
+        model = User
+        fields = ['gender']
 
 
 # User 모델
@@ -31,6 +37,12 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     filter_backends = [DjangoFilterBackend]
     filter_class = UserFilter
+
+
+# Post 모델
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
 
 
 # Follow 모델
