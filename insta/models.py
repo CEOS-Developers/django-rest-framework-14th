@@ -16,10 +16,15 @@ class Base(models.Model):
 
 # 유저 모델 구현 -> AbstractUser이용
 class User(AbstractUser, Base):
+    GENDER_CHOICES = (
+        ('male', 'Male'),
+        ('female', 'Female'),
+    )
     photo = models.ImageField(upload_to = "profile", blank=True, null=True) # 프로필 사진
     website = models.URLField(blank=True, null=True) # 웹사이트
     intro = models.CharField(max_length=100, blank=True, null=True) # 소개
     phone_num = PhoneNumberField(blank=True, null=True)
+    gender = models.CharField(choices=GENDER_CHOICES, max_length=30, blank=True, null=True) # 성별
 
     def __str__(self):
         return self.username  # 사용자 이름(인스타 아이디명)을 대표로 함
