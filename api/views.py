@@ -1,7 +1,15 @@
 from .models import Profile, Post, Photo, Video, Like, Comment, FollowRelation
 from .serializers import ProfileSerializer, PostSerializer, PostDetailSerializer, CommentSerializer, LikeSerializer
 from rest_framework import viewsets
+from django_filters.rest_framework import FilterSet, filters
+from django_filters.rest_framework import DjangoFilterBackend
 
+
+class PostFilter(FilterSet):
+	profile_id = filters.CharFilter(field_name='profile')
+	class Meta:
+		model = Post
+		fields = ['profile_id']
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostDetailSerializer
@@ -9,6 +17,9 @@ class PostViewSet(viewsets.ModelViewSet):
         'list': PostSerializer,
     }
     queryset = Post.objects.all()
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PostFilter
     
     def get_serializer_class(self):
         try:
