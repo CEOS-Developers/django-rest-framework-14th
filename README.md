@@ -968,3 +968,187 @@ class PostDetail(APIView):
 ### 간단한 회고
 중간에 DB에 문제가 생겨서 mysql을 지웠다가 다시 깔았더니 그 다음은 다른 에러들이 자꾸 생겨서
 힘들었다.ㅠㅠ 분명 view는 빨리 작성했는데 에러때문에 시간을 많이 잡아먹었다ㅜ
+
+* * *
+
+# 6주차 과제
+
+## viewset으로 리팩토링하기
+
+```python
+class PostViewSet(ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend] 
+    filter_class = PostFilter
+
+
+class ProfileViewSet(ModelViewSet):
+    serializer_class = ProfileSerializer
+    queryset = Profile.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = ProfileFilter
+```
+먼저 뷰를 viewset으로 리팩토링 해줬다. CRUD를 직접 정의안해줘도 알아서 장고에서 구현해줘서
+너무나 편리하고 신기했다. 전에는 코드가 꽤 길었는데 viewset으로 사용하니까 두줄만 써도 POST, GET, PUT, DELETE
+이 다 작동되었다.
+
+## Filtering
+```python
+class PostFilter(FilterSet):
+    title = filters.CharFilter(field_name='title', lookup_expr="icontains")#해당 문자열을 포함하는 queryset
+    content_null = filters.BooleanFilter(field_name='content', method='is_content_null')#true 시에 content가 null인것만 출력
+
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
+
+    def is_content_null(self, queryset, content, value):
+        if value:
+            return queryset.filter(content__isnull=True)
+        else:
+            return queryset.filter(content__isnull=False)
+
+
+class ProfileFilter(FilterSet):
+    nickname = filters.CharFilter(field_name='nickname')
+
+    class Meta:
+        model = Profile
+        fields = ['nickname']
+```
+처음에는 꼭 전체 단어를 검색해야지 해당 queryset을 가져올 수 있었는데
+lookup_expr="icontains"를 포함했더니 해당 단어의 특정 문자열만 검색해도 queryset을 반환할 수 있었다.
+> lookup_expr는  필터링 할 때 필드를 가져온다. 장고에서 __구문 은 조회된 결과의 조건에 대한 변환을 지원 한다.
+> 기본값은 'iexact'이고 이외에도 'isnull', 'in'도 있다.
+
+### Postman 결과
+
+[GET] http://127.0.0.1:8000/api/profiles
+```json
+[
+    {
+        "user": 1,
+        "nickname": "chaeri",
+        "introduction": "heyyyyyyy"
+    },
+    {
+        "user": 2,
+        "nickname": "choco",
+        "introduction": "멍멍"
+    },
+    {
+        "user": 3,
+        "nickname": "ceos",
+        "introduction": "후후"
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/profiles/?nickname=chaeri
+
+```json
+[
+    {
+        "user": 1,
+        "nickname": "chaeri",
+        "introduction": "heyyyyyyy"
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/posts/?title=choco
+```json
+[
+    {
+        "author": 3,
+        "title": "chocolate",
+        "content": "",
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:24:00.405420+09:00",
+        "updated_at": "2021-11-19T01:43:41.202731+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 3,
+        "title": "chococo",
+        "content": null,
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:26:15.250002+09:00",
+        "updated_at": "2021-11-19T01:26:15.250002+09:00",
+        "post_like": [],
+        "post_comment": []
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/posts/?content_null=true
+```json
+[
+    {
+        "author": 3,
+        "title": "chococo",
+        "content": null,
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:26:15.250002+09:00",
+        "updated_at": "2021-11-19T01:26:15.250002+09:00",
+        "post_like": [],
+        "post_comment": []
+    },
+    {
+        "author": 1,
+        "title": "hungry",
+        "content": null,
+        "author_nickname": "chaeri",
+        "created_at": "2021-11-19T01:52:46.304923+09:00",
+        "updated_at": "2021-11-19T01:52:46.304923+09:00",
+        "post_like": [],
+        "post_comment": []
+    }
+]
+```
+
+[GET] http://127.0.0.1:8000/api/posts/?content_null=true&title=choco
+```json
+[
+    {
+        "author": 3,
+        "title": "chococo",
+        "content": null,
+        "author_nickname": "choco",
+        "created_at": "2021-11-19T01:26:15.250002+09:00",
+        "updated_at": "2021-11-19T01:26:15.250002+09:00",
+        "post_like": [],
+        "post_comment": []
+    }
+]
+```
+
+## Permission
+
+### Permission이란?
+> 어떠한 사용자가 API에 접근해 특정 작업을 수행하려 할 때, request에 담겨오는 
+> user의 정보에 따라 작업의 권한을 줄지 말지 결정하는 것이다
+> 
+### Permission 종류
+
+* AllowAny(default) : 무조건 허용
+* IsAuthenticated : 인증된 사용자에 대한 작업 권한을 허용하고 인증되지 않은 사용에 대한 액세스를 거부
+* IsAuthenticatedOrReadOnly : 인증된 사용자에게는 전체 액세스를 허용하지만 인증되지 않은 사용자에게는 읽기만 허용
+
+```python
+class PostViewSet(ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = PostFilter
+    permission_classes = [IsAuthenticatedOrReadOnly]
+```
+
+ViewSet 내부의 permission_classes 에 추가
+
+## 간단한 회고
+
+시간이 없어서 validation을 못해봤는데 다음에 시간 날 때 꼭 해보고 싶다. 그리고 아직
+필터링에 대해서 완벽하게 이해하지 못한것 같은데 Filterset 특히 method에 대해서 더 자세히 공부해야겠다.

@@ -1,44 +1,47 @@
-from django.http import Http404
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from api.models import Post
-from api.serializers import PostSerializer
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.viewsets import ModelViewSet
+from api.models import Post, Profile
+from api.serializers import PostSerializer, ProfileSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import FilterSet, filters
 
 
-class PostList(APIView):
-    def get(self, request, format=None): # Post 전체 가지고 오기
-        posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+class PostFilter(FilterSet):
+    title = filters.CharFilter(field_name='title', lookup_expr="icontains")#해당 문자열을 포함하는 queryset
+    content_null = filters.BooleanFilter(field_name='content', method='is_content_null')
 
-    def post(self, request, format=None): # Post 작성하기
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+    class Meta:
+        model = Post
+        fields = ['content', 'title']
 
-class PostDetail(APIView):
-    def get_object(self, pk):
-        try:
-            return Post.objects.get(pk=pk)
-        except Post.DoesNotExist:
-            raise Http404
+    def is_content_null(self, queryset,content, value):
+        if value:
+            return queryset.filter(content__isnull=True)
+        else:
+            return queryset.filter(content__isnull=False)
 
-    def get(self, request, pk, format=None):
-        post = self.get_object(pk)
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
 
-    def put(self, request, pk, format=None):
-        post = self.get_object(pk)
-        serializer = PostSerializer(post, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+class ProfileFilter(FilterSet):
+    nickname = filters.CharFilter(field_name='nickname')
 
-    def delete(self, request, pk, format=None): # 특정 Post 삭제
-        post = self.get_object(pk)
-        post.delete()
-        return Response(status=204)
+    class Meta:
+        model = Profile
+        fields = ['nickname']
+
+
+class PostViewSet(ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = PostFilter
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class ProfileViewSet(ModelViewSet):
+    serializer_class = ProfileSerializer
+    queryset = Profile.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = ProfileFilter
+    permission_classes = [IsAuthenticatedOrReadOnly]
+

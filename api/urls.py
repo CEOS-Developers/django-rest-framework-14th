@@ -1,10 +1,9 @@
-from django.urls import path
-from api import views
-from rest_framework.urlpatterns import format_suffix_patterns
 
-urlpatterns = [
-    path('posts/', views.PostList.as_view()),
-    path('posts/<int:pk>', views.PostDetail.as_view())
-]
+from rest_framework import routers
+from api.views import PostViewSet, ProfileViewSet
 
-urlpatterns = format_suffix_patterns(urlpatterns)
+router = routers.DefaultRouter()
+router.register(r'posts', PostViewSet)
+router.register(r'profiles', ProfileViewSet)
+
+urlpatterns = router.urls
