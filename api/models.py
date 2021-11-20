@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -21,8 +21,7 @@ class UserManager(BaseUserManager):
         if not nickname:
             raise ValueError("Users must have user nickname")
         user = self.model(
-            nickname=self.normalize_nickname(nickname),
-            password=password,
+            nickname=nickname
         )
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
@@ -33,7 +32,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, nickname, password, **extra_fields): # 관리자 user 생성
         user = self.create_user(
-            nickname=self.normalize_email(nickname),
+            nickname=nickname,
             password=password,
             **extra_fields
         )
@@ -44,12 +43,12 @@ class UserManager(BaseUserManager):
         return user
 
 
-class User(AbstractBaseUser, Base):
+class User(AbstractBaseUser, Base, PermissionsMixin):
     objects = UserManager()
 
     nickname = models.CharField(max_length=50, null=False, unique=True)
     username = models.CharField(max_length=50)
-    password = models.CharField(max_length=50)
+    password = models.TextField()
     is_professional = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_private = models.BooleanField(default=False)
@@ -58,6 +57,12 @@ class User(AbstractBaseUser, Base):
     is_admin = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
+
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
     # 사용자 username field를 nickname으로 설정하겠다.
     USERNAME_FIELD = 'nickname'
