@@ -1300,3 +1300,87 @@ class PostViewSet(generics.ListAPIView):
     - 개별 레코드 접근 권한
     - APIView 의 get_object 함수를 통해 object 획득 시 체크
     - 브라우저를 통한 API 접근시에 CREATE/UPDATE Form 노출 여부 확인 시에
+    
+Permission Class들의 코드 : [Permission]([https://github.com/encode/django-rest-framework/blob/master/rest_framework/permissions.py](https://github.com/encode/django-rest-framework/blob/master/rest_framework/permissions.py))
+
+커스텀 Permission을 만들기 위해서 `[permissions.py](http://permissions.py)` 파일을 만들어 안에서 새롭게 정의해 보도록 한다.
+
+간단하게 몇가지를 살펴보자.(나머지는 위에 링크 참조)
+
+`AllowAny` 는 모든 요청에 대해 허가합니다.
+
+```python
+class AllowAny(BasePermission):
+	def has_permission(self, request, view):
+		return True
+```
+
+`IsAuthenticated` 는 유저가 존재하고 로그인 되어 있을 경우에 허가합니다.
+
+```python
+class IsAuthenticated(BasePermission):
+	def has_permission(self, request, view):
+		return bool(request.user and request.user.is_authenticated)
+
+```
+
+`IsAdminUser` 는 유저가 존재하고 스태프일 경우에 허가합니다.
+
+```python
+class IsAdminUser(BasePermission):
+	def has_permission(self, request, view):
+		return bool(request.user and request.user.is_staff)
+
+```
+
+`IsAuthenticatedOrReadOnly` 는 안전한 request method 이거나 유저가 존재하고 로그인 되어 있을 경우에 허가합니다.
+
+```python
+class IsAuthenticatedOrReadOnly(BasePermission):
+	def has_permission(self, request, view):
+		return bool(
+            request.method in SAFE_METHODSor
+            request.user and
+            request.user.is_authenticated
+        )
+```
+
+이 블로그에서는 상단부에 수정이나 삭제, 삽입을 하지 않는 안전한 메소드들을 따로 정의해 두었는데, 좋은 방법인 것 같다.
+
+```python
+SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+```
+
+포스트 작성자에 한해 수정/삭제 권한을 부여해보자.
+
+```python
+class IsAuthorOrReadonly(permissions.BasePermission):
+    # 인증된 유저에 대해 조회/포스팅 허용.
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+    # 작성자는 삭제 허용
+    def has_object_permission(self, request, view, obj):
+        # 안전한 요청은 항상 허용.
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.author == request.user
+```
+
+이 클래스를 `[views.py](http://views.py)` 에 `permission_classes` 항목에 넣으면 된다.
+
+오, 진짜 신기하다.
+
+추가로 관리자 권한도 부여해보았다.
+
+관리자는 프리패스여야 하니까.
+
+```python
+class IsAdminUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_staff)
+
+    def has_object_permission(self, request, view, obj):
+        return bool(request.user and request.user.is_staff)
+```
+
+근데 POST Request가 작동하지 않는다. 이거 수정해야한다.

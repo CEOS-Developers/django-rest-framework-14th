@@ -15,7 +15,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from .models import *
-from .permission import IsAuthorOrReadonly
+from .permission import IsAuthorOrReadonly,IsAdminUser,AuthorOnly
 
 class PostFilter(FilterSet):
     author = filters.NumberFilter(field_name='author')
@@ -42,9 +42,8 @@ class PostViewSet(generics.ListAPIView):
     filter_class = PostFilter
 
     permission_classes = [
-        IsAuthorOrReadonly,
+        IsAdminUser
     ]
-
     def perform_create(self, serializer):
         print(self.request.user)
         serializer.save(author=self.request.user)
@@ -63,6 +62,10 @@ class UserProfileViewSet(generics.ListAPIView):
     queryset = User.objects.all()
     filter_backends = [DjangoFilterBackend,]
     filter_class = UserFilter
+
+    permission_classes = [
+        AuthorOnly,
+    ]
 
 '''
 ## 기본 view_set 사용한 부분.
