@@ -1137,7 +1137,7 @@ lookup_expr="icontains"를 포함했더니 해당 단어의 특정 문자열만 
 * IsAuthenticated : 인증된 사용자에 대한 작업 권한을 허용하고 인증되지 않은 사용에 대한 액세스를 거부
 * IsAuthenticatedOrReadOnly : 인증된 사용자에게는 전체 액세스를 허용하지만 인증되지 않은 사용자에게는 읽기만 허용
 
-```json
+```python
 class PostViewSet(ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
