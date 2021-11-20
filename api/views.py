@@ -15,6 +15,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from .models import *
+from .permission import IsAuthorOrReadonly
 
 class PostFilter(FilterSet):
     author = filters.NumberFilter(field_name='author')
@@ -24,7 +25,6 @@ class PostFilter(FilterSet):
     class Meta:
         model = Post
         fields = ['author', 'location']
-
 
 class UserFilter(FilterSet):
     username = filters.CharFilter(field_name='username')
@@ -42,7 +42,7 @@ class PostViewSet(generics.ListAPIView):
     filter_class = PostFilter
 
     permission_classes = [
-        IsAuthenticated,
+        IsAuthorOrReadonly,
     ]
 
     def perform_create(self, serializer):
