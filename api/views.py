@@ -3,23 +3,46 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.http import JsonResponse
-from rest_framework import status
+from rest_framework import status,generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
 
-from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend,filters,FilterSet
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from .serializers import *
 from .models import *
 
-class PostViewSet(ModelViewSet):
-    queryset = Post.objects.all()
+class PostFilter(FilterSet):
+    author = filters.CharFilter(field_name='author')
+    location = filters.CharFilter(field_name='location')
+
+    class Meta:
+        model = Post
+        fields = ['author', 'location', 'title']
+
+
+class PostViewSet(generics.ListAPIView):
     serializer_class = PostSerializer
 
+    '''
+    def get_queryset(self):
+        queryset = Post.objects.all()
+        authorname = self.request.query_params.get('author')
+        if authorname is not None:
+            queryset = queryset.filter(author=authorname)
+        return queryset
+    '''
+
+'''
+class PostViewSet(ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'location']
+'''
 
 '''
 ## 기본 view_set 사용한 부분.
@@ -39,9 +62,6 @@ post_detail = PostViewSet.as_view({
 
 '''
 class PostListView(APIView):
-    def get_object(self,pk):
-        return get_object_or_404(User,pk=pk)
-
     def get(self,request):
         post_id = request.GET.get('post_id', None)
         if post_id is not None:
