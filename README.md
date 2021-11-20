@@ -976,14 +976,14 @@ class PostDetail(APIView):
 ## viewset으로 리팩토링하기
 
 ```python
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     filter_backends = [DjangoFilterBackend] 
     filter_class = PostFilter
 
 
-class ProfileViewSet(viewsets.ModelViewSet):
+class ProfileViewSet(ModelViewSet):
     serializer_class = ProfileSerializer
     queryset = Profile.objects.all()
     filter_backends = [DjangoFilterBackend]
@@ -1138,7 +1138,7 @@ lookup_expr="icontains"를 포함했더니 해당 단어의 특정 문자열만 
 * IsAuthenticatedOrReadOnly : 인증된 사용자에게는 전체 액세스를 허용하지만 인증되지 않은 사용자에게는 읽기만 허용
 
 ```json
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     filter_backends = [DjangoFilterBackend]

@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-
+from rest_framework.viewsets import ModelViewSet
 from api.models import Post, Profile
 from api.serializers import PostSerializer, ProfileSerializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -30,7 +30,7 @@ class ProfileFilter(FilterSet):
         fields = ['nickname']
 
 
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     filter_backends = [DjangoFilterBackend]
@@ -38,7 +38,7 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-class ProfileViewSet(viewsets.ModelViewSet):
+class ProfileViewSet(ModelViewSet):
     serializer_class = ProfileSerializer
     queryset = Profile.objects.all()
     filter_backends = [DjangoFilterBackend]
