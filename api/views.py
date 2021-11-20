@@ -1,4 +1,6 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
 from api.models import Post, Profile
 from api.serializers import PostSerializer, ProfileSerializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -40,3 +42,5 @@ class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     filter_backends = [DjangoFilterBackend]
     filter_class = ProfileFilter
+    permission_classes = [IsAuthenticatedOrReadOnly]
+

@@ -979,7 +979,7 @@ class PostDetail(APIView):
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend] 
     filter_class = PostFilter
 
 
@@ -989,6 +989,9 @@ class ProfileViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filter_class = ProfileFilter
 ```
+먼저 뷰를 viewset으로 리팩토링 해줬다. CRUD를 직접 정의안해줘도 알아서 장고에서 구현해줘서
+너무나 편리하고 신기했다. 전에는 코드가 꽤 길었는데 viewset으로 사용하니까 두줄만 써도 POST, GET, PUT, DELETE
+이 다 작동되었다.
 
 ## Filtering
 ```python
@@ -1014,7 +1017,10 @@ class ProfileFilter(FilterSet):
         model = Profile
         fields = ['nickname']
 ```
-
+처음에는 꼭 전체 단어를 검색해야지 해당 queryset을 가져올 수 있었는데
+lookup_expr="icontains"를 포함했더니 해당 단어의 특정 문자열만 검색해도 queryset을 반환할 수 있었다.
+> lookup_expr는  필터링 할 때 필드를 가져온다. 장고에서 __구문 은 조회된 결과의 조건에 대한 변환을 지원 한다.
+> 기본값은 'iexact'이고 이외에도 'isnull', 'in'도 있다.
 
 ### Postman 결과
 
@@ -1118,3 +1124,4 @@ class ProfileFilter(FilterSet):
     }
 ]
 ```
+
