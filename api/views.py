@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend,filters,FilterSet
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from .models import *
 
@@ -30,6 +31,14 @@ class PostViewSet(generics.ListAPIView):
     queryset = Post.objects.all()
     filter_backends = [DjangoFilterBackend,]
     filter_class = PostFilter
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def perform_create(self, serializer):
+        print(self.request.user)
+        serializer.save(author=self.request.user)
     # filterset_fields = ['author', 'location']
     '''
     def get_queryset(self):
