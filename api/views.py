@@ -26,6 +26,15 @@ class PostFilter(FilterSet):
         fields = ['author', 'location']
 
 
+class UserFilter(FilterSet):
+    username = filters.CharFilter(field_name='username')
+    nickname = filters.CharFilter(field_name='nickname')
+
+    class Meta:
+        model = User
+        fields = ['username', 'nickname']
+
+
 class PostViewSet(generics.ListAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
@@ -49,6 +58,11 @@ class PostViewSet(generics.ListAPIView):
         return queryset
     '''
 
+class UserProfileViewSet(generics.ListAPIView):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    filter_backends = [DjangoFilterBackend,]
+    filter_class = UserFilter
 
 '''
 ## 기본 view_set 사용한 부분.
