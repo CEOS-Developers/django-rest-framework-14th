@@ -1,11 +1,10 @@
-from django.urls import path
-from api import views
+from rest_framework import routers
+from .views import PostViewSet, ProfileViewSet, CommentViewSet, LikeViewSet
 
-urlpatterns = [
-    path('profile/<int:pk>/', views.ProfileDetail.as_view()),
-    path('posts/', views.PostList.as_view()),
-    path('post/<int:pk>/', views.PostDetail.as_view()),
-    path('comments/', views.CommentDetail.as_view()),
-    path('comment/<int:pk>/', views.CommentDetail.as_view()),
-    path('likes/', views.LikeDetail.as_view())
-]
+router = routers.DefaultRouter()
+router.register(r'post', PostViewSet)
+router.register(r'profile', ProfileViewSet)
+router.register(r'comment', CommentViewSet)
+router.register(r'like', LikeViewSet)
+
+urlpatterns = router.urls
