@@ -969,8 +969,187 @@ Django Rest Framework에 대해
 이것만 가지고 API 서버를 개발할 수 있을까 하는 의문이 생긴다..\
 추후 스터디에서 ViewSet이나 Authentication, Permission 등을 배우고 나면 감이 잡히지 않을까 싶다. 적어도 내가 만들고 싶은 사이트 정도는 개발할 수 있을 정도..?
 
+
+# 6주차 DRF3 : ViewSet & Filter & Permission & Validation
+## Viewset으로 리팩토링하기
+### ModelViewSet
+```python
+# views.py
+from rest_framework import viewsets
+
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+```
+```python
+# urls.py
+from rest_framework import routers
+from .views import PostViewSet
+router = routers.DefaultRouter()
+router.register(r'posts', PostViewSet)
+
+urlpatterns = router.urls
+```
+- /api/posts : 게시글 목록 조회
+- /api/posts/2 : {pk==2} 인 게시글 조회
+
+> `views.py`와 `urls.py`에 각각 3줄씩 써줬을 뿐인데 이전과 같이 동작한다. DefaultRouter가 알아서 url을 매핑하고 ViewSet에서 상황에 맞는 메서드를 동작시킨다.\
+> 장고는 코드를 짧게 만드는데 미친 사람들이 만든 언어.. 동작하는거 확인하고 기존에 있던 30줄짜리 코드 과감히 삭제했다.
+
+### ViewSet 구동 원리
+> `ModelViewSet`이 어떤 원리로 돌아가는지 알고 싶어서 기본 ViewSet으로 직접 `action`(View에서의 `method`와 유사) 를 정의해보았다.\
+> 기본적으로 ViewSet에서 우리가 정의해주어야 하는 action은 다음과 같다.
+- 목록
+  - list(self, request)
+- 특정 데이터
+  - retrieve(self, request, pk=None)
+- 생성
+  - create(self, request)
+- 수정
+  - update(self, request, pk=None)
+  - partial_update(self, request, pk=None)
+- 삭제
+  - destroy(self, request, pk=None)
+
+> `ModelViewSet`의 경우 위의 `action`들이 Model에 맞게 기본으로 제공이 되는 형태다. 
+
+### 기본 ViewSet
+```python
+# views.py
+class PostViewSet(viewsets.ViewSet):
+    def list(self, request):
+        queryset = Post.objects.all()
+        serializer = PostSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+```
+```python
+# urls.py
+router.register(r'posts', PostViewSet, basename='post')
+```
+> 기본 `ViewSet`은 `action`에 대한 구현을 제공하지 않는다. 실제로 위의 상태로 api 서버에 접속하면 목록에 대한 조회(get)와 특정 데이터에 대한 조회(get)만 가능하고 다른 요청은 불가하다.\
+> 기본 `ViewSet`을 사용할 때는 url 라우팅 할 때 `basename`을 지정해주어야 한다. 이것 역시 ModelViewSet에서는 알아서 해준다.
+> ![](images/viewset_api.png)
+> PUT이나 DELETE 메서드에 대한 API가 없는 것을 확인할 수 있다.
+
+### ModelViewSet 커스텀
+관련 자료를 찾다가 흥미로운 내용이 있어서 따라해보았다.
+```python
+# views.py
+from rest_framework.decorators import action
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+
+    # /api/posts/reversed_id
+    @action(detail=False)
+    def reversedid(self, request):
+        reversed_posts = Post.objects.all().order_by("-id")
+        serializer = PostSerializer(reversed_posts, many=True)
+        return Response(serializer.data)
+
+    # /api/posts/1/customDetailFunction
+    @action(detail=True)
+    def customDetailFunction(self, request, pk=None):
+        return Response({"data": "커스텀한 정보"})
+```
+- ModelViewSet에서 기본으로 제공하는 url 라우팅 외에 추가적인 주소 routing이 필요할 때
+- action `decorator`를 사용해서 action을 지정
+- 기본 routing된 url 뒤에 함수이름이 붙은 주소가 매핑됨.
+- detail=True : /api/posts/2/<여기>
+  ![](images/viewset_customDetailFunction.png)
+- detail=False : /api/posts/<여기>
+  ![](images/viewset_reversed.png)
+- `@action`(detail=True, `methods=['post', 'put']`)
+  - 기본적으로 라우팅되는 메서드는 get
+  - 메서드 추가해서 라우팅 가능
+  
+
+## filter 기능 구현하기
+```python
+# views.py
+class PostFilter(FilterSet):
+    class Meta:
+        model = Post
+        fields = ['id', 'user_id']
+
+
+class PostViewSet(viewsets.ModelViewSet):
+    ...
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = PostFilter
+```
+FilterSet을 상속받아서 PostFilter 클래스를 정의하고 PostViewSet에 연결해주면 queryset으로 필터링 기능을 사용할 수 있다.
+![](images/viewset_filter.png)
+
+> 사실 post.text의 길이를 기준으로 하는 커스텀 필터를 만들어보려고 했는데, 실패했다.. 추후에 다시 공부해 볼 예정
+## permission 기능 구현하기
+로그인 기능을 구현하고 permission 기능을 사용해보려고 했는데, 로그인 기능을 구현하기에는 아직 공부할 시간이 부족해서 못했다. 다음번 JWT 관련 스터디 후에 이 부분까지 마무리하려고 한다.
+
+## validation 적용하기
+```python
+# serializers.py
+class PostSerializer(serializers.ModelSerializer):
+    ...
+    def validate(self, data):
+        if len(data['text']) < 10:
+            raise serializers.ValidationError("Enter at least 10 characters")
+        return data
+```
+validation의 간단한 동작 원리를 확인하기 위해 새로운 게시글(post)을 작성할 때 text의 길이가 10자 이상인지 검사하도록 설계했다. 
+- url: /api/posts
+- method: POST
+- body: { "text": "3ch" }
+- ![](images/validation_post.png)
+
+## 공부한 내용 정리
+### ViewSet 종류
+- `ViewSet`
+  - APIView 상속
+  - action 제공 X
+  - permission_classes, authentication_classes 속성 지정해서 사용 가능
+- `GenericViewSet`
+  - GenericAPIView 상속
+  - get_object, get_queryset과 같은 기본 set 제공
+  - action 제공 X. mixin 클래스 하나씩 상속하거나 직접 구현해서 사용
+  - permission_classes, authentication_classes 속성 지정해서 사용 가능
+- `ReadOnlyModelViewSet`
+  - GenericAPIView 상속
+  - get_object, get_queryset과 같은 기본 set 제공
+  - listModelMixin, RetrieveModelMixin 상속
+  - list, retrieve 액션 제공
+  - permission_classes, authentication_classes 속성 지정해서 사용 가능
+- `ModelViewSet`
+  - GenericAPIView 상속
+  - get_object, get_queryset과 같은 기본 set 제공
+  - 5개 action에 대한 mixin 모두 상속
+  - 모든 액션 제공
+  - permission_classes, authentication_classes 속성 지정해서 사용 가능
+
+### `Mixin` 이란
+- 다중상속이 가능한 python에서는 특정 기능을 수행하기 위해 mixin 사용
+- 구조적으로는 상속과 같지만, 쓰임이 다름
+```
+GenericAPIView      ListModelMixin      retrieveModelMixin
+(핵심 기능을 구현)      (list action)        (retrieve action)
+
+        |           /               /
+
+ReadOnlyModelViewSet
+```
+- 단순히 클래스 여러개를 상속받는 것이 아니라, 기반이 되는 클래스를 상속받고 특정 기능을 수행하기 위해 Mixin 클래스를 상속받는 개념
+- 
+## 과제 회고
+필터 부분에서 진짜 시간을 많이 쏟았는데, 아직 queryset과 filter의 구동 원리를 정확히 이해하진 못했다. 시간이 날 때 하나씩 뜯어보면서 공부해야겠다. 
+
 # 참고자료
 - [Django Tips #3 Optimize Database Queries](https://simpleisbetterthancomplex.com/tips/2016/05/16/django-tip-3-optimize-database-queries.html)
 - [REST API 제대로 알고 사용하기](https://meetup.toast.com/posts/92)
 - [admin 커스터마이징](https://wayhome25.github.io/django/2017/03/22/django-ep8-django-admin/)
 - [Classy Django REST Framework](https://www.cdrf.co)
+- [ViewSet 커스터마이징 - decorator 사용](https://papimon.tistory.com/69)
+- [Django Query F() object](https://blog.myungseokang.dev/posts/django-f-class/)
