@@ -35,6 +35,7 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     filter_backends = [DjangoFilterBackend]
     filter_class = PostFilter
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class ProfileViewSet(viewsets.ModelViewSet):

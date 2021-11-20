@@ -1125,3 +1125,30 @@ lookup_expr="icontains"를 포함했더니 해당 단어의 특정 문자열만 
 ]
 ```
 
+## Permission
+
+### Permission이란?
+> 어떠한 사용자가 API에 접근해 특정 작업을 수행하려 할 때, request에 담겨오는 
+> user의 정보에 따라 작업의 권한을 줄지 말지 결정하는 것이다
+> 
+### Permission 종류
+
+* AllowAny(default) : 무조건 허용
+* IsAuthenticated : 인증된 사용자에 대한 작업 권한을 허용하고 인증되지 않은 사용에 대한 액세스를 거부
+* IsAuthenticatedOrReadOnly : 인증된 사용자에게는 전체 액세스를 허용하지만 인증되지 않은 사용자에게는 읽기만 허용
+
+```json
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filter_class = PostFilter
+    permission_classes = [IsAuthenticatedOrReadOnly]
+```
+
+ViewSet 내부의 permission_classes 에 추가
+
+## 간단한 회고
+
+시간이 없어서 validation을 못해봤는데 다음에 시간 날 때 꼭 해보고 싶다. 그리고 아직
+필터링에 대해서 완벽하게 이해하지 못한것 같은데 Filterset 특히 method에 대해서 더 자세히 공부해야겠다.
