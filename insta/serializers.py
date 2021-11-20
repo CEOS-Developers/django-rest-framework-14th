@@ -1,5 +1,14 @@
 from rest_framework import serializers
-from .models import User, Post, Comment
+from .models import User, Post, Comment, Follow
+
+
+# Viewset을 위해 새로 추가
+class PostSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'content']
+##
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -31,16 +40,58 @@ class PostCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'content']
 
 
+## User 모델
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'created_at', 'updated_at']
+        fields = ['id', 'username', 'email', 'gender', 'created_at', 'updated_at']
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['username', 'email']
+
+
+## Follow 모델
+# 팔로우-팔로잉 전체 관계 조회 serializer
+class FollowSerializer(serializers.ModelSerializer):
+    userFrom = serializers.SerializerMethodField()
+    userTo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Follow
+        fields = ['id', 'userFrom', 'userTo']
+
+    def get_userFrom(self, obj):
+        return obj.userFrom.username
+    def get_userTo(self, obj):
+        return obj.userTo.username
+
+
+# 특정 유저의 팔로잉 serializer
+class FollowingSerializer(serializers.ModelSerializer):
+    userTo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Follow
+        fields = ['userTo']
+
+    def get_userTo(self, obj):
+        return obj.userTo.username
+
+
+# 특정 유저의 팔로우 serializer
+class FolloweeSerializer(serializers.ModelSerializer):
+    userFrom = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Follow
+        fields = ['userFrom']
+
+    def get_userFrom(self, obj):
+        return obj.userFrom.username
 
 
 # class FolloweeListingField1(serializers.RelatedField):

@@ -16,10 +16,15 @@ class Base(models.Model):
 
 # 유저 모델 구현 -> AbstractUser이용
 class User(AbstractUser, Base):
+    GENDER_CHOICES = (
+        ('male', 'Male'),
+        ('female', 'Female'),
+    )
     photo = models.ImageField(upload_to = "profile", blank=True, null=True) # 프로필 사진
     website = models.URLField(blank=True, null=True) # 웹사이트
     intro = models.CharField(max_length=100, blank=True, null=True) # 소개
     phone_num = PhoneNumberField(blank=True, null=True)
+    gender = models.CharField(choices=GENDER_CHOICES, max_length=30, blank=True, null=True) # 성별
 
     def __str__(self):
         return self.username  # 사용자 이름(인스타 아이디명)을 대표로 함
@@ -63,18 +68,6 @@ class Bookmark(Base):
 
 
 # 팔로우 모델 구현
-# class Follow(Base):
-#     follower = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='follower', primary_key=True)
-#     followee = models.ManyToManyField(Profile, related_name='followee', through='FollowRelation') # follower가 팔로잉하는 사람들 # 역참조할때도 똑같이 followee
-#
-#     def __str__(self):
-#         return self.follower.nickname
-
-
-# 팔로우-팔로잉 중개 모델 설정
-# class FollowRelation(Base):
-#     user = models.ForeignKey(Follow, on_delete=models.CASCADE)
-#     following = models.ForeignKey(Profile, on_delete=models.CASCADE)
-#
-#     def __str__(self):
-#         return self.user.follower.nickname
+class Follow(Base):
+    userFrom = models.ForeignKey(User, related_name='follower', on_delete=models.CASCADE)
+    userTo = models.ForeignKey(User, related_name='followee', on_delete=models.CASCADE)
