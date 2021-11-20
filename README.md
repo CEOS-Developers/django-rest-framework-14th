@@ -1684,3 +1684,325 @@ class PostService():
 Post에 관련된 비즈니스 로직들을 하나의 클래스 안에 메소드로 정의하였다. 지금은 Post에
 대해서만 작성했는데, 다른 모델들도 클래스로 만들어서 사용할 수 있다. 장고에서 더 나은 방식이
 있는지, 이게 더 효율적인 방식인지 아직은 정확히 모르겠다. 더 공부해봐야겠다.
+
+# 6주차 Study 내용 정리
+## 1. Viewset Refactoring
+저번주차 스터디 때 Service layer를 나눠서 비즈니스 로직에 대한 함수를 따로 정의했다. 그래서 코드는 아래와
+같았다.
+```python
+class PostList(APIView):
+    def get(self, request, format=None):
+        return PostService().getAllPost()
+
+    def post(self, request, format=None):
+        data = JSONParser().parse(request)
+        return PostService().createPost(data)
+
+
+class PostDetail(APIView):
+    def get(self, request, id, format=None):
+        return PostService().getOnePostById(id)
+
+    def put(self, request, id, format=None):
+        data = JSONParser().parse(request)
+        return PostService().updatePost(data, id)
+
+    def delete(self, request, id, format=None):
+        return PostService().deletePost(id)
+```
+가독성이 좋고 나름 깔끔하다고 생각했는데, 장고는 이것마저 생략하게 해준다. 그래서
+Viewset을 이용해 리팩토링 해보았다.
+```python
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+```
+충격적일 정도로 코드가 간소화됐다;; 이전 코드랑 똑같이 동작하며 심지어 UserViewSet도
+추가한 코드다,,,
+
+## 2. Filtering
+### Post 필터링
+
+query param인 location으로 필터링을 시도했다. 아래에서 더 좋은 방법들로 필터링을 구현했지만,
+장고문서를 보며 최대한 다양한 방식으로 필터링을 해보고자 했다. 방법은 다음과 같다.
+
+- get_queryset()을 쌩으로 오버라이딩 했다
+
+```python
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+
+    def get_queryset(self):
+        queryset = Post.objects.all()
+        location = self.request.query_params.get('location')
+        if location is not None:
+            queryset = queryset.filter(location=location)
+        return queryset
+```
+location이 Anyang인 포스트를 가져올 수 있었다.
+<br>
+`GET /api/posts/?location=Anyang`
+
+```json
+[
+    {
+        "id": 1,
+        "caption": "Hello world!",
+        "location": "Anyang",
+        "like_count": 1,
+        "comment_count": 2,
+        "comments": [
+            {
+                "id": 1,
+                "text": "hi",
+                "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 2,
+                "text": "hello",
+                "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "files": [],
+        "likes": [
+            {
+                "id": 1,
+                "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            }
+        ],
+        "createdAt": "2021-10-07T19:52:35.737260+09:00",
+        "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    },
+    {
+        "id": 3,
+        "caption": "hello",
+        "location": "Anyang",
+        "like_count": 0,
+        "comment_count": 0,
+        "comments": [],
+        "files": [],
+        "likes": [],
+        "createdAt": "2021-11-12T12:38:51.894078+09:00",
+        "updatedAt": "2021-11-12T12:38:51.894101+09:00",
+        "deletedAt": null,
+        "isDeleted": false
+    }
+]
+```
+
+### 초기 User 필터링
+
+query parameter들인 username, profile__lastName 으로 필터링을 하고자 했다.
+방법은 다음과 같다.
+
+- filterset_fields = ['username', 'profile__lastName'] 을 정의하여 구현
+- DRF를 이용했기에 web에서도 필터 버튼이 생겼다
+
+```python
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['username', 'profile__lastName']
+```
+
+`GET /api/users/?username=keemsw__&profile__lastName=`
+
+필터 버튼을 눌러서 submit해주면 위의 parameter를 포함해서 api를 호출한다.
+
+(근데 invalid name이라 뜬 필드는 profile__lastName인데 왜 저런지 아직 모르겠다ㅠ)
+
+![filter](./img/6th/filter.png)
+
+```json
+[
+    {
+        "id": 1,
+        "email": "",
+        "password": "password",
+        "follower_number": 1,
+        "followee_number": 1,
+        "username": "keemsw__",
+        "firstName": "Seungwoo",
+        "lastName": "Kim",
+        "picture": "",
+        "createdAt": "2021-10-07 10:30:06.757611+00:00",
+        "updatedAt": "2021-10-07 10:30:06.757688+00:00",
+        "deletedAt": null,
+        "isDeleted": "False",
+        "posts": [
+            {
+                "id": 1,
+                "caption": "Hello world!",
+                "location": "Anyang",
+                "like_count": 1,
+                "comment_count": 2,
+                "comments": [
+                    {
+                        "id": 1,
+                        "text": "hi",
+                        "createdAt": "2021-10-07T19:58:00.260379+09:00",
+                        "updatedAt": "2021-10-07T19:58:00.260531+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    },
+                    {
+                        "id": 2,
+                        "text": "hello",
+                        "createdAt": "2021-10-14T01:42:44.556667+09:00",
+                        "updatedAt": "2021-10-14T01:42:44.556701+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    }
+                ],
+                "files": [],
+                "likes": [
+                    {
+                        "id": 1,
+                        "createdAt": "2021-10-07T21:58:10.494431+09:00",
+                        "updatedAt": "2021-10-07T21:58:10.494507+09:00",
+                        "deletedAt": null,
+                        "isDeleted": false
+                    }
+                ],
+                "createdAt": "2021-10-07T19:52:35.737260+09:00",
+                "updatedAt": "2021-10-07T19:52:35.737300+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 3,
+                "caption": "hello",
+                "location": "Anyang",
+                "like_count": 0,
+                "comment_count": 0,
+                "comments": [],
+                "files": [],
+                "likes": [],
+                "createdAt": "2021-11-12T12:38:51.894078+09:00",
+                "updatedAt": "2021-11-12T12:38:51.894101+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 4,
+                "caption": "배고파요",
+                "location": "신촌",
+                "like_count": 0,
+                "comment_count": 0,
+                "comments": [],
+                "files": [],
+                "likes": [],
+                "createdAt": "2021-11-12T12:41:02.466308+09:00",
+                "updatedAt": "2021-11-12T12:41:02.466328+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 5,
+                "caption": "술먹고싶다",
+                "location": "서강대학교",
+                "like_count": 0,
+                "comment_count": 0,
+                "comments": [],
+                "files": [],
+                "likes": [],
+                "createdAt": "2021-11-12T12:45:10.616484+09:00",
+                "updatedAt": "2021-11-12T12:45:10.616508+09:00",
+                "deletedAt": null,
+                "isDeleted": false
+            },
+            {
+                "id": 6,
+                "caption": "test Caption!!!",
+                "location": "test Location",
+                "like_count": 0,
+                "comment_count": 0,
+                "comments": [],
+                "files": [],
+                "likes": [],
+                "createdAt": "2021-11-13T23:42:44.572582+09:00",
+                "updatedAt": "2021-11-13T23:44:36.379927+09:00",
+                "deletedAt": "2021-11-13T23:44:36.379819+09:00",
+                "isDeleted": false
+            }
+        ],
+        "comments": [],
+        "likes": []
+    }
+]
+```
+
+### 수정 이후 User 필터링
+
+`filterset_class = UserFilter` 을 선언하여 커스텀필터링 기능 구현하였다.
+장고의 엄청난 장점인 것 같은데, 필터링 기능들에 대해 클래스와 메소드를 정의하여 구현할
+수 있다. UserFilter 클래스 내부에 username, lastName이란 필터링옵션을 추가했다.
+
+
+```python
+class UserFilter(FilterSet):
+    username = filters.CharFilter(field_name='username')
+    lastName = filters.CharFilter(method='filter_lastName')
+
+    def filter_lastName(self, queryset, name, value):
+        filtered_queryset = queryset.filter(profile__lastName__startswith=value)
+        return filtered_queryset
+
+    class Meta:
+        model = User
+        fields = ['username']
+
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
+```
+
+`GET /api/users/?username=&lastName=le` 
+
+수정 이전 코드에는 profile__lastName으로 네이밍이 길었는데, lastName이란 parameter로 넘겨줄 수 있게 되었다. 또한, profile__lastName__startswith으로 필터링을 했기 때문에 **lee** 라고 입력하지 않고 스트링의 일부인 **le** 만 적어도 필터링 되었다.
+
+```json
+[
+    {
+        "id": 9,
+        "email": "user3@ceos.com",
+        "password": "password",
+        "follower_number": 0,
+        "followee_number": 0,
+        "username": "user3",
+        "firstName": "ceos",
+        "lastName": "lee",
+        "picture": "",
+        "createdAt": "2021-10-13 15:58:54.344908+00:00",
+        "updatedAt": "2021-10-13 15:58:54.344953+00:00",
+        "deletedAt": null,
+        "isDeleted": "False",
+        "posts": [],
+        "comments": [],
+        "likes": []
+    }
+]
+```
+## 6주차 회고
+장고는 개발자가 일을 최대한 덜 하게 도와주는 것 같다. 한 번 코드를 잘 짜놓으면 재사용성도
+엄청 뛰어날 것 같다는 생각이 든다. 아직 validation과 permission 기능을 구현하지 못 했는데
+얼른 내 코드에도 반영을 하고싶다.
