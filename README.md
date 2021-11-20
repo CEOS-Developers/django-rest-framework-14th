@@ -747,3 +747,70 @@ delete() 함수로 삭제를 한 후, `Http204`로 삭제가 완료되었음을 
 
 - 새로운 데이터를 생성하는 POST 함수에서 계속 에러가 난다. ForeignKey로 post_author의 id를 생성하면서 `IntegrityError` 가 떠서 해결을.. 얼른... 해야겠다..
 - 확실히 지난주에 만들었던 view 보다 API view를 사용하는 것이 코드가 깔끔해보여서 좋았다.
+
+
+
+## 6주차 과제
+### 1. Viewset으로 리팩토링하기
+
+APIView → ViewSet
+
+#### 1) ModelViewSet 상속 받기 
+
+```python
+# views.py
+
+from .models import *
+from .serializers import PostSerializer
+from rest_framework import viewsets
+
+
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+```
+
+
+
+#### 2) Router 사용해 url 매핑하기
+
+```python
+# urls.py
+
+router = routers.DefaultRouter()
+router.register(r'posts', PostViewSet)   # register()함으로써 두 개의 url 생성
+
+urlpatterns = router.urls
+```
+
+
+
+### 2. Filtering
+
+```python
+# views.py
+
+from .models import *
+from .serializers import PostSerializer
+from rest_framework import viewsets
+from django_filters.rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+
+class PostFilter(filters.FilterSet):
+
+    class Meta:
+        model = Post
+        fields = {
+            'location': 'Seoul'
+        }
+
+
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PostFilter
+```
+
+에러 잡기 전) 간단한 필터 기능을 구현했다. Post의 위치가 서울인 게시글만 가져오는 필터이다.
