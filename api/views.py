@@ -16,17 +16,21 @@ from .serializers import *
 from .models import *
 
 class PostFilter(FilterSet):
-    author = filters.CharFilter(field_name='author')
+    author = filters.NumberFilter(field_name='author')
+    author__gt = filters.NumberFilter(field_name='author', lookup_expr='gt')
     location = filters.CharFilter(field_name='location')
 
     class Meta:
         model = Post
-        fields = ['author', 'location', 'title']
+        fields = ['author', 'location']
 
 
 class PostViewSet(generics.ListAPIView):
     serializer_class = PostSerializer
-
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend,]
+    filter_class = PostFilter
+    # filterset_fields = ['author', 'location']
     '''
     def get_queryset(self):
         queryset = Post.objects.all()
@@ -36,13 +40,6 @@ class PostViewSet(generics.ListAPIView):
         return queryset
     '''
 
-'''
-class PostViewSet(ModelViewSet):
-    serializer_class = PostSerializer
-    queryset = Post.objects.all()
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['author', 'location']
-'''
 
 '''
 ## 기본 view_set 사용한 부분.
