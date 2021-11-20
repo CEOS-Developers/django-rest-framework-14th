@@ -1,5 +1,8 @@
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from django.contrib.auth import authenticate
+from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer, Serializer, SerializerMethodField
 from rest_framework import serializers as sz
+from rest_framework_jwt.settings import api_settings
 from user.models import User, Follow
 
 
@@ -43,14 +46,15 @@ class UserSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = User
-        fields = [
-            'id', 'login_id', 'email',
-            'nickname', 'bio', 'profile_picture',
-            'follower_nickname',
-            'following_nickname',
-            'is_private', 'is_active', 'is_superuser',
-            'created_date'
-        ]
+        fields = '__all__'
+        # fields = [
+        #     'id', 'login_id', 'email',
+        #     'nickname', 'bio', 'profile_picture',
+        #     'follower_nickname',
+        #     'following_nickname',
+        #     'is_private', 'is_active', 'is_superuser',
+        #     'created_date'
+        # ]
 
     def create(self, validated_data):
         user = User(
@@ -58,6 +62,7 @@ class UserSerializer(DynamicFieldsModelSerializer):
             email=validated_data.get('email'),
             login_id=validated_data.get('login_id')
         )
+        print(validated_data)
         user.set_password(validated_data.get('password'))
         user.save()
         return user

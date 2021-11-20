@@ -15,6 +15,7 @@ DATABASES = {
 }
 
 
+"""
 class SQLFormatter(logging.Formatter):
     def format(self, record):
 
@@ -51,31 +52,32 @@ class SQLFormatter(logging.Formatter):
         # Set the records statement to the formatted query
         record.statement = sql
         return super(SQLFormatter, self).format(record)
+"""
 
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'sql': {
-            '()': SQLFormatter,
-            'format': '[%(duration).3f] %(statement)s',
-        }
-    },
+    # 'formatters': {
+    #     'sql': {
+    #         '()': SQLFormatter,
+    #         'format': '[%(duration).3f] %(statement)s',
+    #     }
+    # },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
         },
-        'sql': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'sql',
-            'level': 'DEBUG',
-        },
+        # 'sql': {
+        #     'class': 'logging.StreamHandler',
+        #     'formatter': 'sql',
+        #     'level': 'DEBUG',
+        # },
     },
     'loggers': {
         'django.db.backends': {
-            'handlers': ['sql'],
+            # 'handlers': ['sql'],
             'level': 'DEBUG',
             'propagate': False,
         },

@@ -2811,3 +2811,479 @@ User 필드를 바꿀 때와 생성할 때, 처음엔 serializer의 파라미터
 좀 지난 뒤, 어쩌다가 `validated_data=data` 이렇게 썼는데 또 무수한 오류가 나를 반겼다. 그래서 `serializer.py` 를 까보니, 데이터 인자는 `data`, `user`같은 모델들은 `instance`로 받는다는 것을 알게 되었다.
 
 새로운걸 알게되어 기분이 좋다.
+
+## 6주차 과제
+
+### Feedback
+
+* URL user -> users
+
+* JSONResponse -> Response
+
+### 1. ViewSet으로 리팩토링하기
+
+```python
+class UserViewSet(ModelViewSet):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
+    permission_classes = [UserPermission]
+
+    @action(detail=True, methods=['GET'], url_path='followings')
+    def following(self, request, pk):
+        instance = Follow.objects.filter(from_user_id=pk)
+        serializer = FollowingSerializer(instance=instance, many=True)
+        return Response(serializer.data)
+            
+
+    @action(detail=True, methods=['GET'], url_path='followers')
+    def follower(self, request, pk):
+        instance = Follow.objects.filter(to_user_id=pk)
+        serializer = FollowingSerializer(instance=instance, many=True)
+        return Response(serializer.data)
+```
+
+이렇게 리팩토링 하였다. 그러나, 이전의 `APIView` 를 사용했을 때 만들었던 `api` 들을 전부 다 가져오진 못했다.  
+
+이전엔 `/api/users/{from_user_id}/following/{to_user_id}` 를 이용하여 유저간의 팔로잉 여부, 팔로우 관계 형성, 제거 등을 실행하였었다.  
+
+그러나 위에 기술된 `url` 같이 2개의 인자를 받는 `router`도 없고, `ViewSet` 에서도 지원하지 않는 듯 하다.
+
+### 2. filter 기능 구현하기
+
+```python
+class UserFilter(FilterSet):
+    email = filters.CharFilter(field_name='email', method='email_filter')
+
+    class Meta:
+        model = User
+        fields = ['nickname', 'login_id', 'email']
+
+    def email_filter(self, queryset, value, *args):
+        domains = args[0].split(',')
+        ret = User.objects.none()
+        for domain in domains:
+            email = '@' + domain + '.com'
+            ret = ret | queryset.filter(email__contains=email)
+            
+        return ret;
+```
+
+`filter` 기능은 다음과 같이 `FilterSet` 클래스를 상속받아 새로 만들었다. `nickname`, `login_id`, `email` 들을 이용하여 검색할 수 있다.  
+
+직접 만든 메서드는 `email_filter` 인데, `email=naver` 와 같이  검색하면 등록된 이메일의 도메인이 `naver` 인 유저들을 불러올 수 있다.
+
+또한 , 를 이용하여 여러 도메인을 받을 수 있게 하였다.  
+
+예를 들어, `email=naver,gmail` 이렇게 parameter를 넘겨주게 되면, `naver`, `gmail` 이 등록된 이메일의 도메인인 유저들의 정보를 불러온다.
+
+### filter 기능 결과
+
+* URL : `/api/users?email=naver,gmail`
+* Method : `GET`
+
+
+```json
+[
+    {
+        "id": 4,
+        "login_id": "nkjljl",
+        "email": "son@naver.com",
+        "nickname": "asdf",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "naf_la"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T16:51:26.938795"
+    },
+    {
+        "id": 5,
+        "login_id": "151515asf315",
+        "email": "so3n@naver.com",
+        "nickname": "asfxzcvxcv",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "naf_la"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T17:23:34.467783"
+    },
+    {
+        "id": 6,
+        "login_id": "15151515135sf315",
+        "email": "so3n3253@naver.com",
+        "nickname": "31412axcvsd",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [
+            "leela"
+        ],
+        "following_nickname": [
+            "naf_la"
+        ],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-08T17:43:36.578081"
+    },
+    {
+        "id": 13,
+        "login_id": "lisanalgaib",
+        "email": "lisan@naver.com",
+        "nickname": "lisanalgaip",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-15T14:10:22.377354"
+    },
+    {
+        "id": 15,
+        "login_id": "egggg",
+        "email": "egg@gmail.com",
+        "nickname": "egg",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-15T16:47:22.148850"
+    },
+    {
+        "id": 16,
+        "login_id": "admin",
+        "email": "ujunhwan@gmail.com",
+        "nickname": "admin",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": true,
+        "created_date": "2021-11-15T17:38:04.634581"
+    },
+    {
+        "id": 17,
+        "login_id": "loginid",
+        "email": "loginid@gmail.com",
+        "nickname": "loginid",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-15T18:43:04.106142"
+    },
+    {
+        "id": 18,
+        "login_id": "id123456",
+        "email": "test@naver.com",
+        "nickname": "test",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": false,
+        "created_date": "2021-11-16T12:10:13.528612"
+    },
+    {
+        "id": 19,
+        "login_id": "superuser",
+        "email": "superuser@gmail.com",
+        "nickname": "superuser",
+        "bio": "",
+        "profile_picture": null,
+        "follower_nickname": [],
+        "following_nickname": [],
+        "is_private": false,
+        "is_active": true,
+        "is_superuser": true,
+        "created_date": "2021-11-16T14:42:10.498014"
+    }
+]
+```
+
+이메일이 전부 `naver` or `gmail` 인 것을 확인할 수 있다.
+
+### 3. permission 기능 구현하기 
+
+```python
+
+class UserPermission(BasePermission):
+    def has_permission(self, request, view):
+        if view.action == 'list':
+            return request.user.is_authenticated and request.user.is_superuser
+        elif view.action in ['create', 'retrieve', 'update', 'partial_update', 'destroy']:
+            return True
+        else:
+            return False
+
+    def has_object_permission(self, request, view, obj):
+        if view.action in ['partial_update', 'destroy', 'update']:
+            return request.user.is_authenticated and (obj == request.user or request.user.is_superuser)
+        elif view.action in ['retrieve', 'create']:
+            return True
+
+        # list
+        return False
+```
+
+`permission` 은 위와 같이 `BasePermission` 클래스를 상속받아 만들었다.  
+먼저, `has_permission` 메서드의 경우는 `User` 목록을 전부 불러오는 `list` 부분만 제외하고 인증없이 가능하게 하였다.
+
+실제 서비스에선 전체 유저들의 목록을 불러오는 기능이 일반 유저에겐 필요가 없기 때문이다. 
+
+`has_permission` 메서드가 실행되고 나서 `True` 를 받아야 그 다음에  `has_object_permission` 메서드가 실행될 수 있기 때문에 나머지는  `True` 를 반환하게 하였다.
+
+`has_object_permission` 은 `retrieve`, `create` 말곤 어드민이거나, 실제 본인이 수정 또는 제거를 하려고 하는지 확인해야 하기 때문에 `or`, `and` 를 이용해 처리하였다.
+
+### permission 결과 
+
+* URL : `/api/users`
+* Method : `GET`
+
+![unauthorization-list](img/unauthorization-list.png)
+
+* URL : `/api/users/15`
+* Method : `GET`
+
+![unauthorization-retrieve](img/unauthorization-retrieve.png)
+
+좀 더 깊게 해보고 싶어서 jwt 토큰을 이용한 로그인 기능도 구현하였다.
+
+* URL : `/api/users`
+* Method : `GET`
+* Authorization : `jwt eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxOSwidXNlcm5hbWUiOiJzdXBlcnVzZXIiLCJleHAiOjE2Mzk2NDE1MDksImVtYWlsIjoic3VwZXJ1c2VyQGdtYWlsLmNvbSIsIm5pY2tuYW1lIjoic3VwZXJ1c2VyIn0.449fEUQlCm4lVB74Lrw_KIvRkUIfE22F3TXJmFSJoVY`
+
+![authorization-list](img/authorization-list.png)
+
+로그인을 해서 받은 토큰을 `Header` 에 넣었을 때, 전체 유저가 조회 가능한 모습을 볼 수 있다.
+
+
+### 4. validation 적용하기
+
+validation을 로그인 하는 과정에 적용하였다.
+
+```python
+class LoginSerializer(serializers.Serializer):
+    id = serializers.UUIDField(required=False, read_only=True)
+    login_id = serializers.CharField(max_length=20)
+    password = serializers.CharField(max_length=30, write_only=True)
+    token = serializers.CharField(max_length=300, read_only=True)
+
+    def validate(self, data):
+        login_id = data.get('login_id', None)
+        password = data.get('password', None)
+        user = authenticate(login_id=login_id, password=password)
+        if user is None:
+            raise serializers.ValidationError(detail=True)
+
+        payload = JWT_PAYLOAD_HANDLER(user)
+        jwt_token = JWT_ENCODE_HANDLER(payload)
+        
+        return {
+            'id':user.id,
+            'login_id':login_id,
+            'token':jwt_token
+        }
+```
+
+`LoginSerializer` 로 들어간 데이터들이 이 검증을 무사히 통과하면, jwt 토큰이 발행되게 만들었다.
+
+![validation](img/validation-login.png)
+
+superuser의 토큰이므로 이걸 이용하면 전체 유저 조회도 할 수 있다.
+
+### 알게된 내용
+
+* ModelViewSet  
+    추상화 정도가 너무 높아서 공식문서를 뒤져봤는데도 자세하게 나오지 않길래 django의 `viewsets.py` 에 들어가서 직접 까보았다.  
+    
+    ```python
+    # viewsets.py
+    class ModelViewSet(mixins.CreateModelMixin,
+                   mixins.RetrieveModelMixin,
+                   mixins.UpdateModelMixin,
+                   mixins.DestroyModelMixin,
+                   mixins.ListModelMixin,
+                   GenericViewSet):
+    """
+    A viewset that provides default `create()`, `retrieve()`, `update()`,
+    `partial_update()`, `destroy()` and `list()` actions.
+    """
+    pass
+    ```  
+
+    단순하게 여러 `Mixin` 들을 상속받고, `GenericViewSet` 이라는 클래스도 상속받는 것을 볼 수 있다. 저 `Mixin` 들 각각이 `create()`, `retrieve()`, `update()`,
+    `partial_update()`, `destroy()` 등을 구현해준다고 하니, 이제 이해가 간다.    
+
+
+* GeneralViewSet  
+
+    ```python
+    class GenericViewSet(ViewSetMixin, generics.GenericAPIView):
+        pass
+    ```
+
+    단순히 `ViewSetMixin`, `GenericAPIView` 를 상속받은 클래스이다. `GenericAPIView` 는 튜토리얼에서 사용해본 적이 있으므로 `ViewSetMixin` 이 궁금했다.  
+
+* ViewSetMixin
+    `as_view()` 메서드 등 여러 메서드등이 정의돼있는 것을 볼 수 있었다. 오픈소스에 기여할 것은 아니니 이정도까지만 봤다.
+
+* DefaultRouter  
+    일일히 매핑 안해도 그냥 `viewset` 만 넣었을 때 자동으로 된다는게 믿기지않았다 그래서 까봤다..
+
+    ```python
+    # DefaultRouter
+    urls = super().get_urls()
+    ```
+    이 `get_urls()` 를 따라가보면
+
+    ```python
+    def get_urls(self):
+       
+        ret = []
+
+        for prefix, viewset, basename in self.registry:
+            lookup = self.get_lookup_regex(viewset)
+            routes = self.get_routes(viewset)
+
+            for route in routes:
+
+                # ... 중략
+
+                if not prefix and regex[:2] == '^/':
+                    regex = '^' + regex[2:]
+
+                initkwargs = route.initkwargs.copy()
+                initkwargs.update({
+                    'basename': basename,
+                    'detail': route.detail,
+                })
+
+                # 어찌됐건 여기서 알맞은 view를 매핑해주는 것을 볼 수 있다.
+                view = viewset.as_view(mapping, **initkwargs)
+                name = route.name.format(basename=basename)
+                ret.append(re_path(regex, view, name=name))
+
+        return ret
+    ```
+
+    주어진 url을 어떻게 쌈싸먹다가 결국엔 알맞은 view를 `as_view` 메서드를 통해서 매핑해주는 것을 볼 수 있다. 속이 후련해졌다.
+
+* permission  
+    `/api/users/{user_id}` 이런 api 요청이 들어왔을 때,  
+    `has_permission` 이 무조건 실행되고 나서, `has_object_permission` 이 실행되는 것을 알았다.  
+
+    처음에 `has_permission` 에서 전부 막아놓고, 왜 안되지 하면서 시간 날려먹었다.  
+
+* filter
+    내가 만든 `email_filter` 메서드에 value를 인자로 받지않으면 작동하지 않는다. 이유는 모르겠다.....
+
+
+### 토큰 발행 ~ 로그인 기능
+
+```python
+class LoginView(APIView):
+    def post(self, request, *args):
+        data = JSONParser().parse(request)
+        serializer = LoginSerializer(data=data)
+        if not serializer.is_valid():
+            raise ValueError
+        return Response(serializer.data)
+
+```
+
+view 를 간단하게 설정해주었다. `serializer` 부분이 되게 중요하다. 
+
+```python
+class LoginSerializer(serializers.Serializer):
+    id = serializers.UUIDField(required=False, read_only=True)
+    login_id = serializers.CharField(max_length=20)
+    password = serializers.CharField(max_length=30, write_only=True)
+    token = serializers.CharField(max_length=300, read_only=True)
+
+    def validate(self, data):
+        login_id = data.get('login_id', None)
+        password = data.get('password', None)
+        user = authenticate(login_id=login_id, password=password)
+        if user is None:
+            raise serializers.ValidationError(detail=True)
+
+        payload = JWT_PAYLOAD_HANDLER(user)
+        jwt_token = JWT_ENCODE_HANDLER(payload)
+        
+        return {
+            'id':user.id,
+            'login_id':login_id,
+            'token':jwt_token
+        }
+```
+
+먼저 `id`, `token` 은 입력으로 받지 않을 것이므로 `read_only` 설정 해주고, `password` 는 응답으로 나오지 않을 것이지만 입력은 받아야 하므로 `write_only` 를 설정해준다.  
+저 `authenticate` 메서드가 굉장히 중요하다. 이 부분때문에 시간을 많이 낭비하였다. 나는 `AbstractBaseUser` 를 사용하기 때문에, `username` 필드가 존재하지 않는다.  
+
+따라서 `username` 필드에 대응하는걸 넣으면 된다고 하는데, 아무리 해도 안돼서 내가 다시 정의하였다.
+
+```python
+class LoginBackend(ModelBackend):
+    def authenticate(self, request, login_id=None, password=None, **kwargs):
+        try:
+            user = User.objects.get(login_id=login_id)
+            if user.check_password(password):
+                return user
+            return None
+
+        except User.DoesNotExist:
+            return None
+```
+
+`ModelBackend` 를 상속한 `LoginBackend` 클래스이다. 이 부분에서 `authenticate` 함수를 오버라이딩 하였다.  
+이 `LoginBackend` 를 사용하기 위해선 추가 설정이 필요하다.
+
+```python
+AUTHENTICATION_BACKENDS = (
+    # 'django.contrib.auth.backends.ModelBackend',
+    'api.serializer.LoginBackend',
+)
+```
+
+이렇게 하고나면 내가 재정의한 `authenticate` 함수가 실행되며 결괏값이 None이 아니면 로그인에 성공하고 토큰이 발행된다.
+
+### 회고
+
+눈이 너무 아프다. `AbstractBaseUser` 로 한걸 좀 후회가 된 하루였다.......... `AbstractUser` 로 했다면 그냥 `username` 사용할 수 있는데..
+
+그리고 `filter` 부분 결과를 내는게 조금 까다로웠다. 여러 인자를 받는 경우 자바의 map 처럼 그냥 `queryset`도 `append` 하면 될 줄 알았는데, `OR` 연산을 해야할 줄은 꿈에도 몰랐따.
+
+`/api/users/3/following/13` 같은 url의 경우 router에서 어떻게 처리해야될지 아직도 모르겠다. 그냥 담아두기로했다.. 너무 추상화정도가 높은 것 같아, 실제 개발을 할땐 이전의 방법을 사용할 것 같다.
+
+
+
+    
+
+

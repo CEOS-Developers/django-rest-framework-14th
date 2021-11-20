@@ -3,12 +3,73 @@ from django.db.utils import IntegrityError
 
 from rest_framework.generics import get_object_or_404
 from rest_framework.parsers import JSONParser
+from rest_framework.utils import serializer_helpers
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import BasePermission
+
+from django_filters.rest_framework import FilterSet, DjangoFilterBackend, filters
 
 from .serializers import FollowerSerializer, FollowingSerializer, UserSerializer
 from user.models import User, Follow
 
+class UserPermission(BasePermission):
+    def has_permission(self, request, view):
+        if view.action == 'list':
+            return request.user.is_authenticated and request.user.is_superuser
+        elif view.action in ['create', 'retrieve', 'update', 'partial_update', 'destroy']:
+            return True
 
+    def has_object_permission(self, request, view, obj):
+        if view.action in ['partial_update', 'destroy', 'update']:
+            return request.user.is_authenticated and (obj == request.user or request.user.is_superuser)
+        elif view.action in ['retrieve', 'create']:
+            return True 
+
+        # list
+        return False
+
+
+class UserFilter(FilterSet):
+    email = filters.CharFilter(field_name='email', method='email_filter')
+
+    class Meta:
+        model = User
+        fields = ['nickname', 'login_id', 'email']
+
+    def email_filter(self, queryset, value, *args):
+        domains = args[0].split(',')
+        ret = User.objects.none()
+        for domain in domains:
+            email = '@' + domain + '.com'
+            ret = ret | queryset.filter(email__contains=email)
+            
+        return ret;
+
+
+class UserViewSet(ModelViewSet):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
+    permission_classes = [UserPermission]
+
+    @action(detail=True, methods=['GET'], url_path='followings')
+    def following(self, request, pk):
+        instance = Follow.objects.filter(from_user_id=pk)
+        serializer = FollowingSerializer(instance=instance, many=True)
+        return Response(serializer.data)
+            
+
+    @action(detail=True, methods=['GET'], url_path='followers')
+    def follower(self, request, pk):
+        instance = Follow.objects.filter(to_user_id=pk)
+        serializer = FollowingSerializer(instance=instance, many=True)
+        return Response(serializer.data)
+
+'''
 class UserView(APIView):
     def get_object(self, pk):
         return get_object_or_404(User, pk=pk)
@@ -125,3 +186,5 @@ class FollowingList(APIView):
         followings = Follow.objects.filter(from_user_id=pk)
         serializer = FollowingSerializer(followings, many=True)
         return JsonResponse(serializer.data, safe=False, status=200)
+
+'''
