@@ -1069,3 +1069,318 @@ Notion에 적혀있는대로 없으면 status 204를 반환하고,  있으면 �
 1. `AttributeError: 'function' object has no attribute 'as_view'`  : 분명히 제대로 했는데 왜 안되는가 했었는데, 저번에 뷰 짤때 넣었던 decorator인 `@csrf_exmept` 가 함수를 반환해서 안되는 것이었다. 지워주니 해결 되었다.
 
 하나를 제대로 구현하니까 나머지들도 쭉쭉 이해가 되기 시작했다. 이거 뷰 꾸미는거 되게 재밌는 것 같다. 부가기능도 더 구현해봐야겠다. `query` 에 관한 이해가 중요할 것 같다.
+
+# 6주차 과제
+
+## ViewSet
+django에서는 view를 통해 `HTTP 요청`을 처리한다.
+
+`APIView` 는 `CBV` 에서 사용되는 것으로 각 `request method` 마다 직접 `Serializer` 처리를 해준다. 하지만 이러한 부분들은 많이 사용되므로 중복이 발생할 수 있다. → 좀  더 간편하게 사용하는 방법이 없을까?
+
+**참고자료** : [APIView - mixin 참고자료](https://ssungkang.tistory.com/entry/Django-APIView-Mixins-generics-APIView-ViewSet%EC%9D%84-%EC%95%8C%EC%95%84%EB%B3%B4%EC%9E%90)
+
+## Mixin 상속
+
+`rest_framework.mixins` 에 구현되어 있는 기능들은 다음과 같다.
+
+- CreatedModelMixin
+- ListModelMixin
+- RetrieveModelMixin
+- UpdateModelMixin
+- DestroyModelMixin
+
+이것을 사용하는 방법은 `queryset` 과 `serializer_class` 를 지정해주기만 하면 나머지는 상속받은 `Mixin` 과 연결해주기만 하면 된다고 한다.
+
+## Generics APIView
+
+`Mixin` 을 상속받으면 중복을 많이 줄일 수 있었으나, 여러 개를 상속해야 하다보니 가독성이 떨어진다. `rest_framework` 에서는 저들을 상속한 새로운 클래스를 정의해 놓았는데, 바로  `generics APIView` 이다.
+
+총 9개의 클래스로 다음과 같다.
+
+- `generics.CreateAPIView` : 생성
+- `generics.ListAPIView` : 목록
+- `generics.RetrieveAPIView` : 조회
+- `generics.DestroyAPIView` : 삭제
+- `generics.UpdateAPIView` : 수정
+- `generics.RetrieveUpdateAPIView` : 조회/수정
+- `generics.RetrieveDestroyAPIView` : 조회/삭제
+- `generics.ListCreateAPIView` : 목록/생성
+- `generics.RetrieveUpdateDestroyAPIView` : 조회/수정/삭제
+
+## ViewSet
+
+이정도만 해도 많이 간소화 시킬 수 있는데, `queryset` 과 `serializer` 가 공통적으로 사용됨에도 불구하고 따로 기재를 해주어야 하는데, 이를 ViewSet을 이용해서 한번에 처리해 줄 수 있다.
+
+CBV가 아닌 헬퍼 클래스로 두 가지 종류가 있다.
+
+- `viewsets.ReadOnlyModelViewSet` : 목록 조회, 특정 레코드 조회
+- `viewsets.ModelViewSet` : 목록 조회, 특정 레코드 생성/조회/수정/삭제
+
+**참고자료**  : [ViewSet과 Router](https://ssungkang.tistory.com/entry/Django-ViewSet-%EA%B3%BC-Router)
+
+## Router
+
+기존에는 `as_view` 를 통해 각 `request method` 마다 대응되는 함수를 연결시켜주었다면 `router` 는 이를 알아서 연결시켜준다.
+
+- list route
+    - `url` : `/prefix/`
+    - `name` :  `{model name}-list` , 단 model name 은 소문자입니다.
+    `'get': 'list'` `'post': 'create'`
+    
+- detail route
+    - `url` : `/prefix/pk/`
+    - `name` : `{model name} - detail` 
+    `'get' : 'retrieve'`, `'put' : 'update'`, `'patch' : 'partial_update'`, `'delete' : 'destroy'`
+
+### Router 이용해서 URL 수정
+
+```python
+from django.urls import path, include
+from . import views
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'posts', views.PostViewSet)
+
+urlpatterns = [
+    path('',include(router.urls)),
+]
+```
+
+## Filtering
+
+쿼리를 필터링하여 관련된 결과 값만 반환할 수 있다.
+
+먼저, `Filterset` 을 이용하기 전에 `filtering` 에 대한 이해를 조금이나마 하고 가야 할 것 같다는 생각이 들었다.
+
+`get_queryset`  을 이용하여 url 뒤에 오는 `parameter` 들을 쿼리를 날려서 반환할 수 있었다.
+
+- `Request` : GET [http://localhost:8000/api/posts?author=1](http://localhost:8000/api/posts?author=1)
+
+```python
+class PostViewSet(generics.ListAPIView):
+    serializer_class = PostSerializer
+    def get_queryset(self):
+        queryset = Post.objects.all()
+        authorname = self.request.query_params.get('author')
+        if authorname is not None:
+            queryset = queryset.filter(author=authorname)
+        return queryset
+```
+
+## FilterSet
+
+### 세팅 방법
+
+```python
+# settings.py 
+REST_FRAMEWORK = { 
+............. 
+'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',), 
+............. 
+}
+```
+
+```python
+# views.py
+
+class PostViewSet(ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['author', 'location']
+```
+참고자료 : [drf 4.filters]([https://uiandwe.tistory.com/1291](https://uiandwe.tistory.com/1291))
+
+먼저 django_filters의 다양한 필터를 통해 구현하는데 , `serializer` 의 선언과 비슷하다고 한다.
+
+필터링의 선언은 크게 3가지로 요약할 수 있다.
+
+- url에 어떻게 선언할 것인가
+- 어떤 타입으로 받을 것인가
+- 어떤 조건으로 필터링 할것인가
+
+예를 들어,
+
+```python
+count__gt = NumberFilter(field_name="count", lookup_expr="gt")
+```
+
+이런 코드가 들어온다면, `url` 에서 `count__gt` 로 값을 넘겨줄 때만 동작한다고 한다. 즉, `url` 에서 `count` 로 값을 줄 때, `count__gt` 로 값을 넘겨줄 때 구분해서 동작할 수 있다는 것.
+
+```python
+#views.py
+class PostFilter(FilterSet):
+    author = filters.NumberFilter(field_name='author')
+    location = filters.CharFilter(field_name='location')
+		author__gt = filters.NumberFilter(field_name='author', lookup_expr='gt')
+
+    class Meta:
+        model = Post
+        fields = ['author', 'location']
+
+class PostViewSet(generics.ListAPIView):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend,]
+    filter_class = PostFilter
+```
+
+위에 거랑 큰 차이는 아직 없으나, 모델의 수정에 따라서 훨씬 편하게 사용될 수 있을 것 같다.
+
+`author__gt` 는 여기서 쿼리의 의미가 딱히 없으나, 작동을 잘 하는지 테스트 하기 위해서 넣어두었다. 정상 작동하는 것을 확인!
+
+## Permission
+
+**참고자료** : [[Django] Authentication 과 Permissions]([https://ssungkang.tistory.com/entry/Django-Authentication-과-Permissions](https://ssungkang.tistory.com/entry/Django-Authentication-%EA%B3%BC-Permissions))
+
+### Django에서 주는 기본적인 권한들
+
+- is_superuser
+    - createsuper 로 생성한 user 에 대해 True
+- True일 경우 별도 permission 없이 모든 권한 허용
+- is_staff
+    - True 일 경우 admin 페이지 접속가능
+    - 나머지는 일반 유저와 동일
+- is_active
+    - False 일 경우 모든 권한 불허
+    - 로그인도 불가능
+
+### DRF에서 기본제공하는 Permission
+
+- `AllowAny` : 인증여부에 상관없이 뷰 호출 허용 (default)
+- `IsAuthenticated` : 인증된 요청에 한해서 뷰호출 허용
+- `IsAdminUser` : Staff 인증 요청에 한해서 뷰호출 허용
+- `IsAuthenticatedOrReadOnly` : 비인증 요청에게는 읽기 권한만 허용
+- `DjangoModelPermissions` : 인증된 요청에 한해서만 뷰 호출 허용, 추가로 유저별 인증 권한체크를 수행
+- `DjangoModelPermissionsOrAnonReadOnly` : DjangoModelPermissions 와 유사하나 비인증 요청에 대해서는 읽기 권한만 허용
+- `DjangoObjectPermissions`
+    - 비인증된 요청 거부
+    - 인증된 레코드 접근에 대한 권한체크를 추가로 수행
+    
+
+### 권한 부여 방법
+
+`APIView` 에서는 `permission_classes` 를 통해 권한을 지정할 수 있다.
+
+`ViewSet` 또한 `APIView` 를 상속받았으므로 가능하다.
+
+```python
+class PostViewSet(generics.ListAPIView):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend,]
+    filter_class = PostFilter
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def perform_create(self, serializer):
+        print(self.request.user)
+        serializer.save(author=self.request.user)
+```
+
+이렇게 세팅하고 `GET request` 를 날리니까, 
+
+> "detail": "자격 인증데이터(authentication credentials)가 제공되지 않았습니다."
+> 
+
+이렇게 나온다.  그래서 `Authorization` 에 내 아이디 비밀번호를 입력해서 날리니까 정상 출력이 된다. 신기하다.
+
+### Custom Permission
+
+모든 Permission Class는 2가지 함수를 선택적으로 구현한다고 한다.
+
+- has_permission(request, view)
+    - 뷰 호출 접근 권한
+    - APIView 접근 시 체크
+- has_object_permission(request, view, obj)
+    - 개별 레코드 접근 권한
+    - APIView 의 get_object 함수를 통해 object 획득 시 체크
+    - 브라우저를 통한 API 접근시에 CREATE/UPDATE Form 노출 여부 확인 시에
+    
+Permission Class들의 코드 : [Permission]([https://github.com/encode/django-rest-framework/blob/master/rest_framework/permissions.py](https://github.com/encode/django-rest-framework/blob/master/rest_framework/permissions.py))
+
+커스텀 Permission을 만들기 위해서 `[permissions.py](http://permissions.py)` 파일을 만들어 안에서 새롭게 정의해 보도록 한다.
+
+간단하게 몇가지를 살펴보자.(나머지는 위에 링크 참조)
+
+`AllowAny` 는 모든 요청에 대해 허가합니다.
+
+```python
+class AllowAny(BasePermission):
+	def has_permission(self, request, view):
+		return True
+```
+
+`IsAuthenticated` 는 유저가 존재하고 로그인 되어 있을 경우에 허가합니다.
+
+```python
+class IsAuthenticated(BasePermission):
+	def has_permission(self, request, view):
+		return bool(request.user and request.user.is_authenticated)
+
+```
+
+`IsAdminUser` 는 유저가 존재하고 스태프일 경우에 허가합니다.
+
+```python
+class IsAdminUser(BasePermission):
+	def has_permission(self, request, view):
+		return bool(request.user and request.user.is_staff)
+
+```
+
+`IsAuthenticatedOrReadOnly` 는 안전한 request method 이거나 유저가 존재하고 로그인 되어 있을 경우에 허가합니다.
+
+```python
+class IsAuthenticatedOrReadOnly(BasePermission):
+	def has_permission(self, request, view):
+		return bool(
+            request.method in SAFE_METHODSor
+            request.user and
+            request.user.is_authenticated
+        )
+```
+
+이 블로그에서는 상단부에 수정이나 삭제, 삽입을 하지 않는 안전한 메소드들을 따로 정의해 두었는데, 좋은 방법인 것 같다.
+
+```python
+SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+```
+
+포스트 작성자에 한해 수정/삭제 권한을 부여해보자.
+
+```python
+class IsAuthorOrReadonly(permissions.BasePermission):
+    # 인증된 유저에 대해 조회/포스팅 허용.
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+    # 작성자는 삭제 허용
+    def has_object_permission(self, request, view, obj):
+        # 안전한 요청은 항상 허용.
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.author == request.user
+```
+
+이 클래스를 `[views.py](http://views.py)` 에 `permission_classes` 항목에 넣으면 된다.
+
+오, 진짜 신기하다.
+
+추가로 관리자 권한도 부여해보았다.
+
+관리자는 프리패스여야 하니까.
+
+```python
+class IsAdminUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_staff)
+
+    def has_object_permission(self, request, view, obj):
+        return bool(request.user and request.user.is_staff)
+```
+
+근데 POST Request가 작동하지 않는다. 이거 수정해야한다.
