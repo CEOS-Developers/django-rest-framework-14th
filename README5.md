@@ -137,6 +137,22 @@ Vary: Accept
 
 DRF의 APIView 클래스는 Django의 View 클래스의 서브클래스이고, DRF의 가장 기본적인 view class이다. APIView의 사용법은 장고의 View class와 비슷하다. HTTP method에 따라 handler method(`.get()`, `.post()`, ...)를 정의해서 request를 처리한다.
 
+### Trailing Slash
+
+URI는 트레일링 슬래시의 유무에 따라서 완전히 다른 리소스를 가리키게 된다.
+
+예시: `/foo` 와 `/foo/` 는 완전히 다르다. `/foo`는 1개의 segment(foo)로 이루어져 있고, `/foo/`는 2개의 segment(foo와 empty segment)로 이루어져 있다.
+
+Trailing slash에 대한 공식적인 REST 규정은 없지만, 일반적으로 더 정확하고 확실하게 리소스를 가리키기 위해 트레일링 슬래시를 붙이지 않는다.
+
+REST API URI를 디자인할 때는 보통 다음 관습을 따른다.
+
+1. collection은 1개의 segment를 사용한다. (ex. `/api/posts`)
+2. collection의 members는 2개의 segment를 사용한다. (ex. `/api/posts/20`)
+
+[7 Rules for REST API URI Design](https://blog.restcase.com/7-rules-for-rest-api-uri-design/) / 
+[RESTful URI trailing slash or no trailing slash](https://stackoverflow.com/questions/61547014/restful-uri-trailing-slash-or-no-trailing-slash)
+
 ### 회고
 
 개인적으로 FBV보단 CBV가 훨씬 코드도 깔끔하고 편하게 느껴진다. 하지만 특정 에러를 핸들링할 때는 CBV를 사용하지 않는 등 CBV가 FBV를 모든 부분에서 대체하지는 못한다고 하니 아쉽다. 왜 CBV를 사용하지 못하고 FBV를 사용해야만 하는지 더 공부해야 겠다.
