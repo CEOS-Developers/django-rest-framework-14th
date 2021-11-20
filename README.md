@@ -1147,11 +1147,28 @@ urlpatterns = [
 ]
 ```
 
+## Filtering
+
+쿼리를 필터링하여 관련된 결과 값만 반환할 수 있다.
+
+먼저, `Filterset` 을 이용하기 전에 `filtering` 에 대한 이해를 조금이나마 하고 가야 할 것 같다는 생각이 들었다.
+
+`get_queryset`  을 이용하여 url 뒤에 오는 `parameter` 들을 쿼리를 날려서 반환할 수 있었다.
+
+- `Request` : GET [http://localhost:8000/api/posts?author=1](http://localhost:8000/api/posts?author=1)
+
+```python
+class PostViewSet(generics.ListAPIView):
+    serializer_class = PostSerializer
+    def get_queryset(self):
+        queryset = Post.objects.all()
+        authorname = self.request.query_params.get('author')
+        if authorname is not None:
+            queryset = queryset.filter(author=authorname)
+        return queryset
+```
+
 ## FilterSet
-
-ViewSet에서 Request parameter로 받은 값이랑 일치하는 데이터를 조회할 때, 원래는 하나하나 filter 조건에 추가해서 받아야 한다.
-
-하지만 Filterset을 세팅해놓으면 그럴 필요가 없다.
 
 ### 세팅 방법
 
@@ -1174,13 +1191,112 @@ class PostViewSet(ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'location']
 ```
+참고자료 : [drf 4.filters]([https://uiandwe.tistory.com/1291](https://uiandwe.tistory.com/1291))
 
-이렇게 세팅하면 내가 `author` 이나 `location` 값을 세팅해주면 나오게 된다.
+먼저 django_filters의 다양한 필터를 통해 구현하는데 , `serializer` 의 선언과 비슷하다고 한다.
 
-### 결과
+필터링의 선언은 크게 3가지로 요약할 수 있다.
 
+- url에 어떻게 선언할 것인가
+- 어떤 타입으로 받을 것인가
+- 어떤 조건으로 필터링 할것인가
 
+예를 들어,
 
-## 미완성한 점
+```python
+count__gt = NumberFilter(field_name="count", lookup_expr="gt")
+```
 
-아직 filterset이용하지 말고 queryset 이용한 것을 구현을 못했다. 그리고 나머지 선택 과제들 구현을 못했다.
+이런 코드가 들어온다면, `url` 에서 `count__gt` 로 값을 넘겨줄 때만 동작한다고 한다. 즉, `url` 에서 `count` 로 값을 줄 때, `count__gt` 로 값을 넘겨줄 때 구분해서 동작할 수 있다는 것.
+
+```python
+#views.py
+class PostFilter(FilterSet):
+    author = filters.NumberFilter(field_name='author')
+    location = filters.CharFilter(field_name='location')
+		author__gt = filters.NumberFilter(field_name='author', lookup_expr='gt')
+
+    class Meta:
+        model = Post
+        fields = ['author', 'location']
+
+class PostViewSet(generics.ListAPIView):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend,]
+    filter_class = PostFilter
+```
+
+위에 거랑 큰 차이는 아직 없으나, 모델의 수정에 따라서 훨씬 편하게 사용될 수 있을 것 같다.
+
+`author__gt` 는 여기서 쿼리의 의미가 딱히 없으나, 작동을 잘 하는지 테스트 하기 위해서 넣어두었다. 정상 작동하는 것을 확인!
+
+## Permission
+
+**참고자료** : [[Django] Authentication 과 Permissions]([https://ssungkang.tistory.com/entry/Django-Authentication-과-Permissions](https://ssungkang.tistory.com/entry/Django-Authentication-%EA%B3%BC-Permissions))
+
+### Django에서 주는 기본적인 권한들
+
+- is_superuser
+    - createsuper 로 생성한 user 에 대해 True
+- True일 경우 별도 permission 없이 모든 권한 허용
+- is_staff
+    - True 일 경우 admin 페이지 접속가능
+    - 나머지는 일반 유저와 동일
+- is_active
+    - False 일 경우 모든 권한 불허
+    - 로그인도 불가능
+
+### DRF에서 기본제공하는 Permission
+
+- `AllowAny` : 인증여부에 상관없이 뷰 호출 허용 (default)
+- `IsAuthenticated` : 인증된 요청에 한해서 뷰호출 허용
+- `IsAdminUser` : Staff 인증 요청에 한해서 뷰호출 허용
+- `IsAuthenticatedOrReadOnly` : 비인증 요청에게는 읽기 권한만 허용
+- `DjangoModelPermissions` : 인증된 요청에 한해서만 뷰 호출 허용, 추가로 유저별 인증 권한체크를 수행
+- `DjangoModelPermissionsOrAnonReadOnly` : DjangoModelPermissions 와 유사하나 비인증 요청에 대해서는 읽기 권한만 허용
+- `DjangoObjectPermissions`
+    - 비인증된 요청 거부
+    - 인증된 레코드 접근에 대한 권한체크를 추가로 수행
+    
+
+### 권한 부여 방법
+
+`APIView` 에서는 `permission_classes` 를 통해 권한을 지정할 수 있다.
+
+`ViewSet` 또한 `APIView` 를 상속받았으므로 가능하다.
+
+```python
+class PostViewSet(generics.ListAPIView):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    filter_backends = [DjangoFilterBackend,]
+    filter_class = PostFilter
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def perform_create(self, serializer):
+        print(self.request.user)
+        serializer.save(author=self.request.user)
+```
+
+이렇게 세팅하고 `GET request` 를 날리니까, 
+
+> "detail": "자격 인증데이터(authentication credentials)가 제공되지 않았습니다."
+> 
+
+이렇게 나온다.  그래서 `Authorization` 에 내 아이디 비밀번호를 입력해서 날리니까 정상 출력이 된다. 신기하다.
+
+### Custom Permission
+
+모든 Permission Class는 2가지 함수를 선택적으로 구현한다고 한다.
+
+- has_permission(request, view)
+    - 뷰 호출 접근 권한
+    - APIView 접근 시 체크
+- has_object_permission(request, view, obj)
+    - 개별 레코드 접근 권한
+    - APIView 의 get_object 함수를 통해 object 획득 시 체크
+    - 브라우저를 통한 API 접근시에 CREATE/UPDATE Form 노출 여부 확인 시에
