@@ -841,3 +841,105 @@ post를 새로 만드는 api의 경우도 마찬가지로 user 객체가 필요�
 완벽한 예외 처리를 구현하지는 못했습니다. <br>
 (그러나 당장은 중요하지 않다고 판단하여 제출합니다.)<br>
 평소에 하지 못했던 1등을 처음으로...?
+
+
+# 6주차 DRF3 : ViewSet & Filter & Permission & Validation
+
+## 어떤 순서로 진행을 했는가?
+
+- ViewSet에 대해 공부
+- Fiter에 대해 공부
+
+## ViewSet에 대한 나의 생각
+
+일단 View보다 덜 명확하고 안 와닿았다. 
+상속이라는 개념이 쓰여서 parent가 뭔지 모르면 "아니 근데 이게 왜 됨?" 이나,
+ModelViewSet의 경우 코드가 어떤 원리로 동작하는지 알 수 없었다.
+(두 줄로 끝나는게 말이 됩니까...)
+
+우선 자동으로 url 패턴을 생성해주는 것은 정말 좋은 것 같다.
+자유도는 물론 View를 그냥 사용하는 것보다 떨어진다. 
+하지만, 반대로 생각해 보면 자동으로 생성해주는 url 패턴이 표준이기 때문에,
+그동안 잘못된 pattern을 사용하고 있었다면 자동으로 고쳐졌을 수도 있다.
+
+## ViewSet 정리
+
+어떤 구조로 이루어져있을까?
+
+APIView
+- ViewSet
+
+GenericAPIView (get_object, get_queryset)
+- GenericViewSet
+- ModelViewSet
+- ReadOnlyModelViewSet
+
+ModelViewSet
+GenericAPIView를 상속하기 때문에, `queryset`, `serializer_class` 가 필요하다.
+```python
+class AccountViewSet(viewsets.ModelViewSet):
+    """
+    A simple ViewSet for viewing and editing accounts.
+    """
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+    permission_classes = [IsAccountAdminOrReadOnly]
+```
+위의 코드는 기본 코드이다. 위에서도 알 수 있듯이 로직이 매우 단순하다.
+- query로 객체 가져오기
+- serializer에 넣고 쓱싹
+- 그 이후 로직...
+
+사실 이 전에 view를 구현할 때와 같은 로직인데, 다른 점이 있다면 많이(조금 매우 많이) 축약되어있다는 점?
+~~그 전에 힘들게 100줄 짠 코드가 어떻게 4줄로 끝이 납니까... 이게 맞나요?~~
+
+## filter 정리
+
+filter, 말 그대로 필터링해준다. 그 전의 코드에서도 comment를 받았던 부분 중 하나인데,
+그 전의 code에서는 내가 내 맘대로 View를 작성하다 보니까 기능이 살짝 흩어져있는 것이 보였다.
+그 때 수연님께서 "보통 list와 같이 배열 형태로 가져오게 되는 경우 해당 클래스에서 filter을 구현합니다."
+쉽게 비유하자면 "여기 저기서 필터링 하지 말고 한 곳에서 필터링을 하는 로직을 모아 놓자"
+정도로 이해하면 좋을 것 같다. 
+
+이번 주차에 제공된 자료에서도 볼 수 있듯이, argument에 따라 
+필터링 함수의 로직이 살짝 살짝 바뀌면서 원하는 값을
+필터링할 수 있도록 아주 멋지게 구현되어 있다.
+그렇게 한다면 큰 로직은 그대로, 자잘한 내가 원하는 부분들만 바꿔서 계속 쓸 수 있게 된다.
+
+이 개념은 사실 앞에서 말한 ViewSet의 상속 개념과도 일맥상통하는데,
+코드의 질을 나누는 기준은 얼마나 이런 것들을 잘 처리하는지에 따라 달라질 것 같다.
+
+실제로 구현한 filter - 특정 유저의 모든 게시물을 조회하는 api이다.
+스터디 자료에서처럼 list 액션을 override해서 만들었다.
+한 가지 디테일을 추가하자면 order_by를 사용하여 update시간에 따라 정렬했다.
+코드 몇 자를 더 적지 않고 **프론트**에서 추가적인 조작 없이 바로 뿌려줄 수 있도록 만들었다.
+```python
+# 특정 유저의 모든 post 조회
+    def list(self, request, *args, **kwargs):
+        query_params = request.query_params
+        self.queryset = self.get_queryset().filter(user__id__icontains=query_params.get('user_id')).order_by('-updated_at')
+        return super().list(request, *args, **kwargs)
+```
+## 오류
+
+Related Field got invalid lookup: icontains
+filter을 할 때 foreign key가 포함되어서 일어나는 오류이다.
+사실 지금까지 개발할 때 model 창을 옆에 띄워놓고 이걸 이렇게 참조하고...
+이러면서 했는데 파이썬에서 참조할 수 있는 field들을 자동완성으로 추천해준다....
+이거 미리 알았으면 더 좋았을텐데... 삽질한 만큼 성장했을 거라고 믿는다...
+
+## 간단한 회고
+
+일단 이번 주차 과제를 위해 작성한 코드는 몇 줄 안 되지만, ViewSet을 이해하고 쓰기 위해
+정말 많은 테스트를 거쳤고 많은 양의 코드를 썼다 지웠다.
+근데 최종 결과물은 별로 한 게 없어 보여서 살짝 슬펐다.
+
+그리고 스터디 자료에서 말한 Magic... 솔직히 놀랍지만, 살짝 허탈하다...
+
+그리고 이번 주차를 관통하는 주제는 상속과 override 인 것 같다.
+"어떻게 하면 효율적인 코드를 작성할 것인가"
+"어떻게 하면 관리하기 쉬운 코드를 작성할 것인가"
+에 대한 질문의 답이 될 수도 있겠다.
+
+다만, 맨 앞에서 소감에서도 썼듯이 코드가 한 눈에 안 와닿을 수도 있고 덜 명확해 보인다는 단점이 있을 수도 있겠다.
+~~그럼 더 공부를 하렴~~

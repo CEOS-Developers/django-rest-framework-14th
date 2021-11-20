@@ -1,13 +1,25 @@
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from .models import *
 from .serializers import UserSerializer, PostSerializer
-from django.core.exceptions import ObjectDoesNotExist
-from django.http import Http404
+from rest_framework import viewsets
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    # 특정 유저의 모든 post 조회
+    def list(self, request, *args, **kwargs):
+        query_params = request.query_params
+        self.queryset = self.get_queryset().filter(user__id__icontains=query_params.get('user_id')).order_by('-updated_at')
+        return super().list(request, *args, **kwargs)
+
+
+'''
 class UserList(APIView):
     # get all user list, get specific user data
     # noinspection PyMethodMayBeStatic
@@ -87,6 +99,10 @@ class PostDetail(APIView):
     def put(self, request, post_id):
         # 일단은 post id로 찾긴 하는데 user_id로 검증 한 번 더 필요
         post = get_object(post_id)
+        print("data type : ")
+        print(type(request.data))
+        print("post type : ")
+        print(type(post))
         serializer = PostSerializer(post, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -99,4 +115,4 @@ class PostDetail(APIView):
         post = get_object(post_id)
         post.delete()
         return Response({"post id : " + str(post_id) + " 가 성공적으로 삭제되었습니다."}, status=204)
-
+'''
