@@ -16,6 +16,7 @@ from rest_framework import viewsets
 import django_filters.rest_framework
 from django_filters.rest_framework import FilterSet, filters
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions
 
 
 # User Filter 추가 -> 성별을 기준으로 필터링하기
